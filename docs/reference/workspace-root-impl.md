@@ -1,6 +1,6 @@
 # Workspace Root Implementation
 
-This reference explains runtime-root behavior. The source of truth is `zen-server/src/infra/config.rs`.
+This reference explains runtime-root behavior. The source of truth is `crates/config/src/lib.rs` and the backend mounting code in `apps/server/src/infra/app.rs`.
 
 ## Current Behavior
 
@@ -26,7 +26,7 @@ Avatar public URLs use:
 
 ## Serving
 
-`zen-server/src/infra/app.rs` mounts:
+`apps/server/src/infra/app.rs` mounts:
 
 - upload files at `RUSTZEN_FILES_PREFIX`
 - avatar files at `<RUSTZEN_FILES_PREFIX>/avatars`
@@ -36,7 +36,7 @@ The backend must not depend on build-machine absolute paths.
 
 ## Tests
 
-`zen-server/src/infra/config.rs` includes unit tests for:
+`crates/config/src/lib.rs` and `crates/runtime/src/lib.rs` include unit tests for:
 
 - local default runtime root
 - derived runtime paths

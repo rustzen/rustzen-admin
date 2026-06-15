@@ -1,4 +1,4 @@
-name: Rustzen Admin Build
+name: RustZen Admin Build
 
 on:
     workflow_dispatch:

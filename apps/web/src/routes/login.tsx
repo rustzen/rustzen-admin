@@ -7,6 +7,7 @@ import { useState } from "react";
 import { authAPI } from "@/api";
 import loginIllustrationUrl from "@/assets/login-illustration.png";
 import rustzenLogoUrl from "@/assets/rustzen-logo.png";
+import { APP_BRAND_NAME, RUSTZEN_BRAND_NAME } from "@/constant/brand";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export const Route = createFileRoute("/login")({
@@ -47,12 +48,12 @@ function LoginPage() {
                     <span className="flex h-10 w-10 items-center justify-center">
                         <img
                             src={rustzenLogoUrl}
-                            alt="Rustzen"
+                            alt={RUSTZEN_BRAND_NAME}
                             className="h-10 w-10 object-contain"
                         />
                     </span>
                     <span className="text-[22px] font-bold leading-none text-[#071836]">
-                        Rustzen Admin
+                        {APP_BRAND_NAME}
                     </span>
                 </header>
 
@@ -61,7 +62,7 @@ function LoginPage() {
                         <div className="h-[500px] xl:h-[610px]">
                             <img
                                 src={loginIllustrationUrl}
-                                alt="Rustzen Admin Operations Management Platform"
+                                alt={`${APP_BRAND_NAME} Operations Management Platform`}
                                 className="h-full w-full object-contain object-left drop-shadow-[0_34px_72px_rgba(38,103,255,0.12)]"
                             />
                         </div>
@@ -85,10 +86,10 @@ function LoginPage() {
                     >
                         <div className="mb-10 text-center xl:mb-12">
                             <h1 className="m-0 text-[36px] font-extrabold leading-none text-[#061634] xl:text-[40px]">
-                                Rustzen <span className="text-[#1677ff]">Admin</span>
+                                RustZen <span className="text-[#1677ff]">Admin</span>
                             </h1>
                             <p className="mt-6 text-base leading-none text-[#8b98ae]">
-                                Welcome to Rustzen Admin
+                                Welcome to {APP_BRAND_NAME}
                             </p>
                         </div>
 
@@ -175,7 +176,7 @@ function LoginPage() {
                 </div>
 
                 <footer className="shrink-0 pb-3 text-sm text-[#7f8da7]">
-                    © {currentYear} Rustzen. All rights reserved.
+                    © {currentYear} {RUSTZEN_BRAND_NAME}. All rights reserved.
                 </footer>
             </div>
         </main>

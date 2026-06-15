@@ -9,7 +9,7 @@ import { MessageContent, authAPI } from "@/api";
 import { BaseLayout } from "@/components/base-layout";
 import { useAuthStore } from "@/store/useAuthStore";
 
-const permissionFreePaths = new Set(["/", "/profile", "/403", "/404"]);
+const permissionFreePaths = new Set(["/profile", "/403", "/404"]);
 
 export const Route = createRootRoute({
     beforeLoad: (ctx: { location: { pathname: string } }) => {
@@ -66,8 +66,12 @@ function RootLayout() {
                 </BaseLayout>
                 <MessageContent />
             </App>
-            <ReactQueryDevtools buttonPosition="bottom-right" />
-            <TanStackRouterDevtools />
+            {import.meta.env.DEV && (
+                <>
+                    <ReactQueryDevtools buttonPosition="bottom-right" />
+                    <TanStackRouterDevtools />
+                </>
+            )}
         </ConfigProvider>
     );
 }

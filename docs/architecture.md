@@ -33,7 +33,7 @@ Local development runs backend and frontend separately:
 - backend and frontend development targets are defined in the root `justfile`.
 - frontend dev server runs on `127.0.0.1:9800`.
 - backend API defaults to `RUSTZEN_APP_PORT=9801`.
-- frontend dev traffic proxies `/api` and `/uploads` to the backend API through `apps/web/vite.config.ts`.
+- frontend dev traffic proxies `/api` and `/resources` to the backend API through `apps/web/vite.config.ts`.
 
 Packaged deployment runs the backend as the serving process:
 

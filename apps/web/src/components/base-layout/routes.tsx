@@ -3,11 +3,9 @@ import {
     ClockCircleOutlined,
     CloudUploadOutlined,
     DashboardOutlined,
-    FileUnknownOutlined,
     HistoryOutlined,
     MenuOutlined,
     SettingOutlined,
-    StopOutlined,
     TeamOutlined,
     UserOutlined,
 } from "@ant-design/icons";
@@ -48,27 +46,12 @@ const dashboardRoute: AppRouteItem = {
     path: "/",
     name: "Dashboard",
     icon: <DashboardOutlined />,
-    requiresPermission: false,
 };
 
 const profileRoute: AppRouteItem = {
     path: "/profile",
     name: "Profile",
     icon: <UserOutlined />,
-    requiresPermission: false,
-};
-
-const forbiddenRoute: AppRouteItem = {
-    path: "/403",
-    name: "403 Page",
-    icon: <StopOutlined />,
-    requiresPermission: false,
-};
-
-const notFoundRoute: AppRouteItem = {
-    path: "/404",
-    name: "404 Page",
-    icon: <FileUnknownOutlined />,
     requiresPermission: false,
 };
 
@@ -139,8 +122,6 @@ const appRoutePaths = new Set<string>([
 
 export const layoutMenuRoutes: AppRouteItem[] = [
     dashboardRoute,
-    forbiddenRoute,
-    notFoundRoute,
     systemRoutes,
     manageRoutes,
 ];
@@ -148,8 +129,6 @@ export const layoutMenuRoutes: AppRouteItem[] = [
 export const layoutSearchRoutes: AppRouteItem[] = [
     dashboardRoute,
     profileRoute,
-    forbiddenRoute,
-    notFoundRoute,
     systemRoutes,
     manageRoutes,
 ];

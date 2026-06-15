@@ -17,7 +17,7 @@ pub mod system_user {
     pub const CREATE: &str = "system:user:create";
     pub const UPDATE: &str = "system:user:update";
     pub const DELETE: &str = "system:user:delete";
-    pub const OPTIONS: &str = "system:user:list";
+    pub const OPTIONS: &str = "system:user:options";
     pub const RESET_PASSWORD: &str = "system:user:password";
     pub const UPDATE_STATUS: &str = "system:user:status";
 }

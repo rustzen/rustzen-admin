@@ -16,7 +16,7 @@ export const logAPI = {
             success: true,
         };
     },
-    export: () => {
-        return apiDownload({ url: "/api/manage/logs/export" });
+    export: (params?: Log.QueryParams) => {
+        return apiDownload({ url: "/api/manage/logs/export", params });
     },
 };

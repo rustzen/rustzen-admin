@@ -6,6 +6,7 @@ import { Dropdown } from "antd";
 import { useMemo, type CSSProperties, type ReactNode } from "react";
 
 import { appMessage, authAPI } from "@/api";
+import { APP_BRAND_NAME } from "@/constant/brand";
 import { useAuthStore } from "@/store/useAuthStore";
 
 import { AppSearch } from "./app-search";
@@ -77,7 +78,7 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
 
     return (
         <ProLayout
-            title="Rustzen Admin"
+            title={APP_BRAND_NAME}
             logo="/rustzen.png"
             location={{ pathname: currentPath }}
             layout="mix"

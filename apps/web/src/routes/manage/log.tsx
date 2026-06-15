@@ -77,7 +77,7 @@ function LogPage() {
                         <Button
                             type="primary"
                             onClick={() => {
-                                void manageAPI.log.export();
+                                void manageAPI.log.export(params);
                             }}
                         >
                             Export

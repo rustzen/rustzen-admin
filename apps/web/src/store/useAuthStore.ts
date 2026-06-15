@@ -70,6 +70,14 @@ export const useAuthStore = create<AuthState>()(
 );
 
 const formatPathCode = (pathname: string) => {
+    const explicitRouteCapability: Record<string, string> = {
+        "/": "dashboard:view",
+    };
+    const explicitCode = explicitRouteCapability[pathname];
+    if (explicitCode) {
+        return explicitCode;
+    }
+
     const code = pathname.replace(/\//g, ":").slice(1);
     if (code.endsWith(":create")) {
         return code;

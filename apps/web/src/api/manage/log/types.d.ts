@@ -15,7 +15,7 @@ declare namespace Log {
         createdAt: string;
     }
 
-    interface QueryParams {
+    interface QueryParams extends Api.BaseParams {
         current?: number;
         pageSize?: number;
         search?: string;

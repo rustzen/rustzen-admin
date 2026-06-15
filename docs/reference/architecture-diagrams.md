@@ -7,8 +7,8 @@ These diagrams explain the current architecture. Source code and `docs/architect
 ```mermaid
 flowchart LR
     Browser["Browser"] --> WebDev["Vite dev server<br/>local development"]
-    WebDev --> Backend["zen-server<br/>Axum backend"]
-    Browser --> BackendDeploy["zen-server<br/>packaged deployment"]
+    WebDev --> Backend["apps/server<br/>Axum backend"]
+    Browser --> BackendDeploy["apps/server<br/>packaged deployment"]
     BackendDeploy --> StaticFiles["web/dist"]
     Backend --> Db["SQLite (default)"]
     BackendDeploy --> Db

@@ -790,17 +790,25 @@ fn restore_web_dist(dist_dir: &Path, prev_dist: &Path) -> Result<(), ServiceErro
 }
 
 async fn restart_server() -> Result<(), ServiceError> {
-    let command = format!("sleep 1; exec systemctl restart {SERVER_SYSTEMD_UNIT}");
-    Command::new("sh")
-        .arg("-c")
-        .arg(command)
+    let status = Command::new("systemctl")
+        .arg("--no-block")
+        .arg("restart")
+        .arg(SERVER_SYSTEMD_UNIT)
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
-        .spawn()
+        .status()
+        .await
         .map_err(|err| {
             ServiceError::InvalidOperation(format!("Failed to trigger server restart: {err}"))
         })?;
+
+    if !status.success() {
+        return Err(ServiceError::InvalidOperation(
+            "Failed to trigger server restart: systemctl restart was not accepted".to_string(),
+        ));
+    }
+
     Ok(())
 }
 

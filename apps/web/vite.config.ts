@@ -30,7 +30,7 @@ export default defineConfig({
                 target: `http://127.0.0.1:${BACKEND_PORT}`,
                 changeOrigin: true,
             },
-            "/uploads": {
+            "/resources": {
                 target: `http://127.0.0.1:${BACKEND_PORT}`,
                 changeOrigin: true,
             },

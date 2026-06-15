@@ -1,7 +1,9 @@
 use axum::{
     http::StatusCode,
+    Json,
     response::{IntoResponse, Response},
 };
+use serde::Serialize;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CoreError {
@@ -15,10 +17,19 @@ pub enum CoreError {
 
 impl IntoResponse for CoreError {
     fn into_response(self) -> Response {
-        let status = match self {
-            CoreError::InvalidToken | CoreError::MissingAuthContext => StatusCode::UNAUTHORIZED,
-            CoreError::PermissionDenied => StatusCode::FORBIDDEN,
+        let (status, code, message) = match self {
+            CoreError::InvalidToken => (StatusCode::UNAUTHORIZED, 401, "Invalid or expired token"),
+            CoreError::MissingAuthContext => (StatusCode::UNAUTHORIZED, 401, "Missing auth context"),
+            CoreError::PermissionDenied => (StatusCode::FORBIDDEN, 403, "Permission denied"),
         };
-        status.into_response()
+
+        (status, Json(CoreErrorResponse { code, message, data: None })).into_response()
     }
+}
+
+#[derive(Serialize)]
+struct CoreErrorResponse {
+    code: i32,
+    message: &'static str,
+    data: Option<()>,
 }

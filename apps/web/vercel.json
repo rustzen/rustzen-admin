@@ -5,7 +5,7 @@
             "destination": "/api/proxy.js"
         },
         {
-            "source": "/uploads/(.*)",
+            "source": "/resources/(.*)",
             "destination": "/api/proxy.js"
         },
         { "source": "/(.*)", "destination": "/index.html" }

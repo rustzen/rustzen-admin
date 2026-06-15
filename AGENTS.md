@@ -16,12 +16,20 @@
 
 ## Boundaries
 
+- RustZen classification: Web/Rust A-class reference layout.
 - Shared auth and permission capability code lives in `crates/auth/`.
 - Backend lives in `apps/server/`.
 - Migrations live in `apps/server/migrations/`.
 - Frontend lives in `apps/web/`.
 - Deployment assets live in `deploy/`.
 - Root keeps workspace metadata, docs, command entry points, and shared crates.
+- Deployment contract uses `target/rustzen-admin`, `/opt/rustzen-admin`,
+  `deploy/rustzen-admin.service`, and `deploy/setup-layout.sh`.
+- Do not apply Peripheral Vercel, Tauri client, or legacy `zen-server` /
+  `zen-web` layout rules to this repository.
+- Do not add systemd `User`/`Group`, hardening, or install-path permission
+  changes without reviewing `deploy/setup-layout.sh` and the `/opt` runtime
+  directory ownership model together.
 
 ## Working Rules
 

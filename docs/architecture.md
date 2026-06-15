@@ -2,6 +2,12 @@
 
 `rustzen-admin` is a Rust full-stack admin foundation. The repository is a monorepo with shared Rust capability crates, one backend service, one React frontend, and deployment assets.
 
+RustZen standardization classification: Web/Rust A-class reference layout. New
+Web/Rust admin projects can use this repository as the default structure for
+`apps/server`, `apps/web`, shared `crates/*`, root `justfile`, and `deploy/`.
+This classification does not make Peripheral Vercel, Tauri client, or legacy
+`zen-server` / `zen-web` rules applicable here.
+
 ## Module Boundaries
 
 - `crates/auth/` owns shared auth and permission capability code.
@@ -42,6 +48,14 @@ Packaged deployment runs the backend as the serving process:
 
 `RUSTZEN_RUNTIME_ROOT` is the single runtime root. Production uses `.` from the deploy root. Local development defaults to `.rustzen-admin`.
 Deployment packages set `RUSTZEN_APP_PORT=9880`.
+
+Production deployment contract: `just build` assembles
+`target/rustzen-admin/`, `deploy/rustzen-admin.service` runs
+`/opt/rustzen-admin/bin/rustzen-admin` with
+`WorkingDirectory=/opt/rustzen-admin`, and `deploy/setup-layout.sh` owns the
+install layout. Systemd user/group or hardening changes must be reviewed with
+runtime directory ownership and setup script behavior, not edited only in the
+unit file.
 
 ## Data Flow
 

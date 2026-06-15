@@ -2,6 +2,10 @@
 
 Current deployment rules.
 
+RustZen standardization role: Web/Rust A-class reference deployment. This guide
+records the current release bundle contract for `rustzen-admin`; it is not a
+Vercel, Tauri, Docker-only, or legacy `zen-server` deployment guide.
+
 ## Runtime Layout
 
 ```txt
@@ -40,6 +44,8 @@ Current deployment rules.
 - Uploaded server versions live under `<runtime_root>/versions/server-<version>-<arch>`.
 - Build and deploy targets are defined in the root `justfile`.
 - `just build` writes versioned deployment outputs under `target/rustzen-admin/`.
+- `just build-config` writes `config/app.env`, `systemd/rustzen-admin.service`,
+  and `setup-layout.sh` under `target/rustzen-admin/`.
 - Build outputs include `rustzen-admin-<version>`, `dist-<version>.zip`, `config/app.env`, `systemd/rustzen-admin.service`, and `setup-layout.sh`.
 - The build `config/app.env` is copied from `.env.example` with `RUSTZEN_RUNTIME_ROOT=.`, `RUSTZEN_APP_PORT=9880`, and `RUSTZEN_SQLITE_PATH=./data/db/rustzen.db` for the deploy layout.
 - The build `config/app.env` keeps the release JWT placeholder; production must replace it with a real secret.
@@ -57,6 +63,19 @@ Current deployment rules.
 - Deploying `web` replaces `<runtime_root>/web/dist` from the uploaded zip.
 - Web deploy restores the previous `web/dist` when the database current-version update fails.
 - Deleting or cleaning deploy versions removes the uploaded file before marking the database record deleted; file deletion failure leaves the database record visible.
+
+## RustZen Standardization Guardrails
+
+- Keep `target/rustzen-admin`, `/opt/rustzen-admin`, `bin/config/data/logs/web`,
+  `systemd/rustzen-admin.service`, and `setup-layout.sh` as the deployment
+  vocabulary for this project.
+- Do not introduce systemd `User`/`Group`, `NoNewPrivileges`, `PrivateTmp`, or
+  similar hardening only in `deploy/rustzen-admin.service`. Review
+  `deploy/setup-layout.sh`, existing `/opt/rustzen-admin` ownership, writable
+  runtime directories, and rollback steps in the same change.
+- Do not apply `rustzen-report` legacy binary names such as `report-server` or
+  `zen-server` / `zen-web` paths to this repository.
+- Do not apply Peripheral Vercel or Tauri release terminology.
 
 ## Prohibited
 

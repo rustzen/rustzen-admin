@@ -23,9 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     init_process_timezone();
 
-    let runtime = tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()?;
+    let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
 
     runtime.block_on(async {
         // init log

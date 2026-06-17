@@ -39,6 +39,7 @@
 - Keep subdirectory `AGENTS.md` files thin.
 - Do not use `docs/reference/` or `docs/history/` as default implementation truth.
 - SQLite is the default storage backend.
-- PostgreSQL-first behavior is archived under `legacy/pg-admin`.
+- PostgreSQL-first migration history is archived under
+  `apps/server/migrations/postgresql_legacy/`.
 - Update code, docs, and commands together when structure changes.
 - Keep task completion tied to the task's verification commands before updating status.

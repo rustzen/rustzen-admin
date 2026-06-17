@@ -19,10 +19,11 @@ declare namespace User {
         id: number;
         username: string;
         email: string;
-        realName?: string;
-        avatarUrl?: string;
+        realName?: string | null;
+        avatarUrl?: string | null;
+        isSystem: boolean;
         status: Status;
-        lastLoginAt?: string;
+        lastLoginAt?: string | null;
         createdAt: string;
         updatedAt: string;
         roles: Api.OptionItem<number>[];
@@ -36,6 +37,12 @@ declare namespace User {
         realName?: string;
         email?: string;
         status?: string; // "1" | "2" | "3" | "4" | "all"
+    }
+
+    interface OptionsQuery {
+        q?: string;
+        limit?: number;
+        status?: number;
     }
 
     // 创建用户请求

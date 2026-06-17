@@ -3,7 +3,7 @@ use super::{
     types::{StatsResp, SystemMetricsDataResp, UserTrendsResp},
 };
 use crate::common::api::{ApiResponse, AppResult};
-use crate::infra::system_info::{SystemInfo, SystemUtils};
+use crate::infra::system_info::SystemInfo;
 use axum::extract::State;
 
 use sqlx::SqlitePool;
@@ -15,7 +15,7 @@ pub async fn get_stats(State(pool): State<SqlitePool>) -> AppResult<StatsResp> {
 }
 
 pub async fn get_health() -> AppResult<SystemInfo> {
-    Ok(ApiResponse::success(SystemUtils::get_system_info()))
+    Ok(ApiResponse::success(DashboardService::get_health()))
 }
 
 pub async fn get_metrics(State(pool): State<SqlitePool>) -> AppResult<SystemMetricsDataResp> {

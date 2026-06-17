@@ -1,6 +1,6 @@
 use axum::{
-    http::StatusCode,
     Json,
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
@@ -19,7 +19,9 @@ impl IntoResponse for CoreError {
     fn into_response(self) -> Response {
         let (status, code, message) = match self {
             CoreError::InvalidToken => (StatusCode::UNAUTHORIZED, 401, "Invalid or expired token"),
-            CoreError::MissingAuthContext => (StatusCode::UNAUTHORIZED, 401, "Missing auth context"),
+            CoreError::MissingAuthContext => {
+                (StatusCode::UNAUTHORIZED, 401, "Missing auth context")
+            }
             CoreError::PermissionDenied => (StatusCode::FORBIDDEN, 403, "Permission denied"),
         };
 

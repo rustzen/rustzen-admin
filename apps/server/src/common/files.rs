@@ -2,7 +2,7 @@ use crate::common::error::ServiceError;
 use crate::infra::config::CONFIG;
 
 use axum::extract::Multipart;
-use std::{fs::File, io::Write};
+use std::{fs::File, io::Write, path::PathBuf};
 use uuid::Uuid;
 
 const USER_AVATAR_MAX_SIZE: usize = 1024 * 1024;
@@ -59,4 +59,25 @@ pub async fn save_avatar(multipart: &mut Multipart) -> Result<String, ServiceErr
     tracing::info!("Avatar uploaded successfully: {}", avatar_url);
 
     Ok(avatar_url)
+}
+
+/// Removes a saved avatar by its public URL.
+pub async fn remove_avatar_by_url(avatar_url: &str) -> Result<(), std::io::Error> {
+    let Some(file_path) = avatar_file_path(avatar_url) else {
+        return Ok(());
+    };
+    match tokio::fs::remove_file(file_path).await {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+fn avatar_file_path(avatar_url: &str) -> Option<PathBuf> {
+    let prefix = format!("{}/", CONFIG.avatars_prefix().trim_end_matches('/'));
+    let file_name = avatar_url.strip_prefix(&prefix)?;
+    if file_name.contains('/') || file_name.contains('\\') || file_name.is_empty() {
+        return None;
+    }
+    Some(CONFIG.avatars_dir().join(file_name))
 }

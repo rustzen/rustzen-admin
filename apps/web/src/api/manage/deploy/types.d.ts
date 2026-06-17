@@ -40,7 +40,6 @@ declare namespace Deploy {
     }
 
     interface DeployRequest {
-        versionId: number;
         deployedBy?: string | null;
     }
 

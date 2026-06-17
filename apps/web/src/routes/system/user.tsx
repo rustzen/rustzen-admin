@@ -158,7 +158,7 @@ const buildColumns = (currentUserId?: number): ProColumns<User.Item>[] => [
         align: "left",
         search: false,
         render: (_dom: React.ReactNode, entity: User.Item, _index, action?: ActionType) => {
-            if (entity.id === currentUserId || entity.id === 1) {
+            if (entity.id === currentUserId || entity.isSystem) {
                 return null;
             }
             const status = entity.status === 1 ? "Disable" : "Enable";

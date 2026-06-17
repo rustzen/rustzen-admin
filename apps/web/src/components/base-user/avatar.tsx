@@ -1,7 +1,7 @@
 import { UploadOutlined } from "@ant-design/icons";
-import { Upload, type UploadFile } from "antd";
+import { Upload, type UploadFile, type UploadProps } from "antd";
 
-import { appMessage } from "@/api";
+import { accountAPI, appMessage } from "@/api";
 import { useAuthStore } from "@/store/useAuthStore";
 
 // const getBase64 = (img: UploadFile, callback: (url: string) => void) => {
@@ -27,7 +27,17 @@ const beforeUpload = async (file: UploadFile) => {
     return isJpgOrPng && isLimt;
 };
 export const UserAvatar = () => {
-    const { userInfo, token, updateAvatar } = useAuthStore();
+    const { userInfo, updateAvatar } = useAuthStore();
+
+    const uploadAvatar: UploadProps["customRequest"] = async ({ file, onError, onSuccess }) => {
+        try {
+            const avatarUrl = await accountAPI.updateAvatar({ file: file as Blob });
+            updateAvatar(avatarUrl);
+            onSuccess?.(avatarUrl);
+        } catch (error) {
+            onError?.(error as Error);
+        }
+    };
 
     return (
         <>
@@ -36,16 +46,8 @@ export const UserAvatar = () => {
                 name="avatar"
                 listType="picture-circle"
                 showUploadList={false}
-                action="/api/account/avatar"
                 beforeUpload={beforeUpload}
-                headers={{
-                    Authorization: `Bearer ${token}`,
-                }}
-                onChange={(info) => {
-                    if (info.file.status === "done") {
-                        updateAvatar(info.file.response.data);
-                    }
-                }}
+                customRequest={uploadAvatar}
             >
                 {userInfo?.avatarUrl ? (
                     <img src={userInfo?.avatarUrl} className="rounded-full" alt="avatar" />

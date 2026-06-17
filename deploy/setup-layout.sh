@@ -18,8 +18,6 @@ elif [ -x "$ARTIFACT_DIR/bin/rustzen-admin" ] && [ -d "$ARTIFACT_DIR/web/dist" ]
 else
     INSTALL_ROOT="/opt/rustzen-admin"
 fi
-ARCH="${RUSTZEN_ARCH:-x86_64}"
-
 copy_if_different() {
     src="$1"
     dest="$2"
@@ -112,7 +110,20 @@ else
         exit 1
     fi
 
-    VERSION="$(basename "$SERVER_FILE" | sed 's/^rustzen-admin-//')"
+    SERVER_NAME="$(basename "$SERVER_FILE")"
+    SERVER_META="${SERVER_NAME#rustzen-admin-}"
+    ARCH="${SERVER_META##*-}"
+    VERSION="${SERVER_META%-$ARCH}"
+
+    case "$ARCH" in
+        x86_64|aarch64)
+            ;;
+        *)
+            echo "Invalid server artifact name, expected rustzen-admin-<version>-<arch>: $SERVER_NAME" >&2
+            exit 1
+            ;;
+    esac
+
     WEB_ZIP="$ARTIFACT_DIR/dist-$VERSION.zip"
 
     if [ ! -f "$WEB_ZIP" ]; then
@@ -120,7 +131,6 @@ else
         exit 1
     fi
 
-    SERVER_NAME="rustzen-admin-$VERSION-$ARCH"
     install -m 0755 "$SERVER_FILE" "$INSTALL_ROOT/bin/$SERVER_NAME"
 
     if [ -e "$INSTALL_ROOT/bin/rustzen-admin" ] && [ ! -L "$INSTALL_ROOT/bin/rustzen-admin" ]; then

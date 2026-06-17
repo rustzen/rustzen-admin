@@ -1,22 +1,17 @@
 import { Popconfirm } from "antd";
-import React from "react";
+import type { MouseEvent, ReactNode } from "react";
 
 import { appModal } from "@/api";
 import { useAuthStore } from "@/store/useAuthStore";
 
 interface AuthWrapProps {
     code: string;
-    children: React.ReactNode;
+    children: ReactNode;
     hidden?: boolean;
-    fallback?: React.ReactNode;
+    fallback?: ReactNode;
 }
 
-export const AuthWrap: React.FC<AuthWrapProps> = ({
-    code,
-    children,
-    hidden = false,
-    fallback = null,
-}) => {
+export const AuthWrap = ({ code, children, hidden = false, fallback = null }: AuthWrapProps) => {
     const isPermission = useAuthStore((state) => state.checkPermissions(code));
     if (isPermission && !hidden) {
         return children;
@@ -25,13 +20,13 @@ export const AuthWrap: React.FC<AuthWrapProps> = ({
 };
 
 interface AuthPopconfirmProps extends AuthWrapProps {
-    title: React.ReactNode;
-    description?: React.ReactNode;
+    title: ReactNode;
+    description?: ReactNode;
     onConfirm: () => Promise<void>;
     onCancel?: () => Promise<void>;
 }
 
-export const AuthPopconfirm: React.FC<AuthPopconfirmProps> = ({
+export const AuthPopconfirm = ({
     code,
     children,
     hidden = false,
@@ -39,7 +34,7 @@ export const AuthPopconfirm: React.FC<AuthPopconfirmProps> = ({
     description,
     onConfirm,
     onCancel,
-}) => {
+}: AuthPopconfirmProps) => {
     return (
         <AuthWrap code={code} hidden={hidden}>
             <Popconfirm
@@ -59,27 +54,36 @@ interface AuthConfirmProps extends AuthPopconfirmProps {
     className?: string;
 }
 
-export const AuthConfirm: React.FC<AuthConfirmProps> = (props) => {
-    const handleConfirm = (event: React.MouseEvent<HTMLButtonElement>) => {
+export const AuthConfirm = ({
+    code,
+    children,
+    hidden,
+    title,
+    description,
+    onConfirm,
+    onCancel,
+    className = "",
+}: AuthConfirmProps) => {
+    const handleConfirm = (event: MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
         event.stopPropagation();
 
         appModal.confirm({
-            title: props.title,
-            content: props.description,
-            onOk: props.onConfirm,
-            onCancel: props.onCancel,
+            title,
+            content: description,
+            onOk: onConfirm,
+            onCancel,
         });
     };
 
     return (
-        <AuthWrap code={props.code} hidden={props.hidden}>
+        <AuthWrap code={code} hidden={hidden}>
             <button
                 type="button"
                 onClick={handleConfirm}
-                className={`rounded border-0 bg-transparent p-0 text-left ${props.className || ""}`}
+                className={`rounded border-0 bg-transparent p-0 text-left ${className}`}
             >
-                {props.children}
+                {children}
             </button>
         </AuthWrap>
     );

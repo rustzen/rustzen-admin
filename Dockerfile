@@ -44,9 +44,13 @@ RUN --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/root/.cargo/git \
     --mount=type=cache,target=/app/target \
     VERSION="$(awk -F '"' '/^version = / { print $2; exit }' apps/server/Cargo.toml)" && \
-    ARTIFACT_NAME="rustzen-admin-${VERSION}" && \
+    case "${TARGET_TRIPLE}" in \
+        x86_64-*) ARTIFACT_ARCH="x86_64" ;; \
+        aarch64-*) ARTIFACT_ARCH="aarch64" ;; \
+        *) echo "Unsupported target triple: ${TARGET_TRIPLE}" >&2; exit 1 ;; \
+    esac && \
+    ARTIFACT_NAME="rustzen-admin-${VERSION}-${ARTIFACT_ARCH}" && \
     if [ "${TARGET_TRIPLE}" = "aarch64-unknown-linux-gnu" ]; then \
-        ARTIFACT_NAME="${ARTIFACT_NAME}-aarch64"; \
         cargo build --release --target "${TARGET_TRIPLE}" -p "${PACKAGE_NAME}"; \
     else \
         RUSTFLAGS="-C target-feature=+crt-static" \

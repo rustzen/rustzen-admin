@@ -13,6 +13,8 @@ Rules for Rust backend work under `apps/server/`.
 ## Rules
 
 - New features use `mod.rs`, `handler.rs`, `service.rs`, `repo.rs`, and `types.rs`.
+  Documented read-only aggregation features may omit `repo.rs` when they do not
+  own persistence; `features/dashboard/` is the current intentional exception.
 - Reuse auth and permission code from `crates/auth/`; do not re-implement it in `apps/server/`.
 - Use storage helpers from `crates/storage/` for SQLite connection and migration calls.
 - Use `crates/config/` for runtime config and resolved runtime directories.

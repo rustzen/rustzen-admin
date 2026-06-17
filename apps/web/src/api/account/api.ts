@@ -1,4 +1,4 @@
-import { apiRequest } from "@/api/request";
+import { apiRequest, apiUpload } from "@/api/request";
 
 export const accountAPI = {
     updateProfile: (data: Account.UpdateProfileRequest) => {
@@ -15,5 +15,11 @@ export const accountAPI = {
             method: "PUT",
             params: data,
         });
+    },
+
+    updateAvatar: (data: Account.UpdateAvatarForm) => {
+        const formData = new FormData();
+        formData.append("avatar", data.file);
+        return apiUpload<string>("/api/account/avatar", formData);
     },
 };

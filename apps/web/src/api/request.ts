@@ -79,10 +79,11 @@ const defaultHeaders = {
 interface RequestOptions<P = Api.BaseParams> extends RequestInit {
     url: string;
     params?: P;
+    query?: Api.BaseParams;
     raw?: boolean;
 }
 
-const formatFetchConfig = <T>({ params, url, ...options }: RequestOptions<T>) => {
+const formatFetchConfig = <T>({ params, query, url, ...options }: RequestOptions<T>) => {
     const headers = new Headers(defaultHeaders);
     new Headers(options.headers).forEach((value, key) => {
         headers.set(key, value);
@@ -95,10 +96,11 @@ const formatFetchConfig = <T>({ params, url, ...options }: RequestOptions<T>) =>
         ...options,
         headers,
     };
+    url = appendQueryString(url, query);
     if (["PUT", "POST", "PATCH"].includes(options.method || "GET")) {
         config.body = options.body || JSON.stringify(params);
     } else {
-        url += buildQueryString(params);
+        url = appendQueryString(url, params);
     }
     return { url, config };
 };
@@ -146,7 +148,8 @@ const readErrorPayload = async (response: Response): Promise<{ message?: string 
     try {
         return (await response.clone().json()) as { message?: string };
     } catch {
-        return null;
+        const text = await response.clone().text();
+        return text ? { message: text } : null;
     }
 };
 
@@ -180,10 +183,10 @@ const buildQueryString = <P>(params?: P): string => {
         }
 
         if (
-            Object.prototype.toString.call(value) === "[object Object]"
-            || value instanceof String
-            || value instanceof Number
-            || value instanceof Boolean
+            Object.prototype.toString.call(value) === "[object Object]" ||
+            value instanceof String ||
+            value instanceof Number ||
+            value instanceof Boolean
         ) {
             searchParams.append(key, JSON.stringify(value));
             return;
@@ -202,4 +205,10 @@ const buildQueryString = <P>(params?: P): string => {
 
     const query = searchParams.toString();
     return query ? `?${query}` : "";
+};
+
+const appendQueryString = <P>(url: string, params?: P): string => {
+    const query = buildQueryString(params);
+    if (!query) return url;
+    return url.includes("?") ? `${url}&${query.slice(1)}` : `${url}${query}`;
 };

@@ -16,7 +16,7 @@ check:
 
 # Reset local sqlite database and let migrations re-run on next startup.
 reset-db:
-    runtime_root="${RUSTZEN_RUNTIME_ROOT:-.rustzen-admin}"; rm -f "${runtime_root}/data/rustzen.db"
+    runtime_root="${RUSTZEN_RUNTIME_ROOT:-.rustzen-admin}"; rm -f "${runtime_root}/data/db/rustzen.db" "${runtime_root}/data/db/rustzen.db-shm" "${runtime_root}/data/db/rustzen.db-wal" "${runtime_root}/data/rustzen.db" "${runtime_root}/data/rustzen.db-shm" "${runtime_root}/data/rustzen.db-wal"
 
 # Build all (production)
 build:
@@ -51,12 +51,12 @@ _build-binary PACKAGE_NAME TARGET_TRIPLE PLATFORM:
 
 # Update project version.
 bump-version VERSION:
-    @sed -i '' 's/^version = ".*"/version = "{{VERSION}}"/' apps/server/Cargo.toml
-    @sed -i '' 's/^version = ".*"/version = "{{VERSION}}"/' crates/auth/Cargo.toml
-    @sed -i '' 's/^version = ".*"/version = "{{VERSION}}"/' crates/config/Cargo.toml
-    @sed -i '' 's/^version = ".*"/version = "{{VERSION}}"/' crates/runtime/Cargo.toml
-    @sed -i '' 's/^version = ".*"/version = "{{VERSION}}"/' crates/storage/Cargo.toml
-    @sed -i '' 's/"version": ".*"/"version": "{{VERSION}}"/' apps/web/package.json
+    @perl -pi -e 's/^version = ".*"/version = "{{VERSION}}"/' apps/server/Cargo.toml
+    @perl -pi -e 's/^version = ".*"/version = "{{VERSION}}"/' crates/auth/Cargo.toml
+    @perl -pi -e 's/^version = ".*"/version = "{{VERSION}}"/' crates/config/Cargo.toml
+    @perl -pi -e 's/^version = ".*"/version = "{{VERSION}}"/' crates/runtime/Cargo.toml
+    @perl -pi -e 's/^version = ".*"/version = "{{VERSION}}"/' crates/storage/Cargo.toml
+    @perl -pi -e 's/"version": ".*"/"version": "{{VERSION}}"/' apps/web/package.json
 
 # Clean build outputs
 clean:

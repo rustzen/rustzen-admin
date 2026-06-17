@@ -20,8 +20,6 @@ declare namespace Dict {
         label?: string;
         value?: string;
         status?: string;
-        q?: string;
-        limit?: number;
     }
 
     // 创建字典请求
@@ -36,9 +34,9 @@ declare namespace Dict {
 
     // 更新字典请求
     interface UpdateRequest {
-        dictType?: string;
-        label?: string;
-        value?: string;
+        dictType: string;
+        label: string;
+        value: string;
         status?: number;
         description?: string;
         sortOrder?: number;

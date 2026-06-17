@@ -59,7 +59,7 @@ function LoginPage() {
 
                 <div className="grid flex-1 items-center gap-8 py-7 lg:grid-cols-[minmax(560px,1fr)_420px] lg:gap-14 xl:grid-cols-[minmax(680px,1fr)_532px] xl:gap-20">
                     <section className="hidden min-w-0 self-stretch lg:flex lg:flex-col lg:justify-center">
-                        <div className="h-[500px] xl:h-[610px]">
+                        <div className="h-125 xl:h-153">
                             <img
                                 src={loginIllustrationUrl}
                                 alt={`${APP_BRAND_NAME} Operations Management Platform`}
@@ -75,13 +75,14 @@ function LoginPage() {
                                 <span>Smart</span>
                             </div>
                             <p className="mt-5 text-[22px] leading-none text-[#7484a0]">
-                                A unified operations platform for simpler and more efficient management.
+                                A unified operations platform for simpler and more efficient
+                                management.
                             </p>
                         </div>
                     </section>
 
                     <section
-                        className="mx-auto w-full max-w-[420px] rounded-[18px] bg-white px-7 py-10 shadow-[0_28px_76px_rgba(45,88,150,0.09)] sm:px-12 sm:py-14 xl:max-w-[532px] xl:px-[62px] xl:py-[86px]"
+                        className="mx-auto w-full max-w-105 rounded-[18px] bg-white px-7 py-10 shadow-[0_28px_76px_rgba(45,88,150,0.09)] sm:px-12 sm:py-14 xl:max-w-133 xl:px-16 xl:py-22"
                         aria-label="Login"
                     >
                         <div className="mb-10 text-center xl:mb-12">
@@ -124,7 +125,7 @@ function LoginPage() {
                                     prefix={<UserOutlined className="text-[#8a9ab5]" />}
                                     placeholder="Enter username"
                                     autoComplete="username"
-                                    className="h-[60px] rounded-[10px] border-[#dce4f1] px-4 text-base shadow-none hover:border-[#1677ff] focus:border-[#1677ff]"
+                                    className="h-15 rounded-[10px] border-[#dce4f1] px-4 text-base shadow-none hover:border-[#1677ff] focus:border-[#1677ff]"
                                 />
                             </Form.Item>
 
@@ -159,7 +160,7 @@ function LoginPage() {
                                     prefix={<LockOutlined className="text-[#8a9ab5]" />}
                                     placeholder="Enter password"
                                     autoComplete="current-password"
-                                    className="h-[60px] rounded-[10px] border-[#dce4f1] px-4 text-base shadow-none hover:border-[#1677ff] focus:border-[#1677ff]"
+                                    className="h-15 rounded-[10px] border-[#dce4f1] px-4 text-base shadow-none hover:border-[#1677ff] focus:border-[#1677ff]"
                                 />
                             </Form.Item>
 
@@ -167,7 +168,7 @@ function LoginPage() {
                                 type="primary"
                                 htmlType="submit"
                                 loading={isSubmitting}
-                                className="h-[60px] w-full rounded-[10px] bg-[#1677ff] text-lg font-semibold shadow-[0_12px_22px_rgba(22,119,255,0.24)]"
+                                className="h-15 w-full rounded-[10px] bg-[#1677ff] text-lg font-semibold shadow-[0_12px_22px_rgba(22,119,255,0.24)]"
                             >
                                 Login
                             </Button>

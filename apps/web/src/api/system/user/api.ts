@@ -50,6 +50,12 @@ export const userAPI = {
             params: { password },
         });
     },
+    options: (params?: User.OptionsQuery) => {
+        return apiRequest<Api.OptionItem<number>[], User.OptionsQuery>({
+            url: "/api/system/users/options",
+            params,
+        });
+    },
     statusOptions: () => {
         return apiRequest<Api.OptionItem<number>[]>({
             url: "/api/system/users/status-options",

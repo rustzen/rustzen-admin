@@ -1,6 +1,8 @@
 use super::{
     repo::LogRepository,
-    types::{LogItemResp, LogListQuery, LogQuery, LogWriteCommand},
+    types::{
+        LogItemResp, LogListQuery, LogMetricsSummary, LogQuery, LogTrendPoint, LogWriteCommand,
+    },
 };
 use crate::common::{
     error::ServiceError,
@@ -18,25 +20,12 @@ impl LogService {
         pool: &SqlitePool,
         query: LogQuery,
     ) -> Result<(Vec<LogItemResp>, i64), ServiceError> {
-        let LogQuery {
-            current,
-            page_size,
-            search,
-            username,
-            action,
-            description,
-            ip_address,
-        } = query;
+        let LogQuery { current, page_size, search, username, action, description, ip_address } =
+            query;
         let pagination = Pagination::from_query(PaginationQuery { current, page_size });
         let limit = i64::from(pagination.limit);
         let offset = i64::from(pagination.offset);
-        let repo_query = LogListQuery {
-            search,
-            username,
-            action,
-            description,
-            ip_address,
-        };
+        let repo_query = LogListQuery { search, username, action, description, ip_address };
 
         LogRepository::list_logs(pool, offset, limit, repo_query).await
     }
@@ -49,26 +38,38 @@ impl LogService {
         LogRepository::insert_log_entry(pool, &command).await
     }
 
+    pub async fn cleanup_old_logs(
+        pool: &SqlitePool,
+        retention_days: i64,
+    ) -> Result<u64, ServiceError> {
+        LogRepository::cleanup_old_logs(pool, retention_days).await
+    }
+
     pub async fn export_logs_csv(
         pool: &SqlitePool,
         query: LogQuery,
     ) -> Result<String, ServiceError> {
-        let LogQuery {
-            search,
-            username,
-            action,
-            description,
-            ip_address,
-            ..
-        } = query;
-        let repo_query = LogListQuery {
-            search,
-            username,
-            action,
-            description,
-            ip_address,
-        };
+        let LogQuery { search, username, action, description, ip_address, .. } = query;
+        let repo_query = LogListQuery { search, username, action, description, ip_address };
         Self::create_csv_chunk(LogRepository::list_logs_for_export(pool, repo_query).await?, true)
+    }
+
+    pub async fn system_uptime_label(pool: &SqlitePool) -> Result<String, ServiceError> {
+        LogRepository::system_uptime_label(pool).await
+    }
+
+    pub async fn metrics_summary(pool: &SqlitePool) -> Result<LogMetricsSummary, ServiceError> {
+        LogRepository::metrics_summary(pool).await
+    }
+
+    pub async fn daily_login_trends(pool: &SqlitePool) -> Result<Vec<LogTrendPoint>, ServiceError> {
+        LogRepository::daily_login_trends(pool).await
+    }
+
+    pub async fn hourly_active_users(
+        pool: &SqlitePool,
+    ) -> Result<Vec<LogTrendPoint>, ServiceError> {
+        LogRepository::hourly_active_users(pool).await
     }
 
     /// Create CSV chunk for a batch of logs

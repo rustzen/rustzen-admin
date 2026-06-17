@@ -50,7 +50,7 @@ export const dictAPI = {
     },
     byType: (type: string) => {
         return apiRequest<Api.OptionItem<string>[]>({
-            url: `/api/manage/dicts/type/${type}`,
+            url: `/api/manage/dicts/type/${encodeURIComponent(type)}`,
         });
     },
 };

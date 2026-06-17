@@ -1,5 +1,8 @@
 use std::time::Duration;
-use std::{io, path::{Path, PathBuf}};
+use std::{
+    io,
+    path::{Path, PathBuf},
+};
 
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 
@@ -31,7 +34,9 @@ impl Default for DatabaseConnectionOptions {
 
 /// Builds a SQLite URL from a filesystem path.
 pub fn database_url_from_path(path: &Path) -> String {
-    if let Some(path) = path.to_str() && (path == ":memory:" || path.starts_with("sqlite:")) {
+    if let Some(path) = path.to_str()
+        && (path == ":memory:" || path.starts_with("sqlite:"))
+    {
         return path.to_string();
     }
 
@@ -99,9 +104,7 @@ fn ensure_database_directory(database_url: &str) -> Result<(), sqlx::Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        database_url_from_path, ensure_database_directory,
-    };
+    use super::{database_url_from_path, ensure_database_directory};
     use std::fs;
     use std::path::Path;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -118,10 +121,7 @@ mod tests {
 
     #[test]
     fn ensure_database_directory_keeps_file_creation_outside_connect() {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time")
-            .as_nanos();
+        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).expect("system time").as_nanos();
         let db_path = std::env::temp_dir().join(format!("rustzen-storage-{}.db", nanos));
         if db_path.exists() {
             fs::remove_file(&db_path).ok();
@@ -145,5 +145,4 @@ mod tests {
         let result = ensure_database_directory("");
         assert!(result.is_err());
     }
-
 }

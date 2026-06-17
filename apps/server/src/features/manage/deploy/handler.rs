@@ -10,7 +10,7 @@ use crate::common::api::{ApiResponse, AppResult};
 use super::{
     service::DeployService,
     types::{
-        DeployComponent, DeployVersionRequest, DeploymentItem, ExpireVersionRequest,
+        CleanupDeploymentsQuery, DeployVersionRequest, DeploymentItem, ExpireVersionRequest,
         ListDeploymentsQuery,
     },
 };
@@ -19,7 +19,8 @@ pub async fn list_deployments(
     Extension(deploy_service): Extension<Arc<DeployService>>,
     Query(query): Query<ListDeploymentsQuery>,
 ) -> AppResult<Vec<DeploymentItem>> {
-    Ok(Json(deploy_service.list(query).await?))
+    let (items, total) = deploy_service.list(query).await?;
+    Ok(ApiResponse::page(items, total))
 }
 
 pub async fn upload_deployment(
@@ -63,13 +64,5 @@ pub async fn cleanup_expired(
     Extension(deploy_service): Extension<Arc<DeployService>>,
     Query(query): Query<CleanupDeploymentsQuery>,
 ) -> AppResult<usize> {
-    Ok(ApiResponse::success(
-        deploy_service.cleanup_expired(query.component).await?,
-    ))
-}
-
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CleanupDeploymentsQuery {
-    pub component: Option<DeployComponent>,
+    Ok(ApiResponse::success(deploy_service.cleanup_expired(query.component).await?))
 }

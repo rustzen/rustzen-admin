@@ -32,6 +32,17 @@ Rules for frontend work under `apps/web/`.
 - Do not add small calculation helpers or generic abstractions for values that are clearer as local constants or fixed props.
 - Use root `justfile` as the command source of truth.
 
+## Tailwind Classes
+
+- Prefer Tailwind spacing-scale size utilities over arbitrary px values for size classes. For example, write `min-h-75` instead of `min-h-[300px]`, `w-45` instead of `w-[180px]`, and `max-h-105` instead of `max-h-[420px]`.
+- If a px size does not map exactly to the 4px spacing scale, use the closest integer spacing utility instead of keeping the arbitrary value. For example, write `h-153` instead of `h-[610px]`.
+- Keep arbitrary values for non-px units and complex expressions such as grid templates.
+
+## Browser Testing
+
+- When opening the frontend in a browser for testing or verification, set the default viewport to `1920*1080` before checking layout or screenshots.
+- If the browser tool cannot set `1920*1080`, state that limitation in the verification result.
+
 ## Tables
 
 - Use `ProTable` for admin list pages unless the page has a reason to use lower-level `Table`.

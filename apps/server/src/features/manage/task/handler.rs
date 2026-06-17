@@ -23,7 +23,8 @@ pub async fn list_task_runs(
     Path(task_key): Path<String>,
     Query(query): Query<TaskRunQuery>,
 ) -> AppResult<Vec<TaskRunItem>> {
-    Ok(axum::Json(task_service.list_task_runs(&task_key, query).await?))
+    let (items, total) = task_service.list_task_runs(&task_key, query).await?;
+    Ok(ApiResponse::page(items, total))
 }
 
 pub async fn run_task(

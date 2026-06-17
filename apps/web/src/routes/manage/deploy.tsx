@@ -13,24 +13,13 @@ import {
     type ProColumns,
 } from "@ant-design/pro-components";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-    Button,
-    Form,
-    Segmented,
-    Space,
-    Tag,
-    Upload,
-    type UploadFile,
-} from "antd";
+import { Button, Form, Segmented, Space, Tag, Upload, type UploadFile } from "antd";
 import type { ReactElement } from "react";
 import { useRef, useState } from "react";
 
 import { appMessage, manageAPI } from "@/api";
 import { AuthPopconfirm, AuthWrap } from "@/components/base-auth";
-import {
-    TABLE_ACTION_SPACE_SIZE,
-    TableActionButton,
-} from "@/components/base-button";
+import { TABLE_ACTION_SPACE_SIZE, TableActionButton } from "@/components/base-button";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export const Route = createFileRoute("/manage/deploy")({
@@ -83,7 +72,9 @@ function DeployPage() {
                             void actionRef.current?.reload();
                         }}
                     >
-                        <Button type="primary" icon={<UploadOutlined />}>Upload Version</Button>
+                        <Button type="primary" icon={<UploadOutlined />}>
+                            Upload Version
+                        </Button>
                     </UploadVersionModal>
                 </AuthWrap>,
                 <AuthWrap key="cleanup" code="manage:deploy:delete">
@@ -116,6 +107,7 @@ const deployColumns: ProColumns<Deploy.Item>[] = [
         title: "Arch",
         dataIndex: "arch",
         width: 100,
+        render: (_, record) => (record.component === "web" ? "universal" : record.arch),
     },
     {
         title: "Size",
@@ -178,7 +170,6 @@ const deployColumns: ProColumns<Deploy.Item>[] = [
                     onConfirm={async () => {
                         const username = useAuthStore.getState().userInfo?.username || "developer";
                         await manageAPI.deploy.deploy(record.id, {
-                            versionId: record.id,
                             deployedBy: username,
                         });
                         appMessage.success("Deploy task submitted");
@@ -210,7 +201,7 @@ const deployColumns: ProColumns<Deploy.Item>[] = [
                 <AuthPopconfirm
                     code="manage:deploy:delete"
                     title="Delete this version?"
-                    description="The saved deploy file will also be removed."
+                    description="The version will be removed from the list. The saved file will be cleaned up when possible."
                     onConfirm={async () => {
                         await manageAPI.deploy.remove(record.id);
                         void action?.reload();
@@ -291,12 +282,18 @@ function UploadVersionModal({
                 placeholder="v0.4.0"
                 rules={[{ required: true, message: "Please enter version" }]}
             />
-            <Form.Item
-                name="arch"
-                label="Arch"
-                rules={[{ required: true, message: "Please select arch" }]}
-            >
-                <Segmented options={archOptions} />
+            <Form.Item noStyle shouldUpdate={(prev, next) => prev.component !== next.component}>
+                {({ getFieldValue }) =>
+                    getFieldValue("component") === "server" ? (
+                        <Form.Item
+                            name="arch"
+                            label="Arch"
+                            rules={[{ required: true, message: "Please select arch" }]}
+                        >
+                            <Segmented options={archOptions} />
+                        </Form.Item>
+                    ) : null
+                }
             </Form.Item>
             <Form.Item
                 name="file"
@@ -362,7 +359,7 @@ function CleanupButton({
         <AuthPopconfirm
             code="manage:deploy:delete"
             title="Clean expired versions?"
-            description="Expired non-current version files will be removed."
+            description="Expired non-current versions will be removed from the list. Saved files will be cleaned up when possible."
             onConfirm={async () => {
                 const count = await manageAPI.deploy.cleanup(component);
                 appMessage.success(`Cleaned ${count} expired versions`);

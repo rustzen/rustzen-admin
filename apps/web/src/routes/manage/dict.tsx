@@ -67,7 +67,7 @@ const columns: ProColumns<Dict.Item>[] = [
         dataIndex: "label",
         ellipsis: true,
         search: {
-            transform: (value) => ({ q: value }),
+            transform: (value) => ({ label: value }),
         },
     },
     {

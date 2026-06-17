@@ -47,18 +47,16 @@ pub async fn log_middleware(
     if should_log(&method, &path) {
         if let Err(e) = LogService::record_operation(
             &pool,
-                build_request_log(
-                    RequestLogContext {
-                        user_id: user_id.unwrap_or(0),
-                        username: username.to_string(),
-                        method: method_for_log,
-                        uri: uri.clone(),
-                        status_code,
-                        duration,
-                        ip_address: client_ip,
-                        user_agent,
-                    },
-            ),
+            build_request_log(RequestLogContext {
+                user_id: user_id.unwrap_or(0),
+                username: username.to_string(),
+                method: method_for_log,
+                uri: uri.clone(),
+                status_code,
+                duration,
+                ip_address: client_ip,
+                user_agent,
+            }),
         )
         .await
         {
@@ -99,20 +97,13 @@ struct RequestLogContext {
     user_agent: String,
 }
 
-fn build_request_log(
-    context: RequestLogContext,
-) -> LogWriteCommand {
+fn build_request_log(context: RequestLogContext) -> LogWriteCommand {
     let status = if context.status_code < 400 { "SUCCESS" } else { "ERROR" };
     LogWriteCommand {
         user_id: context.user_id,
         username: context.username,
         action: format!("HTTP_{}", context.method),
-        description: format!(
-            "{} {} - {}",
-            context.method,
-            context.uri,
-            context.status_code
-        ),
+        description: format!("{} {} - {}", context.method, context.uri, context.status_code),
         data: None,
         status: status.to_string(),
         duration_ms: context.duration.as_millis() as i32,

@@ -2,8 +2,8 @@ use super::{
     repo::UserRepository,
     types::{
         CreateUserCommand, CreateUserRequest, UpdateUserPasswordPayload, UpdateUserPayload,
-        UpdateUserStatusPayload, UserItemResp, UserListQuery, UserOptionResp, UserOptionsQuery,
-        UserQuery,
+        UpdateUserStatusPayload, UserDashboardCounts, UserItemResp, UserListQuery, UserOptionResp,
+        UserOptionsQuery, UserQuery,
     },
 };
 use crate::{
@@ -18,6 +18,8 @@ use crate::{
 use rustzen_core::capability::SYSTEM_WILDCARD;
 
 use sqlx::SqlitePool;
+
+const OWNER_ROLE_CODE: &str = "owner";
 
 /// User service for business operations
 pub struct UserService;
@@ -45,9 +47,14 @@ impl UserService {
     /// Create user
     pub async fn create_user(
         pool: &SqlitePool,
+        current_user_id: i64,
         dto: CreateUserRequest,
     ) -> Result<i64, ServiceError> {
         tracing::debug!("Creating user: {}", dto.username);
+        Self::ensure_roles_are_assignable(pool, current_user_id, &dto.role_ids).await?;
+        if !is_valid_user_status(dto.status.unwrap_or(1)) {
+            return Err(ServiceError::InvalidUserStatus);
+        }
         if UserRepository::username_exists(pool, &dto.username).await? {
             return Err(ServiceError::UsernameConflict);
         }
@@ -78,6 +85,10 @@ impl UserService {
     ) -> Result<i64, ServiceError> {
         tracing::debug!("Updating user ID: {}", id);
         Self::ensure_user_is_mutable(pool, id, current_user_id).await?;
+        Self::ensure_roles_are_assignable(pool, current_user_id, &request.role_ids).await?;
+        if UserRepository::email_exists_for_other_user(pool, &request.email, id).await? {
+            return Err(ServiceError::EmailConflict);
+        }
         UserRepository::update_user(pool, id, &request.email, &request.real_name, &request.role_ids)
             .await
     }
@@ -90,7 +101,9 @@ impl UserService {
     ) -> Result<(), ServiceError> {
         tracing::debug!("Deleting user ID: {}", id);
         Self::ensure_user_is_mutable(pool, id, current_user_id).await?;
-        UserRepository::soft_delete(pool, id).await?;
+        if !UserRepository::soft_delete(pool, id).await? {
+            return Err(ServiceError::NotFound(format!("User id: {}", id)));
+        }
 
         Ok(())
     }
@@ -138,7 +151,14 @@ impl UserService {
     ) -> Result<bool, ServiceError> {
         tracing::debug!("Updating user status for user ID: {}", id);
         Self::ensure_user_is_mutable(pool, id, current_user_id).await?;
+        if !is_valid_user_status(dto.status) {
+            return Err(ServiceError::InvalidUserStatus);
+        }
         UserRepository::update_user_status(pool, id, dto.status).await
+    }
+
+    pub async fn dashboard_counts(pool: &SqlitePool) -> Result<UserDashboardCounts, ServiceError> {
+        UserRepository::dashboard_counts(pool).await
     }
 
     async fn ensure_user_is_mutable(
@@ -155,5 +175,58 @@ impl UserService {
             return Err(ServiceError::UserIsAdmin);
         }
         Ok(())
+    }
+
+    async fn ensure_roles_are_assignable(
+        pool: &SqlitePool,
+        current_user_id: i64,
+        role_ids: &[i64],
+    ) -> Result<(), ServiceError> {
+        if role_ids.is_empty() {
+            return Ok(());
+        }
+
+        let roles = UserRepository::list_role_identities_by_ids(pool, role_ids).await?;
+        if roles.len() != role_ids.iter().copied().collect::<std::collections::HashSet<_>>().len() {
+            return Err(ServiceError::NotFound("Role".to_string()));
+        }
+
+        if roles.iter().any(|(_, code, _)| role_requires_owner_permission(code))
+            && !PermissionService::has_permission(current_user_id, SYSTEM_WILDCARD).await?
+        {
+            return Err(ServiceError::InvalidOperation(
+                "Owner role can only be assigned by an owner user.".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+}
+
+fn role_requires_owner_permission(role_code: &str) -> bool {
+    role_code == OWNER_ROLE_CODE
+}
+
+fn is_valid_user_status(status: i16) -> bool {
+    matches!(status, 1..=4)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn owner_role_requires_owner_permission() {
+        assert!(role_requires_owner_permission("owner"));
+        assert!(!role_requires_owner_permission("admin"));
+        assert!(!role_requires_owner_permission("viewer"));
+    }
+
+    #[test]
+    fn validates_supported_user_status_values() {
+        assert!(is_valid_user_status(1));
+        assert!(is_valid_user_status(4));
+        assert!(!is_valid_user_status(0));
+        assert!(!is_valid_user_status(5));
     }
 }

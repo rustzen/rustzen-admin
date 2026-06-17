@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Default path to the local SQLite database file.
-const DEFAULT_SQLITE_PATH: &str = "./data/rustzen.db";
+const DEFAULT_SQLITE_PATH: &str = "./data/db/rustzen.db";
 
 /// Default host for the HTTP service.
 const DEFAULT_APP_HOST: &str = "0.0.0.0";
@@ -199,14 +199,14 @@ fn ensure_production_jwt_secret(config: &Config) {
     let is_production = env == "production" || env == "prod";
     let is_release_layout = config.runtime_root.trim() == ".";
     let uses_dev_default = config.jwt_secret == DEFAULT_DEV_JWT_SECRET;
-    let uses_placeholder =
-        config.jwt_secret == "replace-me"
-            || config.jwt_secret == RELEASE_JWT_SECRET_PLACEHOLDER
-            || config.jwt_secret.starts_with(RELEASE_JWT_SECRET_PREFIX);
+    let uses_placeholder = config.jwt_secret == "replace-me"
+        || config.jwt_secret == RELEASE_JWT_SECRET_PLACEHOLDER
+        || config.jwt_secret.starts_with(RELEASE_JWT_SECRET_PREFIX);
     let is_empty = config.jwt_secret.trim().is_empty();
 
     assert!(
-        !((is_production || is_release_layout) && (uses_dev_default || uses_placeholder || is_empty)),
+        !((is_production || is_release_layout)
+            && (uses_dev_default || uses_placeholder || is_empty)),
         "RUSTZEN_JWT_SECRET must be explicitly set for release/production and cannot use default or placeholder values"
     );
 }
@@ -220,7 +220,7 @@ mod tests {
 
     fn test_config(jwt_secret: &str, runtime_root: &str) -> Config {
         Config {
-            sqlite_path: "./data/rustzen.db".to_string(),
+            sqlite_path: "./data/db/rustzen.db".to_string(),
             app_port: 9801,
             app_host: "0.0.0.0".to_string(),
             db_max_conn: 4,
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn runtime_root_derives_standard_runtime_paths() {
         let config = Config {
-            sqlite_path: "./data/rustzen.db".to_string(),
+            sqlite_path: "./data/db/rustzen.db".to_string(),
             app_port: 9801,
             app_host: "0.0.0.0".to_string(),
             db_max_conn: 4,
@@ -274,7 +274,7 @@ mod tests {
     fn sqlite_path_is_relative_to_runtime_root_when_not_absolute() {
         let cwd = env::current_dir().expect("cwd");
         let config = Config {
-            sqlite_path: "./data/rustzen.db".to_string(),
+            sqlite_path: "./data/db/rustzen.db".to_string(),
             app_port: 9801,
             app_host: "0.0.0.0".to_string(),
             db_max_conn: 4,
@@ -291,10 +291,10 @@ mod tests {
             task_run_retention_days: 30,
         };
 
-        let expected = resolve_path_with_runtime_root(".rustzen-admin", "./data/rustzen.db");
+        let expected = resolve_path_with_runtime_root(".rustzen-admin", "./data/db/rustzen.db");
         assert_eq!(config.sqlite_database_path(), expected);
         assert!(config.sqlite_database_path().is_absolute());
-        assert_eq!(config.sqlite_database_path(), cwd.join(".rustzen-admin/data/rustzen.db"));
+        assert_eq!(config.sqlite_database_path(), cwd.join(".rustzen-admin/data/db/rustzen.db"));
     }
 
     #[test]

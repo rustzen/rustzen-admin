@@ -52,10 +52,10 @@ export const deployAPI = {
         });
     },
     cleanup: (component?: Deploy.Component) => {
-        const query = component ? `?component=${encodeURIComponent(component)}` : "";
         return apiRequest<number>({
-            url: `/api/manage/deploy/cleanup${query}`,
+            url: "/api/manage/deploy/cleanup",
             method: "POST",
+            query: { component },
         });
     },
 };

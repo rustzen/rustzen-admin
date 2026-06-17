@@ -1,3 +1,10 @@
 [workspace]
 members = ["apps/server", "crates/auth", "crates/config", "crates/runtime", "crates/storage"]
 resolver = "2"
+
+[profile.release]
+opt-level = "z"
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -12,8 +12,8 @@ pub struct RoleRepository;
 
 impl RoleRepository {
     fn format_query(query: &RoleListQuery, query_builder: &mut QueryBuilder<Sqlite>) {
-        push_ilike(query_builder, "role_name", query.role_name.as_deref());
-        push_ilike(query_builder, "role_code", query.role_code.as_deref());
+        push_ilike(query_builder, "name", query.role_name.as_deref());
+        push_ilike(query_builder, "code", query.role_code.as_deref());
         push_eq(query_builder, "status", query.status);
     }
 
@@ -256,5 +256,33 @@ impl RoleRepository {
             tracing::error!("Database error listing menu codes by ids: {:?}", e);
             ServiceError::DatabaseQueryFailed
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use sqlx::Execute;
+
+    use super::*;
+
+    #[test]
+    fn format_query_uses_role_view_column_names() {
+        let query = RoleListQuery {
+            role_name: Some("admin".to_string()),
+            role_code: Some("system".to_string()),
+            status: Some(1),
+        };
+        let mut query_builder: QueryBuilder<Sqlite> =
+            QueryBuilder::new("SELECT id FROM role_with_menus WHERE 1=1");
+
+        RoleRepository::format_query(&query, &mut query_builder);
+
+        let query = query_builder.build();
+        let sql_text = query.sql();
+        let sql = sql_text.as_str();
+        assert!(sql.contains("LOWER(name)"));
+        assert!(sql.contains("LOWER(code)"));
+        assert!(!sql.contains("role_name"));
+        assert!(!sql.contains("role_code"));
     }
 }

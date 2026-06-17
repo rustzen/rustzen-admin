@@ -15,6 +15,10 @@ function ProfilePage() {
     const { userInfo, updateUserInfo } = useAuthStore();
     const [passwordForm] = Form.useForm<Account.ChangePasswordRequest>();
     const [profileForm] = Form.useForm<Account.UpdateProfileRequest>();
+    const profileInitialValues = {
+        email: userInfo?.email ?? undefined,
+        realName: userInfo?.realName ?? undefined,
+    };
 
     return (
         <div className="grid gap-5 p-6 xl:grid-cols-[minmax(520px,1fr)_420px]">
@@ -33,19 +37,13 @@ function ProfilePage() {
                             layout="horizontal"
                             labelCol={{ span: 5 }}
                             width={460}
-                            initialValues={{
-                                email: userInfo?.email,
-                                realName: userInfo?.realName,
-                            }}
+                            initialValues={profileInitialValues}
                             modalProps={{ destroyOnHidden: true, centered: true }}
                             onOpenChange={(open) => {
                                 if (!open) {
                                     profileForm.resetFields();
                                 } else {
-                                    profileForm.setFieldsValue({
-                                        email: userInfo?.email,
-                                        realName: userInfo?.realName,
-                                    });
+                                    profileForm.setFieldsValue(profileInitialValues);
                                 }
                             }}
                             onFinish={async (values) => {

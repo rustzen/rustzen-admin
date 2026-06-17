@@ -28,10 +28,11 @@ pub async fn list_users(
 /// Create user
 #[instrument(skip(pool, dto))]
 pub async fn create_user(
+    current_user: CurrentUser,
     State(pool): State<SqlitePool>,
     Json(dto): Json<CreateUserRequest>,
 ) -> AppResult<i64> {
-    Ok(ApiResponse::success(UserService::create_user(&pool, dto).await?))
+    Ok(ApiResponse::success(UserService::create_user(&pool, current_user.user_id, dto).await?))
 }
 
 /// Update user

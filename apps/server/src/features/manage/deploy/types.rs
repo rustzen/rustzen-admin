@@ -44,8 +44,13 @@ pub struct ListDeploymentsQuery {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CleanupDeploymentsQuery {
+    pub component: Option<DeployComponent>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DeployVersionRequest {
-    pub version_id: Option<i64>,
     pub deployed_by: Option<String>,
 }
 

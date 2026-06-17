@@ -29,6 +29,26 @@ pub struct InsertTaskRunInput<'a> {
     pub error_message: Option<&'a str>,
 }
 
+pub struct FinishTaskRunInput<'a> {
+    pub run_id: i64,
+    pub task_key: &'a str,
+    pub trigger_type: TaskTriggerType,
+    pub status: TaskRunStatus,
+    pub started_at: DateTime<Utc>,
+    pub finished_at: DateTime<Utc>,
+    pub error_message: Option<&'a str>,
+}
+
+struct TaskRunSummaryUpdate<'a> {
+    task_key: &'a str,
+    run_id: i64,
+    trigger_type: &'a str,
+    status: &'a str,
+    started_at: DateTime<Utc>,
+    finished_at: Option<DateTime<Utc>>,
+    error_message: Option<&'a str>,
+}
+
 impl TaskRepository {
     pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
@@ -71,13 +91,15 @@ impl TaskRepository {
 
             update_task_summary_raw(
                 &mut tx,
-                &task_key,
-                run_id,
-                &trigger_type,
-                "failed",
-                started_at,
-                Some(finished_at),
-                Some("Task process stopped before completion"),
+                TaskRunSummaryUpdate {
+                    task_key: &task_key,
+                    run_id,
+                    trigger_type: &trigger_type,
+                    status: "failed",
+                    started_at,
+                    finished_at: Some(finished_at),
+                    error_message: Some("Task process stopped before completion"),
+                },
             )
             .await?;
         }
@@ -194,10 +216,7 @@ impl TaskRepository {
         .await
         .map_err(map_db_error)?;
 
-        let items = rows
-            .into_iter()
-            .map(row_to_task_run_item)
-            .collect::<Result<Vec<_>, _>>()?;
+        let items = rows.into_iter().map(row_to_task_run_item).collect::<Result<Vec<_>, _>>()?;
         Ok((items, total))
     }
 
@@ -247,13 +266,15 @@ impl TaskRepository {
 
         update_task_summary(
             &mut tx,
-            input.task_key,
-            row.id,
-            input.trigger_type,
-            input.status,
-            input.started_at,
-            input.finished_at,
-            input.error_message,
+            TaskRunSummaryUpdate {
+                task_key: input.task_key,
+                run_id: row.id,
+                trigger_type: trigger_type_to_str(input.trigger_type),
+                status: task_status_to_str(input.status),
+                started_at: input.started_at,
+                finished_at: input.finished_at,
+                error_message: input.error_message,
+            },
         )
         .await?;
 
@@ -293,13 +314,7 @@ impl TaskRepository {
 
     pub async fn finish_task_run(
         &self,
-        run_id: i64,
-        task_key: &str,
-        trigger_type: TaskTriggerType,
-        status: TaskRunStatus,
-        started_at: DateTime<Utc>,
-        finished_at: DateTime<Utc>,
-        error_message: Option<&str>,
+        input: FinishTaskRunInput<'_>,
     ) -> Result<TaskRunItem, ServiceError> {
         let mut tx = self.pool.begin().await.map_err(map_db_error)?;
         let row: TaskRunRow = sqlx::query_as(
@@ -311,39 +326,31 @@ impl TaskRepository {
                       finished_at, error_message, created_at, updated_at
             "#,
         )
-        .bind(task_status_to_str(status))
-        .bind(finished_at)
-        .bind(error_message)
-        .bind(finished_at)
-        .bind(run_id)
+        .bind(task_status_to_str(input.status))
+        .bind(input.finished_at)
+        .bind(input.error_message)
+        .bind(input.finished_at)
+        .bind(input.run_id)
         .fetch_one(&mut *tx)
         .await
         .map_err(map_db_error)?;
 
         update_task_summary(
             &mut tx,
-            task_key,
-            run_id,
-            &trigger_type,
-            status,
-            started_at,
-            Some(finished_at),
-            error_message,
+            TaskRunSummaryUpdate {
+                task_key: input.task_key,
+                run_id: input.run_id,
+                trigger_type: trigger_type_to_str(&input.trigger_type),
+                status: task_status_to_str(input.status),
+                started_at: input.started_at,
+                finished_at: Some(input.finished_at),
+                error_message: input.error_message,
+            },
         )
         .await?;
 
         tx.commit().await.map_err(map_db_error)?;
         row_to_task_run_item(row)
-    }
-
-    pub async fn cleanup_old_operation_logs(&self, retention_days: i64) -> Result<u64, ServiceError> {
-        let cutoff = Utc::now().naive_utc() - Duration::days(retention_days.max(1));
-        let result = sqlx::query("DELETE FROM operation_logs WHERE created_at < ?")
-            .bind(cutoff)
-            .execute(&self.pool)
-            .await
-            .map_err(map_db_error)?;
-        Ok(result.rows_affected())
     }
 
     pub async fn cleanup_old_task_runs(&self, retention_days: i64) -> Result<u64, ServiceError> {
@@ -359,38 +366,16 @@ impl TaskRepository {
 
 async fn update_task_summary(
     tx: &mut sqlx::Transaction<'_, Sqlite>,
-    task_key: &str,
-    run_id: i64,
-    trigger_type: &TaskTriggerType,
-    status: TaskRunStatus,
-    started_at: DateTime<Utc>,
-    finished_at: Option<DateTime<Utc>>,
-    error_message: Option<&str>,
+    input: TaskRunSummaryUpdate<'_>,
 ) -> Result<(), ServiceError> {
-    update_task_summary_raw(
-        tx,
-        task_key,
-        run_id,
-        trigger_type_to_str(trigger_type),
-        task_status_to_str(status),
-        started_at,
-        finished_at,
-        error_message,
-    )
-    .await
+    update_task_summary_raw(tx, input).await
 }
 
 async fn update_task_summary_raw(
     tx: &mut sqlx::Transaction<'_, Sqlite>,
-    task_key: &str,
-    run_id: i64,
-    trigger_type: &str,
-    status: &str,
-    started_at: DateTime<Utc>,
-    finished_at: Option<DateTime<Utc>>,
-    error_message: Option<&str>,
+    input: TaskRunSummaryUpdate<'_>,
 ) -> Result<(), ServiceError> {
-    let running = if status == "running" { 1 } else { 0 };
+    let running = if input.status == "running" { 1 } else { 0 };
     sqlx::query(
         r#"
         UPDATE system_tasks
@@ -406,13 +391,13 @@ async fn update_task_summary_raw(
         "#,
     )
     .bind(running)
-    .bind(run_id)
-    .bind(trigger_type)
-    .bind(status)
-    .bind(started_at)
-    .bind(finished_at)
-    .bind(error_message)
-    .bind(task_key)
+    .bind(input.run_id)
+    .bind(input.trigger_type)
+    .bind(input.status)
+    .bind(input.started_at)
+    .bind(input.finished_at)
+    .bind(input.error_message)
+    .bind(input.task_key)
     .execute(&mut **tx)
     .await
     .map_err(map_db_error)?;
@@ -425,9 +410,7 @@ fn row_to_task_item(row: TaskRow) -> Result<TaskItem, ServiceError> {
         name: row.name,
         description: row.description,
         enabled: row.enabled != 0,
-        schedule: TaskSchedule::Cron {
-            expression: row.schedule_json,
-        },
+        schedule: TaskSchedule::Cron { expression: row.schedule_json },
         running: row.running != 0,
         last_run_id: row.last_run_id,
         last_trigger_type: row
@@ -471,9 +454,7 @@ fn trigger_type_from_str(raw: &str) -> Result<TaskTriggerType, ServiceError> {
     match raw {
         "scheduled" => Ok(TaskTriggerType::Scheduled),
         "manual" => Ok(TaskTriggerType::Manual),
-        other => Err(ServiceError::InvalidOperation(format!(
-            "Invalid task trigger type: {other}"
-        ))),
+        other => Err(ServiceError::InvalidOperation(format!("Invalid task trigger type: {other}"))),
     }
 }
 
@@ -492,9 +473,7 @@ fn task_status_from_str(raw: &str) -> Result<TaskRunStatus, ServiceError> {
         "success" => Ok(TaskRunStatus::Success),
         "failed" => Ok(TaskRunStatus::Failed),
         "skipped" => Ok(TaskRunStatus::Skipped),
-        other => Err(ServiceError::InvalidOperation(format!(
-            "Invalid task status: {other}"
-        ))),
+        other => Err(ServiceError::InvalidOperation(format!("Invalid task status: {other}"))),
     }
 }
 

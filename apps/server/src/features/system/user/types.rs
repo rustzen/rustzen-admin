@@ -65,6 +65,7 @@ pub struct UserItemResp {
     pub email: String,
     pub real_name: Option<String>,
     pub avatar_url: Option<String>,
+    pub is_system: bool,
     pub status: i16,
     pub last_login_at: Option<NaiveDateTime>,
     pub roles: Vec<UserOptionResp>,
@@ -123,6 +124,14 @@ pub struct CreateUserCommand {
     pub role_ids: Vec<i64>,
 }
 
+#[derive(Debug, Clone)]
+pub struct UserDashboardCounts {
+    pub total_users: i64,
+    pub active_users: i64,
+    pub today_logins: i64,
+    pub pending_users: i64,
+}
+
 impl TryFrom<UserWithRolesRow> for UserItemResp {
     type Error = ServiceError;
 
@@ -137,6 +146,7 @@ impl TryFrom<UserWithRolesRow> for UserItemResp {
             email: user.email,
             real_name: user.real_name,
             avatar_url: user.avatar_url,
+            is_system: user.is_system,
             status: user.status,
             last_login_at: user.last_login_at,
             created_at: user.created_at,

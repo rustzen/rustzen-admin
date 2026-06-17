@@ -4,8 +4,8 @@ pub mod service;
 pub mod types;
 
 use axum::{
-    extract::DefaultBodyLimit,
     Router,
+    extract::DefaultBodyLimit,
     routing::{delete, get, post, put},
 };
 use handler::{
@@ -29,7 +29,8 @@ pub fn deploy_routes() -> Router<SqlitePool> {
         )
         .route_with_permission(
             "/upload",
-            post(upload_deployment).layer(DefaultBodyLimit::max(DeployService::upload_body_limit())),
+            post(upload_deployment)
+                .layer(DefaultBodyLimit::max(DeployService::upload_body_limit())),
             PermissionsCheck::Require(manage_deploy::CREATE),
         )
         .route_with_permission(

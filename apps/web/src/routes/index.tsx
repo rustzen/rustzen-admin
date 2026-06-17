@@ -93,7 +93,7 @@ const HealthCard = () => {
         queryFn: dashboardAPI.health,
     });
     const memoryUsage = calculatePercent(health?.memoryUsed, health?.memoryTotal);
-    const cpuUsage = calculatePercent(health?.cpuUsed, health?.cpuTotal);
+    const cpuUsage = health?.cpuUsed ?? 0;
     const diskUsage = calculatePercent(health?.diskUsed, health?.diskTotal);
 
     return (
@@ -122,7 +122,7 @@ const HealthCard = () => {
                     <div className="mb-2 flex justify-between">
                         <span>CPU usage</span>
                         <span>
-                            {health?.cpuUsed.toFixed(1)} / {health?.cpuTotal}
+                            {cpuUsage.toFixed(1)}% / {health?.cpuTotal ?? 0}
                         </span>
                     </div>
                     <Progress percent={cpuUsage} status={cpuUsage > 80 ? "exception" : "normal"} />
@@ -186,6 +186,9 @@ const UserActivityTrendCard = () => {
         queryKey: ["dashboard", "trends"],
         queryFn: dashboardAPI.trends,
     });
+    const dailyLogins = normalizeTrendItems(data?.dailyLogins);
+    const hourlyActive = normalizeTrendItems(data?.hourlyActive);
+
     return (
         <div className="grid min-h-0 grid-cols-2 gap-4">
             <Card
@@ -196,7 +199,7 @@ const UserActivityTrendCard = () => {
                 }}
             >
                 <Line
-                    data={data?.dailyLogins || []}
+                    data={dailyLogins}
                     xField="date"
                     yField="count"
                     height={DASHBOARD_CHART_HEIGHT}
@@ -215,7 +218,7 @@ const UserActivityTrendCard = () => {
                 }}
             >
                 <Column
-                    data={data?.hourlyActive || []}
+                    data={hourlyActive}
                     xField="date"
                     yField="count"
                     height={DASHBOARD_CHART_HEIGHT}
@@ -232,4 +235,13 @@ const UserActivityTrendCard = () => {
             </Card>
         </div>
     );
+};
+
+const normalizeTrendItems = (items?: Dashboard.TrendItem[]) => {
+    return (items ?? [])
+        .filter((item) => item.date)
+        .map((item) => ({
+            date: item.date ?? "",
+            count: item.count ?? 0,
+        }));
 };

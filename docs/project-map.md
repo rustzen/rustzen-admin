@@ -34,6 +34,7 @@ This is a practical path index for task orientation. It maps where to look first
 | `crates/storage/` | Shared SQLite storage helpers and migration invocations. | You touch DB bootstrap, connection helpers, or migration wiring. |
 | `apps/server/AGENTS.md` | Backend-specific AI rules. | You work under `apps/server/`. |
 | `apps/server/src/infra/` | Config, app assembly, database, auth runtime, capability cache, and menu sync. | You touch startup, runtime paths, DB wiring, static serving, or capability sync. |
+| `apps/server/src/infra/db.rs` | SQLite pool creation, embedded migration runner, and startup moves for legacy SQLite files, legacy deploy server files, and `deploy_versions.file_path` rows. | You touch DB startup, runtime file migration, or deploy record migration behavior. |
 | `apps/server/src/common/` | Cross-feature backend helpers. | You touch shared file or utility behavior. |
 | `apps/server/src/middleware/` | Axum middleware. | You touch request middleware behavior. |
 | `apps/server/migrations/` | SQL migrations. | You change schema. |
@@ -44,7 +45,7 @@ This is a practical path index for task orientation. It maps where to look first
 | --- | --- | --- |
 | `apps/server/src/features/auth/` | Login, logout, and current-session bootstrap. | You touch session, token, login info, or logout behavior. |
 | `apps/server/src/features/account/` | Current-account profile, avatar, and password flows. | You touch self-service account behavior. |
-| `apps/server/src/features/dashboard/` | Dashboard summary APIs. | You touch dashboard cards or summary stats. |
+| `apps/server/src/features/dashboard/` | Dashboard summary APIs; intentional smaller read-only aggregation feature without `repo.rs`. | You touch dashboard cards, summary stats, or cross-feature aggregation display. |
 | `apps/server/src/features/manage/dict/` | Dictionary management. | You touch dictionary data or option sources. |
 | `apps/server/src/features/manage/log/` | Operation log management and current audit carrier. | You touch operation or login logs. |
 | `apps/server/src/features/manage/task/` | Fixed scheduled tasks and task run history. | You touch scheduler startup, cron jobs, or retention cleanup. |

@@ -12,7 +12,6 @@ use zip::ZipArchive;
 
 use crate::{
     common::{
-        api::ApiResponse,
         error::ServiceError,
         pagination::{Pagination, PaginationQuery},
     },
@@ -39,9 +38,7 @@ pub struct DeployService {
 
 impl DeployService {
     pub fn new(pool: sqlx::SqlitePool) -> Self {
-        Self {
-            repo: Arc::new(DeployRepository::new(pool)),
-        }
+        Self { repo: Arc::new(DeployRepository::new(pool)) }
     }
 
     pub fn upload_body_limit() -> usize {
@@ -51,16 +48,12 @@ impl DeployService {
     pub async fn list(
         &self,
         query: ListDeploymentsQuery,
-    ) -> Result<ApiResponse<Vec<DeploymentItem>>, ServiceError> {
+    ) -> Result<(Vec<DeploymentItem>, i64), ServiceError> {
         let pagination = Pagination::from_query(PaginationQuery {
             current: query.current,
             page_size: query.page_size,
         });
-        let (items, total) = self
-            .repo
-            .list(&query, pagination.offset.into(), pagination.limit.into())
-            .await?;
-        Ok(ApiResponse::new(items, Some(total)))
+        self.repo.list(&query, pagination.offset.into(), pagination.limit.into()).await
     }
 
     pub async fn upload(&self, mut multipart: Multipart) -> Result<DeploymentItem, ServiceError> {
@@ -81,11 +74,9 @@ impl DeployService {
 
             match name.as_str() {
                 "component" => {
-                    component = Some(parse_component(
-                        field.text().await.map_err(|_| {
-                            ServiceError::InvalidOperation("Invalid component field".to_string())
-                        })?,
-                    )?);
+                    component = Some(parse_component(field.text().await.map_err(|_| {
+                        ServiceError::InvalidOperation("Invalid component field".to_string())
+                    })?)?);
                 }
                 "version" => {
                     version = Some(validate_version(field.text().await.map_err(|_| {
@@ -110,8 +101,8 @@ impl DeployService {
             }
         }
 
-        let component =
-            component.ok_or_else(|| ServiceError::InvalidOperation("component is required".into()))?;
+        let component = component
+            .ok_or_else(|| ServiceError::InvalidOperation("component is required".into()))?;
         let version =
             version.ok_or_else(|| ServiceError::InvalidOperation("version is required".into()))?;
         let file_data =
@@ -137,14 +128,15 @@ impl DeployService {
 
         if self.repo.version_exists(&component, &version, &arch).await? {
             return Err(ServiceError::InvalidOperation(
-                "Deploy version already exists for this component and arch".to_string(),
+                "Deploy version has already been uploaded for this component and arch; use a new version.".to_string(),
             ));
         }
 
         let file_hash = sha256_hex(&file_data);
         let file_path = save_version_file(&component, &version, &arch, &file_data).await?;
 
-        self.repo
+        match self
+            .repo
             .insert(&DeploymentPayload {
                 component,
                 version,
@@ -155,6 +147,19 @@ impl DeployService {
                 notes,
             })
             .await
+        {
+            Ok(item) => Ok(item),
+            Err(err) => {
+                if let Err(remove_err) = remove_deploy_file_path(&file_path) {
+                    tracing::warn!(
+                        "Failed to remove deploy file after database insert error file={}: {}",
+                        file_path.display(),
+                        remove_err
+                    );
+                }
+                Err(err)
+            }
+        }
     }
 
     pub async fn find_by_id(&self, id: i64) -> Result<DeploymentItem, ServiceError> {
@@ -166,15 +171,8 @@ impl DeployService {
         id: i64,
         request: DeployVersionRequest,
     ) -> Result<bool, ServiceError> {
-        if let Some(version_id) = request.version_id
-            && version_id != id
-        {
-            return Err(ServiceError::InvalidOperation(
-                "versionId must match the deployment id".to_string(),
-            ));
-        }
-
         let version = self.repo.find_by_id(id).await?;
+        ensure_version_is_deployable(&version)?;
         validate_stored_file(&version)?;
 
         match version.component {
@@ -200,9 +198,16 @@ impl DeployService {
                 "Cannot delete the current deploy version".to_string(),
             ));
         }
-        remove_deploy_file(&version)?;
-        self.repo.delete_by_id(id).await?;
-        Ok(version)
+        let deleted = self.repo.delete_by_id(id).await?;
+        if let Err(err) = remove_deploy_file(&deleted) {
+            tracing::warn!(
+                "Deploy version id={} was deleted from database but file cleanup failed file={}: {}",
+                deleted.id,
+                deleted.file_path,
+                err
+            );
+        }
+        Ok(deleted)
     }
 
     pub async fn cleanup_expired(
@@ -213,20 +218,16 @@ impl DeployService {
         let mut deleted = 0;
 
         for version in versions {
-            match remove_deploy_file(&version) {
-                Ok(()) => {
-                    self.repo.delete_by_id(version.id).await?;
-                    deleted += 1;
-                }
-                Err(err) => {
-                    tracing::warn!(
-                        "Skipped deploy cleanup for id={} file={}: {}",
-                        version.id,
-                        version.file_path,
-                        err
-                    );
-                }
+            let deleted_version = self.repo.delete_by_id(version.id).await?;
+            if let Err(err) = remove_deploy_file(&deleted_version) {
+                tracing::warn!(
+                    "Deploy version id={} was expired in database but file cleanup failed file={}: {}",
+                    deleted_version.id,
+                    deleted_version.file_path,
+                    err
+                );
             }
+            deleted += 1;
         }
 
         Ok(deleted)
@@ -242,10 +243,7 @@ impl DeployService {
             ServiceError::InvalidOperation(format!("Failed to create bin directory: {err}"))
         })?;
 
-        if let Some(current) = self
-            .repo
-            .find_current(&version.component, &version.arch)
-            .await?
+        if let Some(current) = self.repo.find_current(&version.component, &version.arch).await?
             && current.id == version.id
             && fs::read_link(&target_bin)
                 .map(|target| target == Path::new(&version.file_path))
@@ -256,9 +254,10 @@ impl DeployService {
 
         prepare_server_restart().await?;
 
-        let old_target = swap_symlink(&target_bin, Path::new(&version.file_path)).map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to switch server binary: {err}"))
-        })?;
+        let old_target =
+            swap_symlink(&target_bin, Path::new(&version.file_path)).map_err(|err| {
+                ServiceError::InvalidOperation(format!("Failed to switch server binary: {err}"))
+            })?;
 
         if let Err(err) = restart_server().await {
             if let Err(restore_err) = restore_symlink(&target_bin, old_target.as_deref()) {
@@ -279,6 +278,11 @@ impl DeployService {
         {
             if let Err(restore_err) = restore_symlink(&target_bin, old_target.as_deref()) {
                 tracing::error!("Failed to restore server symlink: {}", restore_err);
+            } else if let Err(restart_err) = restart_server().await {
+                tracing::error!(
+                    "Failed to restart server after restoring previous symlink: {}",
+                    restart_err
+                );
             }
             return Err(err);
         }
@@ -335,7 +339,9 @@ impl DeployService {
         remove_path_if_exists(&prev_dist)?;
         if dist_dir.exists() {
             fs::rename(&dist_dir, &prev_dist).map_err(|err| {
-                ServiceError::InvalidOperation(format!("Failed to archive previous web dist: {err}"))
+                ServiceError::InvalidOperation(format!(
+                    "Failed to archive previous web dist: {err}"
+                ))
             })?;
         }
         fs::rename(&new_dist, &dist_dir).map_err(|err| {
@@ -354,7 +360,10 @@ impl DeployService {
             .await
         {
             if let Err(restore_err) = restore_web_dist(&dist_dir, &prev_dist) {
-                tracing::error!("Failed to rollback web dist after database error: {}", restore_err);
+                tracing::error!(
+                    "Failed to rollback web dist after database error: {}",
+                    restore_err
+                );
             }
             return Err(err);
         }
@@ -398,9 +407,9 @@ fn version_file_path(
 ) -> Result<PathBuf, ServiceError> {
     let root = runtime_root_dir();
     match component {
-        DeployComponent::Server => Ok(root
-            .join("versions")
-            .join(format!("server-{version}-{arch}"))),
+        DeployComponent::Server => {
+            Ok(root.join("bin").join(format!("{SERVER_BINARY_NAME}-{version}-{arch}")))
+        }
         DeployComponent::Web => Ok(root.join("web").join(format!("web-{version}.zip"))),
     }
 }
@@ -451,13 +460,8 @@ fn validate_server_file(file_data: &[u8], expected_arch: &str) -> Result<(), Ser
             "server file must be an executable binary".to_string(),
         ));
     }
-    if !file_data
-        .windows(SERVER_MARKER_PREFIX.len())
-        .any(|window| window == SERVER_MARKER_PREFIX)
-    {
-        return Err(ServiceError::InvalidOperation(
-            "server file marker check failed".to_string(),
-        ));
+    if !file_data.windows(SERVER_MARKER_PREFIX.len()).any(|window| window == SERVER_MARKER_PREFIX) {
+        return Err(ServiceError::InvalidOperation("server file marker check failed".to_string()));
     }
     if let Some(detected_arch) = detect_binary_arch(file_data)?
         && detected_arch != expected_arch
@@ -512,9 +516,7 @@ fn validate_web_file(file_data: &[u8]) -> Result<(), ServiceError> {
         if name == "dist/index.html" {
             has_index = true;
         }
-        if name.starts_with("dist/assets/")
-            && (name.ends_with(".js") || name.ends_with(".css"))
-        {
+        if name.starts_with("dist/assets/") && (name.ends_with(".js") || name.ends_with(".css")) {
             has_asset = true;
         }
         if name == WEB_MARKER_FILE {
@@ -564,9 +566,7 @@ fn validate_web_marker<R: Read>(reader: &mut R) -> Result<(), ServiceError> {
         .map_err(|_| ServiceError::InvalidOperation("web marker is not valid JSON".to_string()))?;
 
     if marker.get("component").and_then(|value| value.as_str()) != Some("web") {
-        return Err(ServiceError::InvalidOperation(
-            "web marker component must be web".to_string(),
-        ));
+        return Err(ServiceError::InvalidOperation("web marker component must be web".to_string()));
     }
     if marker.get("build_id").and_then(|value| value.as_str()) != Some("manual") {
         return Err(ServiceError::InvalidOperation(
@@ -618,9 +618,7 @@ fn parse_component(value: String) -> Result<DeployComponent, ServiceError> {
     match value.trim() {
         "server" => Ok(DeployComponent::Server),
         "web" => Ok(DeployComponent::Web),
-        _ => Err(ServiceError::InvalidOperation(
-            "component must be server or web".to_string(),
-        )),
+        _ => Err(ServiceError::InvalidOperation("component must be server or web".to_string())),
     }
 }
 
@@ -631,10 +629,7 @@ fn validate_version(value: String) -> Result<String, ServiceError> {
             "version must be at most 64 characters".to_string(),
         ));
     }
-    if value
-        .chars()
-        .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-'))
-    {
+    if value.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-')) {
         Ok(value)
     } else {
         Err(ServiceError::InvalidOperation(
@@ -647,10 +642,15 @@ fn normalize_arch(value: &str) -> Result<String, ServiceError> {
     match value.trim().to_ascii_lowercase().as_str() {
         "x86_64" | "amd64" => Ok("x86_64".to_string()),
         "aarch64" | "arm64" => Ok("aarch64".to_string()),
-        _ => Err(ServiceError::InvalidOperation(
-            "arch must be x86_64 or aarch64".to_string(),
-        )),
+        _ => Err(ServiceError::InvalidOperation("arch must be x86_64 or aarch64".to_string())),
     }
+}
+
+fn ensure_version_is_deployable(version: &DeploymentItem) -> Result<(), ServiceError> {
+    if version.is_expired {
+        return Err(ServiceError::InvalidOperation("Cannot deploy an expired version".to_string()));
+    }
+    Ok(())
 }
 
 fn detect_binary_arch(file_data: &[u8]) -> Result<Option<String>, ServiceError> {
@@ -710,11 +710,7 @@ fn detect_macho_arch(file_data: &[u8]) -> Result<Option<String>, ServiceError> {
 }
 
 fn swap_symlink(target_link: &Path, new_target: &Path) -> std::io::Result<Option<PathBuf>> {
-    let old_target = if target_link.exists() {
-        fs::read_link(target_link).ok()
-    } else {
-        None
-    };
+    let old_target = if target_link.exists() { fs::read_link(target_link).ok() } else { None };
     if target_link.exists() && old_target.is_none() {
         fs::remove_file(target_link)?;
     }
@@ -722,10 +718,7 @@ fn swap_symlink(target_link: &Path, new_target: &Path) -> std::io::Result<Option
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidInput, err.to_string()))?;
     let tmp_link = parent.join(format!(
         ".{}.tmp",
-        target_link
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("rustzen-admin")
+        target_link.file_name().and_then(|name| name.to_str()).unwrap_or("rustzen-admin")
     ));
     if tmp_link.exists() {
         let _ = fs::remove_file(&tmp_link);
@@ -747,10 +740,7 @@ fn restore_symlink(target_link: &Path, old_target: Option<&Path>) -> std::io::Re
         .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "missing parent"))?;
     let tmp_link = parent.join(format!(
         ".{}.tmp",
-        target_link
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("rustzen-admin")
+        target_link.file_name().and_then(|name| name.to_str()).unwrap_or("rustzen-admin")
     ));
     if tmp_link.exists() {
         let _ = fs::remove_file(&tmp_link);
@@ -858,9 +848,7 @@ fn resolve_runtime_path(path: &Path) -> PathBuf {
     if path.is_absolute() {
         path.to_path_buf()
     } else {
-        std::env::current_dir()
-            .map(|cwd| cwd.join(path))
-            .unwrap_or_else(|_| path.to_path_buf())
+        std::env::current_dir().map(|cwd| cwd.join(path)).unwrap_or_else(|_| path.to_path_buf())
     }
 }
 
@@ -877,12 +865,8 @@ fn remove_path_if_exists(path: &Path) -> Result<(), ServiceError> {
     let metadata = fs::symlink_metadata(path).map_err(|err| {
         ServiceError::InvalidOperation(format!("Failed to read path metadata: {err}"))
     })?;
-    if metadata.is_dir() {
-        fs::remove_dir_all(path)
-    } else {
-        fs::remove_file(path)
-    }
-    .map_err(|err| ServiceError::InvalidOperation(format!("Failed to remove path: {err}")))
+    if metadata.is_dir() { fs::remove_dir_all(path) } else { fs::remove_file(path) }
+        .map_err(|err| ServiceError::InvalidOperation(format!("Failed to remove path: {err}")))
 }
 
 fn is_zip(bytes: &[u8]) -> bool {
@@ -933,11 +917,60 @@ fn normalize_optional(value: String) -> Option<String> {
 }
 
 fn remove_deploy_file(version: &DeploymentItem) -> Result<(), ServiceError> {
-    let path = Path::new(&version.file_path);
+    remove_deploy_file_path(Path::new(&version.file_path))
+}
+
+fn remove_deploy_file_path(path: &Path) -> Result<(), ServiceError> {
     if !path.exists() {
         return Ok(());
     }
     fs::remove_file(path).map_err(|err| {
         ServiceError::InvalidOperation(format!("Failed to remove deploy version file: {err}"))
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::Utc;
+
+    use super::*;
+
+    #[test]
+    fn ensure_version_is_deployable_rejects_expired_versions() {
+        let version = deployment_item(true);
+
+        let err = ensure_version_is_deployable(&version).expect_err("expired version is invalid");
+
+        assert!(matches!(err, ServiceError::InvalidOperation(_)));
+    }
+
+    #[test]
+    fn ensure_version_is_deployable_accepts_active_versions() {
+        let version = deployment_item(false);
+
+        assert!(ensure_version_is_deployable(&version).is_ok());
+    }
+
+    fn deployment_item(is_expired: bool) -> DeploymentItem {
+        let now = Utc::now();
+        DeploymentItem {
+            id: 1,
+            component: DeployComponent::Server,
+            version: "v0.4.0".to_string(),
+            arch: "x86_64".to_string(),
+            file_path: "/tmp/rustzen-admin".to_string(),
+            file_size: 1,
+            file_hash: "hash".to_string(),
+            is_current: false,
+            is_deployed: false,
+            is_expired,
+            deployed_at: None,
+            expired_at: None,
+            deleted_at: None,
+            deployed_by: None,
+            notes: None,
+            created_at: now,
+            updated_at: now,
+        }
+    }
 }

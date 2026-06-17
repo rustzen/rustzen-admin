@@ -18,11 +18,12 @@ This classification does not make Peripheral Vercel, Tauri client, or legacy
 - `apps/server/migrations/` owns SQL migrations.
 - `apps/web/` owns the React frontend.
 
-SQLite is the default storage backend. PostgreSQL-first behavior is archived under `legacy/pg-admin`.
+SQLite is the default storage backend. PostgreSQL-first migration history is
+archived under `apps/server/migrations/postgresql_legacy/`.
 - `deploy/` owns deployment assets.
 - `docs/` owns repository documentation.
 
-Backend feature code lives under `apps/server/src/features/<feature>/` with `mod.rs`, `handler.rs`, `service.rs`, `repo.rs`, and `types.rs` unless the feature is intentionally smaller. System user/role/menu stay under `features/system/`; dictionary, logs, scheduled tasks, and deploy version management live under `features/manage/`.
+Backend feature code lives under `apps/server/src/features/<feature>/` with `mod.rs`, `handler.rs`, `service.rs`, `repo.rs`, and `types.rs` unless the feature is intentionally smaller. `features/dashboard/` is an intentional smaller read-only aggregation feature: it has no `repo.rs` because it delegates dashboard counts and trends to owning services such as system user and manage log instead of owning persistence. System user/role/menu stay under `features/system/`; dictionary, logs, scheduled tasks, and deploy version management live under `features/manage/`.
 
 Frontend pages live under `apps/web/src/routes/`. Frontend API modules live under `apps/web/src/api/`.
 
@@ -38,7 +39,7 @@ Local development runs backend and frontend separately:
 Packaged deployment runs the backend as the serving process:
 
 - backend binary: `<runtime_root>/bin/rustzen-admin` symlinked to a versioned file
-- deploy versions: `<runtime_root>/versions/server-<version>-<arch>` for server files and `<runtime_root>/web/web-<version>.zip` for web files
+- deploy versions: `<runtime_root>/bin/rustzen-admin-<version>-<arch>` for server files and `<runtime_root>/web/web-<version>.zip` for web files
 - frontend static files: `<runtime_root>/web/dist`
 - database: `<runtime_root>/data/db/rustzen.db`
 - uploads: `<runtime_root>/data/uploads`

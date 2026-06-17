@@ -1,15 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { createRootRoute, Navigate, Outlet, redirect } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { App, ConfigProvider } from "antd";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 
 import { MessageContent, authAPI } from "@/api";
 import { BaseLayout } from "@/components/base-layout";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const permissionFreePaths = new Set(["/profile", "/403", "/404"]);
+
+const ReactQueryDevtools = import.meta.env.DEV
+    ? lazy(() =>
+          import("@tanstack/react-query-devtools").then((module) => ({
+              default: module.ReactQueryDevtools,
+          })),
+      )
+    : null;
+
+const TanStackRouterDevtools = import.meta.env.DEV
+    ? lazy(() =>
+          import("@tanstack/react-router-devtools").then((module) => ({
+              default: module.TanStackRouterDevtools,
+          })),
+      )
+    : null;
 
 export const Route = createRootRoute({
     beforeLoad: (ctx: { location: { pathname: string } }) => {
@@ -66,11 +80,11 @@ function RootLayout() {
                 </BaseLayout>
                 <MessageContent />
             </App>
-            {import.meta.env.DEV && (
-                <>
+            {ReactQueryDevtools && TanStackRouterDevtools && (
+                <Suspense fallback={null}>
                     <ReactQueryDevtools buttonPosition="bottom-right" />
                     <TanStackRouterDevtools />
-                </>
+                </Suspense>
             )}
         </ConfigProvider>
     );

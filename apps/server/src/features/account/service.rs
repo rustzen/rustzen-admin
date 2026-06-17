@@ -3,11 +3,15 @@ use super::{
     types::{ChangeAccountPasswordRequest, UpdateAccountProfileRequest},
 };
 use crate::{
-    common::error::ServiceError,
+    common::{
+        error::ServiceError,
+        files::{remove_avatar_by_url, save_avatar},
+    },
     features::auth::{service::AuthService, types::UserInfoResp},
     infra::password::PasswordUtils,
 };
 
+use axum::extract::Multipart;
 use sqlx::SqlitePool;
 
 /// Account service for current-user profile operations.
@@ -17,12 +21,22 @@ impl AccountService {
     pub async fn update_avatar(
         pool: &SqlitePool,
         user_id: i64,
-        avatar_url: &str,
-    ) -> Result<(), ServiceError> {
+        multipart: &mut Multipart,
+    ) -> Result<String, ServiceError> {
         tracing::info!("Updating avatar for user_id: {}", user_id);
-        AccountRepository::update_avatar(pool, user_id, avatar_url).await?;
+        let avatar_url = save_avatar(multipart).await?;
+        if let Err(error) = AccountRepository::update_avatar(pool, user_id, &avatar_url).await {
+            if let Err(remove_error) = remove_avatar_by_url(&avatar_url).await {
+                tracing::warn!(
+                    avatar_url,
+                    error = %remove_error,
+                    "Failed to remove avatar after database update failure"
+                );
+            }
+            return Err(error);
+        }
         tracing::info!("Avatar updated successfully for user_id: {}", user_id);
-        Ok(())
+        Ok(avatar_url)
     }
 
     pub async fn update_profile(
@@ -73,5 +87,45 @@ impl AccountService {
             return Err(ServiceError::PasswordConfirmationMismatch);
         }
         PasswordUtils::hash_password(new_password)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AccountService;
+    use crate::infra::password::PasswordUtils;
+
+    #[test]
+    fn build_password_hash_requires_current_password_and_confirmation() {
+        let current_hash = PasswordUtils::hash_password("current-password").expect("hash");
+
+        let new_hash = AccountService::build_password_hash(
+            "current-password",
+            &current_hash,
+            "new-password",
+            "new-password",
+        )
+        .expect("password hash");
+
+        assert!(PasswordUtils::verify_password("new-password", &new_hash));
+        assert!(!PasswordUtils::verify_password("current-password", &new_hash));
+        assert!(
+            AccountService::build_password_hash(
+                "wrong-password",
+                &current_hash,
+                "new-password",
+                "new-password",
+            )
+            .is_err()
+        );
+        assert!(
+            AccountService::build_password_hash(
+                "current-password",
+                &current_hash,
+                "new-password",
+                "different-password",
+            )
+            .is_err()
+        );
     }
 }

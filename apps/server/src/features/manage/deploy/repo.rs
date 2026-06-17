@@ -38,21 +38,16 @@ impl DeployRepository {
             .fetch_all(&self.pool)
             .await
             .map_err(map_db_error)?;
-        let items = rows
-            .into_iter()
-            .map(row_to_item)
-            .collect::<Result<Vec<_>, _>>()?;
+        let items = rows.into_iter().map(row_to_item).collect::<Result<Vec<_>, _>>()?;
         Ok((items, total))
     }
 
     async fn count(&self, query: &ListDeploymentsQuery) -> Result<i64, ServiceError> {
-        let mut sql = QueryBuilder::new("SELECT COUNT(*) FROM deploy_versions WHERE deleted_at IS NULL");
+        let mut sql =
+            QueryBuilder::new("SELECT COUNT(*) FROM deploy_versions WHERE deleted_at IS NULL");
         push_filters(&mut sql, query);
-        let (total,): (i64,) = sql
-            .build_query_as()
-            .fetch_one(&self.pool)
-            .await
-            .map_err(map_db_error)?;
+        let (total,): (i64,) =
+            sql.build_query_as().fetch_one(&self.pool).await.map_err(map_db_error)?;
         Ok(total)
     }
 
@@ -92,7 +87,10 @@ impl DeployRepository {
         Ok(count > 0)
     }
 
-    pub async fn insert(&self, payload: &DeploymentPayload) -> Result<DeploymentItem, ServiceError> {
+    pub async fn insert(
+        &self,
+        payload: &DeploymentPayload,
+    ) -> Result<DeploymentItem, ServiceError> {
         let row = sqlx::query_as::<_, DeploymentRow>(
             r#"
             INSERT INTO deploy_versions (
@@ -357,7 +355,8 @@ fn push_filters(query: &mut QueryBuilder<Sqlite>, params: &ListDeploymentsQuery)
         query.push(" AND is_expired = ").push_bind(bool_to_i64(is_expired));
     }
 
-    let Some(search) = params.search.as_deref().map(str::trim).filter(|value| !value.is_empty()) else {
+    let Some(search) = params.search.as_deref().map(str::trim).filter(|value| !value.is_empty())
+    else {
         return;
     };
     let pattern = format!("%{}%", search.to_lowercase());
@@ -404,9 +403,7 @@ fn component_from_str(raw: &str) -> Result<DeployComponent, ServiceError> {
     match raw {
         "server" => Ok(DeployComponent::Server),
         "web" => Ok(DeployComponent::Web),
-        other => Err(ServiceError::InvalidOperation(format!(
-            "Invalid deploy component: {other}"
-        ))),
+        other => Err(ServiceError::InvalidOperation(format!("Invalid deploy component: {other}"))),
     }
 }
 

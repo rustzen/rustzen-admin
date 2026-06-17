@@ -29,15 +29,14 @@ declare namespace Dashboard {
     }
 
     // 用户活动统计
+    interface TrendItem {
+        date?: string | null;
+        count?: number | null;
+    }
+
     interface UserActivityChart {
-        dailyLogins: Array<{
-            date: string;
-            count: number;
-        }>; // 最近30天登录趋势
-        hourlyActive: Array<{
-            date: string;
-            count: number;
-        }>;
+        dailyLogins: TrendItem[]; // 最近30天登录趋势
+        hourlyActive: TrendItem[];
     }
 
     // 实时操作日志

@@ -17,9 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Breaking:** SQLite is now the default runtime storage backend. PostgreSQL-first behavior is preserved on the `legacy/pg-admin` branch and the `pg-admin` tag.
+- **Breaking:** SQLite is now the default runtime storage backend. PostgreSQL-first migration history is archived under `apps/server/migrations/postgresql_legacy/`.
 - Moved source ownership to the current monorepo layout: `apps/server`, `apps/web`, and shared `crates/*`.
-- Moved local development ports to backend `9800` and frontend `9801`.
+- Moved local development ports to backend `9801` and frontend `9800`.
 - Reworked system permission checks around explicit capability boundaries while keeping existing capability codes.
 - Updated deployment assets, runtime configuration, and documentation for the SQLite-first baseline.
 
@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Migration notes
 
-- Existing PostgreSQL-first deployments should stay on `legacy/pg-admin` or the `pg-admin` tag.
+- Existing PostgreSQL-first deployments need a separate migration review before adopting the SQLite-first runtime.
 - Fresh SQLite-first installs should use `.env.example`, set `RUSTZEN_JWT_SECRET`, and start the backend so embedded migrations apply.
 - If a local development database has stale migration checksums, run `just reset-db` before restarting the backend.
 

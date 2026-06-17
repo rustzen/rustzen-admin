@@ -4,23 +4,20 @@ use crate::{
         account::account_routes,
         auth::{protected_auth_routes, public_auth_routes},
         dashboard::dashboard_routes,
-        manage::{
-            deploy::service::DeployService, manage_routes, task::service::TaskService,
-        },
+        manage::{deploy::service::DeployService, manage_routes, task::service::TaskService},
         system::system_routes,
     },
     infra::{
         auth_runtime::{ServerAuthContextLoader, jwt_codec},
         config::CONFIG,
-        db::{create_default_pool, run_migrations, test_connection},
+        db::{create_default_pool, run_migrations, run_startup_data_migrations, test_connection},
         permission::PermissionService,
     },
     middleware::log::log_middleware,
 };
 
 use axum::{
-    Extension,
-    Router,
+    Extension, Router,
     http::{
         HeaderValue, Method,
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
@@ -41,6 +38,7 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("Initializing database connection pool...");
     let pool = create_default_pool().await?;
     run_migrations(&pool).await?;
+    run_startup_data_migrations(&pool).await?;
     test_connection(&pool).await?;
     let task_service = std::sync::Arc::new(TaskService::new(pool.clone())?);
     task_service.bootstrap().await?;
@@ -107,6 +105,6 @@ async fn summary() -> AppResult<serde_json::Value> {
     Ok(ApiResponse::success(json!({
         "message": "Welcome to rustzen-admin API",
         "description": "A backend management system built with Rust, Axum, SQLx, and SQLite.",
-        "github": "https://github.com/idaibin/rustzen-admin"
+        "github": "https://github.com/rustzen/rustzen-admin"
     })))
 }

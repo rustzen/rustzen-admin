@@ -192,7 +192,7 @@ export const AppSearch = ({ routes, onSelect }: AppSearchProps) => {
                     />
                 </div>
 
-                <div className="max-h-[420px] overflow-y-auto p-3">
+                <div className="max-h-105 overflow-y-auto p-3">
                     {filteredRoutes.length === 0 ? (
                         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No pages found" />
                     ) : (

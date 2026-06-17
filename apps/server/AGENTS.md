@@ -18,6 +18,8 @@
 - Handlers only handle requests and responses; do not write SQL there.
 - Services handle orchestration, validation, and transactions.
 - Repos only handle persistence and must not cross feature boundaries.
+- Documented read-only aggregation exceptions, currently `features/dashboard/`,
+  may omit `repo.rs`; see `docs/guides/backend.md`.
 - Use `Require(...)` as the default permission check.
 - Do not add compatibility fallbacks or extra abstraction layers.
 

@@ -6,7 +6,7 @@ use crate::common::{
 use chrono::Utc;
 use sqlx::{Error as SqlxError, QueryBuilder, Sqlite, SqlitePool};
 
-use super::types::{CreateUserCommand, UserListQuery, UserWithRolesRow};
+use super::types::{CreateUserCommand, UserDashboardCounts, UserListQuery, UserWithRolesRow};
 
 /// User db for database operations
 pub struct UserRepository;
@@ -246,6 +246,31 @@ impl UserRepository {
         Ok(exists)
     }
 
+    pub async fn email_exists_for_other_user(
+        pool: &SqlitePool,
+        email: &str,
+        user_id: i64,
+    ) -> Result<bool, ServiceError> {
+        let exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM users WHERE email = ? AND id != ? AND deleted_at IS NULL)",
+        )
+        .bind(email)
+        .bind(user_id)
+        .fetch_one(pool)
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                "Database error checking email existence '{}' excluding user {}: {:?}",
+                email,
+                user_id,
+                e
+            );
+            ServiceError::DatabaseQueryFailed
+        })?;
+
+        Ok(exists)
+    }
+
     /// Check if username exists
     pub async fn username_exists(pool: &SqlitePool, username: &str) -> Result<bool, ServiceError> {
         let exists: bool = sqlx::query_scalar(
@@ -260,6 +285,30 @@ impl UserRepository {
         })?;
 
         Ok(exists)
+    }
+
+    pub async fn list_role_identities_by_ids(
+        pool: &SqlitePool,
+        role_ids: &[i64],
+    ) -> Result<Vec<(i64, String, bool)>, ServiceError> {
+        if role_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let unique_role_ids = role_ids.iter().copied().collect::<std::collections::HashSet<_>>();
+        let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
+            "SELECT id, code, is_system FROM roles WHERE deleted_at IS NULL AND id IN (",
+        );
+        let mut separated = query_builder.separated(", ");
+        for role_id in unique_role_ids {
+            separated.push_bind(role_id);
+        }
+        separated.push_unseparated(")");
+
+        query_builder.build_query_as().fetch_all(pool).await.map_err(|e| {
+            tracing::error!("Database error listing role identities by ids: {:?}", e);
+            ServiceError::DatabaseQueryFailed
+        })
     }
 
     pub async fn update_user_password(
@@ -300,24 +349,141 @@ impl UserRepository {
         Ok(result.rows_affected() > 0)
     }
 
+    pub async fn dashboard_counts(pool: &SqlitePool) -> Result<UserDashboardCounts, ServiceError> {
+        let (total_users, active_users, today_logins, pending_users) = tokio::join!(
+            sqlx::query_scalar::<_, i64>("SELECT COUNT(*) FROM users WHERE deleted_at IS NULL")
+                .fetch_one(pool),
+            sqlx::query_scalar::<_, i64>(
+                "SELECT COUNT(*) FROM users WHERE status = 1 AND last_login_at > datetime('now', '-7 day') AND deleted_at IS NULL",
+            )
+            .fetch_one(pool),
+            sqlx::query_scalar::<_, i64>(
+                "SELECT COUNT(*) FROM users WHERE last_login_at > datetime('now', '-1 day') AND deleted_at IS NULL",
+            )
+            .fetch_one(pool),
+            sqlx::query_scalar::<_, i64>(
+                "SELECT COUNT(*) FROM users WHERE status = 3 AND deleted_at IS NULL",
+            )
+            .fetch_one(pool),
+        );
+
+        Ok(UserDashboardCounts {
+            total_users: map_dashboard_count_result(total_users, "total users")?,
+            active_users: map_dashboard_count_result(active_users, "active users")?,
+            today_logins: map_dashboard_count_result(today_logins, "today logins")?,
+            pending_users: map_dashboard_count_result(pending_users, "pending users")?,
+        })
+    }
+
     fn map_user_write_error(context: &str, err: SqlxError) -> ServiceError {
         if let SqlxError::Database(db_err) = &err
-            && db_err.code().as_deref() == Some("23505")
+            && let Some(conflict) = classify_user_unique_conflict(
+                db_err.code().as_deref(),
+                db_err.constraint(),
+                db_err.message(),
+            )
         {
-            match db_err.constraint() {
-                Some("idx_users_username") | Some("users_username_key") => {
+            match conflict {
+                UserUniqueConflict::Username => {
                     tracing::warn!("Unique username conflict while {}", context);
                     return ServiceError::UsernameConflict;
                 }
-                Some("idx_users_email") | Some("users_email_key") => {
+                UserUniqueConflict::Email => {
                     tracing::warn!("Unique email conflict while {}", context);
                     return ServiceError::EmailConflict;
                 }
-                _ => {}
             }
         }
 
         tracing::error!("Database error {}: {:?}", context, err);
         ServiceError::DatabaseQueryFailed
+    }
+}
+
+fn map_dashboard_count_result(
+    result: Result<i64, SqlxError>,
+    metric_name: &str,
+) -> Result<i64, ServiceError> {
+    result.map_err(|e| {
+        tracing::error!("Database error getting dashboard {} count: {:?}", metric_name, e);
+        ServiceError::DatabaseQueryFailed
+    })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum UserUniqueConflict {
+    Username,
+    Email,
+}
+
+fn classify_user_unique_conflict(
+    code: Option<&str>,
+    constraint: Option<&str>,
+    message: &str,
+) -> Option<UserUniqueConflict> {
+    match constraint {
+        Some("idx_users_username" | "users_username_key") => {
+            return Some(UserUniqueConflict::Username);
+        }
+        Some("idx_users_email" | "users_email_key") => return Some(UserUniqueConflict::Email),
+        _ => {}
+    }
+
+    if !matches!(code, Some("2067" | "1555")) {
+        return None;
+    }
+
+    if message.contains("users.username") || message.contains("idx_users_username") {
+        return Some(UserUniqueConflict::Username);
+    }
+    if message.contains("users.email") || message.contains("idx_users_email") {
+        return Some(UserUniqueConflict::Email);
+    }
+
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{UserUniqueConflict, classify_user_unique_conflict};
+
+    #[test]
+    fn classify_user_unique_conflict_returns_username_for_sqlite_username_message() {
+        let conflict = classify_user_unique_conflict(
+            Some("2067"),
+            None,
+            "UNIQUE constraint failed: users.username",
+        );
+
+        assert_eq!(conflict, Some(UserUniqueConflict::Username));
+    }
+
+    #[test]
+    fn classify_user_unique_conflict_returns_email_for_sqlite_email_message() {
+        let conflict = classify_user_unique_conflict(
+            Some("2067"),
+            None,
+            "UNIQUE constraint failed: users.email",
+        );
+
+        assert_eq!(conflict, Some(UserUniqueConflict::Email));
+    }
+
+    #[test]
+    fn classify_user_unique_conflict_returns_username_for_postgres_constraint() {
+        let conflict = classify_user_unique_conflict(Some("23505"), Some("users_username_key"), "");
+
+        assert_eq!(conflict, Some(UserUniqueConflict::Username));
+    }
+
+    #[test]
+    fn classify_user_unique_conflict_ignores_unrelated_sqlite_constraint() {
+        let conflict = classify_user_unique_conflict(
+            Some("2067"),
+            None,
+            "UNIQUE constraint failed: roles.code",
+        );
+
+        assert_eq!(conflict, None);
     }
 }

@@ -3,10 +3,7 @@ use super::{
     types::{ChangeAccountPasswordRequest, UpdateAccountProfileRequest},
 };
 use crate::{
-    common::{
-        api::{ApiResponse, AppResult},
-        files::save_avatar,
-    },
+    common::api::{ApiResponse, AppResult},
     features::auth::types::UserInfoResp,
 };
 
@@ -24,11 +21,9 @@ pub async fn update_avatar(
     State(pool): State<SqlitePool>,
     mut multipart: Multipart,
 ) -> AppResult<String> {
-    let avatar_url = save_avatar(&mut multipart).await?;
-
-    AccountService::update_avatar(&pool, current_user.user_id, &avatar_url).await?;
-
-    Ok(ApiResponse::success(avatar_url))
+    Ok(ApiResponse::success(
+        AccountService::update_avatar(&pool, current_user.user_id, &mut multipart).await?,
+    ))
 }
 
 /// Update current-account profile.

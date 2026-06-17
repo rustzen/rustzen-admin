@@ -18,10 +18,7 @@ pub struct RuntimeLayout {
 impl RuntimeLayout {
     /// Creates a layout bound to a runtime root and public files prefix.
     pub fn new(runtime_root: impl Into<String>, files_prefix: impl Into<String>) -> Self {
-        Self {
-            runtime_root: runtime_root.into(),
-            files_prefix: files_prefix.into(),
-        }
+        Self { runtime_root: runtime_root.into(), files_prefix: files_prefix.into() }
     }
 
     /// Returns the configured runtime root as string.
@@ -84,9 +81,7 @@ pub fn resolve_path_with_runtime_root(runtime_root: &str, value: &str) -> PathBu
         if root.is_absolute() {
             root.to_path_buf()
         } else {
-            std::env::current_dir()
-                .map(|cwd| cwd.join(root))
-                .unwrap_or_else(|_| root.to_path_buf())
+            std::env::current_dir().map(|cwd| cwd.join(root)).unwrap_or_else(|_| root.to_path_buf())
         }
     };
 
@@ -117,7 +112,7 @@ fn normalize_path(path: &Path) -> PathBuf {
 
 #[cfg(test)]
 mod tests {
-    use super::{resolve_path_with_runtime_root, DEFAULT_RUNTIME_ROOT, RuntimeLayout};
+    use super::{DEFAULT_RUNTIME_ROOT, RuntimeLayout, resolve_path_with_runtime_root};
     use std::path::Path;
     use std::path::PathBuf;
 

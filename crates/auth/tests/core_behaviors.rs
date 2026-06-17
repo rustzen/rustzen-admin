@@ -48,11 +48,7 @@ async fn permission_check_accepts_exact_global_and_prefix_wildcards() {
     let wildcard_user = CurrentUser::new(
         2,
         "manager",
-        [
-            "system:user:list".to_string(),
-            "manage:task:*".to_string(),
-            "dashboard:*".to_string(),
-        ],
+        ["system:user:list".to_string(), "manage:task:*".to_string(), "dashboard:*".to_string()],
         false,
     );
     let root_user = CurrentUser::new(3, "root", ["*".to_string()], false);

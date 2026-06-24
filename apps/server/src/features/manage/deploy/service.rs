@@ -128,12 +128,7 @@ impl DeployService {
 
         let arch = match component {
             DeployComponent::Server => {
-                let arch = normalize_arch(
-                    arch.ok_or_else(|| {
-                        ServiceError::InvalidOperation("server component requires arch".into())
-                    })?
-                    .as_str(),
-                )?;
+                let arch = resolve_server_arch(arch.as_deref(), &file_data)?;
                 validate_server_file(&file_data, &version, &arch)?;
                 arch
             }
@@ -920,6 +915,18 @@ fn normalize_arch(value: &str) -> Result<String, ServiceError> {
     }
 }
 
+fn resolve_server_arch(value: Option<&str>, file_data: &[u8]) -> Result<String, ServiceError> {
+    if let Some(value) = value {
+        return normalize_arch(value);
+    }
+
+    detect_binary_arch(file_data)?.ok_or_else(|| {
+        ServiceError::InvalidOperation(
+            "server file arch cannot be detected; expected x86_64 or aarch64 binary".to_string(),
+        )
+    })
+}
+
 fn ensure_version_is_deployable(version: &DeploymentItem) -> Result<(), ServiceError> {
     if version.is_expired {
         return Err(ServiceError::InvalidOperation("Cannot deploy an expired version".to_string()));
@@ -1228,6 +1235,15 @@ mod tests {
         let version = deployment_item(false);
 
         assert!(ensure_version_is_deployable(&version).is_ok());
+    }
+
+    #[test]
+    fn server_arch_is_detected_when_upload_omits_arch() {
+        let file_data = sample_elf_x86_64_with_legacy_marker();
+
+        let arch = resolve_server_arch(None, &file_data).expect("server arch is detected");
+
+        assert_eq!(arch, "x86_64");
     }
 
     #[test]

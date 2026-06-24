@@ -79,14 +79,18 @@ function signWeb() {
 function signedMarker({ component, version, arch, contentSha256, privateKey }) {
     const payload = signaturePayload({ component, version, arch, contentSha256 });
     const signature = crypto.sign(null, Buffer.from(payload), privateKey).toString("hex");
-    return JSON.stringify({
+    const marker = {
         schemaVersion: 1,
         component,
         version,
         arch,
         contentSha256,
         signature,
-    });
+    };
+    if (component === "web") {
+        marker.build_id = "manual";
+    }
+    return JSON.stringify(marker);
 }
 
 function signaturePayload({ component, version, arch, contentSha256 }) {
@@ -117,7 +121,7 @@ function webContentHash(dir) {
             const content = fs.readFileSync(file);
             return { name: `dist/${name}`, size: content.length, contentSha256: sha256Hex(content) };
         })
-        .sort((left, right) => left.name.localeCompare(right.name));
+        .sort(compareEntryNames);
 
     const hasher = crypto.createHash("sha256");
     for (const entry of entries) {
@@ -130,6 +134,16 @@ function webContentHash(dir) {
         hasher.update(Buffer.from([0]));
     }
     return hasher.digest("hex");
+}
+
+function compareEntryNames(left, right) {
+    if (left.name < right.name) {
+        return -1;
+    }
+    if (left.name > right.name) {
+        return 1;
+    }
+    return 0;
 }
 
 function listFiles(dir) {

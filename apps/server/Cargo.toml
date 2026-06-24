@@ -1,7 +1,7 @@
 [package]
 authors = ["bruce <bruce@idaibin.dev>"]
 name = "server"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2024"
 
 [[bin]]
@@ -39,10 +39,9 @@ sqlx = { version = "0.9.0", features = [
 dotenvy = "0.15"
 thiserror = "2.0"
 chrono = { version = "0.4", features = ["serde"] }
-chrono-tz = "0.10"
 uuid = { version = "1.17", features = ["v4", "serde"] }
 async-trait = "0.1"
-tokio-cron-scheduler = "0.15.1"
+croner = "3.0.1"
 
 # password hashing
 argon2 = "0.6.0-rc.8"

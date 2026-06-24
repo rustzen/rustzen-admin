@@ -3,6 +3,7 @@ use std::{
     io::{Cursor, Read},
     path::{Path, PathBuf},
     sync::Arc,
+    time::Duration,
 };
 
 use axum::extract::Multipart;
@@ -30,6 +31,7 @@ pub const DEPLOY_FILE_MAX_SIZE: usize = 64 * 1024 * 1024;
 const DEPLOY_BODY_LIMIT: usize = DEPLOY_FILE_MAX_SIZE + 1024 * 1024;
 const SERVER_BINARY_NAME: &str = "rustzen-admin";
 const SERVER_SYSTEMD_UNIT: &str = "rustzen-admin.service";
+const SERVER_RESTART_DELAY: Duration = Duration::from_millis(300);
 const WEB_MARKER_FILE: &str = "dist/__rustzen_admin_marker__.json";
 const SERVER_MARKER_PREFIX: &[u8] = b"RUSTZEN_ADMIN_MARKER\ncomponent=server\n";
 const SIGNED_MARKER_BEGIN: &[u8] = b"\nRUSTZEN_ADMIN_SIGNED_MARKER_BEGIN\n";
@@ -271,13 +273,6 @@ impl DeployService {
                 ServiceError::InvalidOperation(format!("Failed to switch server binary: {err}"))
             })?;
 
-        if let Err(err) = restart_server().await {
-            if let Err(restore_err) = restore_symlink(&target_bin, old_target.as_deref()) {
-                tracing::error!("Failed to restore server symlink: {}", restore_err);
-            }
-            return Err(err);
-        }
-
         if let Err(err) = self
             .repo
             .set_current(
@@ -298,6 +293,8 @@ impl DeployService {
             }
             return Err(err);
         }
+
+        schedule_server_restart();
 
         Ok(())
     }
@@ -1081,6 +1078,15 @@ async fn restart_server() -> Result<(), ServiceError> {
     }
 
     Ok(())
+}
+
+fn schedule_server_restart() {
+    tokio::spawn(async {
+        tokio::time::sleep(SERVER_RESTART_DELAY).await;
+        if let Err(err) = restart_server().await {
+            tracing::error!("Failed to trigger server restart after deploy response: {}", err);
+        }
+    });
 }
 
 async fn prepare_server_restart() -> Result<(), ServiceError> {

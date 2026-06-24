@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc, time::Duration};
 
-use chrono::{DateTime, Utc};
-use chrono_tz::Tz;
+use chrono::{DateTime, FixedOffset, Utc};
+use croner::Cron;
 use tokio::sync::{Mutex, RwLock};
-use tokio_cron_scheduler::{Job, JobScheduler};
+use tokio::time::sleep;
 
 use crate::{
     common::{
@@ -27,8 +27,7 @@ pub struct TaskService {
     pool: sqlx::SqlitePool,
     repo: Arc<TaskRepository>,
     catalog: Arc<RwLock<Option<TaskCatalog>>>,
-    scheduler: Arc<RwLock<Option<JobScheduler>>>,
-    timezone: Tz,
+    timezone: FixedOffset,
 }
 
 #[derive(Clone)]
@@ -79,81 +78,104 @@ const TASK_SPECS: [TaskSpec; 2] = [
 
 impl TaskService {
     pub fn new(pool: sqlx::SqlitePool) -> Result<Self, ServiceError> {
-        let timezone = CONFIG.timezone.parse::<Tz>().map_err(|_| {
-            ServiceError::InvalidOperation(format!("Invalid RUSTZEN_TIMEZONE: {}", CONFIG.timezone))
-        })?;
+        let timezone = parse_fixed_timezone(&CONFIG.timezone)?;
         Ok(Self {
             pool: pool.clone(),
             repo: Arc::new(TaskRepository::new(pool)),
             catalog: Arc::new(RwLock::new(None)),
-            scheduler: Arc::new(RwLock::new(None)),
             timezone,
         })
     }
 
     pub async fn bootstrap(&self) -> Result<(), ServiceError> {
         let catalog = TaskCatalog::new(self.repo.clone(), self.pool.clone());
-        let mut scheduler = JobScheduler::new().await.map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to create task scheduler: {err}"))
-        })?;
         self.repo.fail_stale_running_task_runs(Utc::now()).await?;
 
         let mut sync_inputs = Vec::with_capacity(catalog.tasks.len());
+        let mut task_crons = Vec::with_capacity(catalog.tasks.len());
         for task in &catalog.tasks {
-            let next_run_at = self.add_job(&mut scheduler, task).await?;
+            let cron = Self::cron_from_expression(task.expression)?;
+            let next_run_at = Self::next_run_at_for_cron(&cron, self.timezone)?;
             sync_inputs.push(SyncTaskInput {
                 task_key: task.task_key,
                 name: task.name,
                 description: Some(task.description),
                 cron_expression: task.expression,
-                next_run_at,
+                next_run_at: Some(next_run_at),
             });
+            task_crons.push((task.clone(), cron));
         }
 
         self.repo.sync_tasks(&sync_inputs).await?;
-        scheduler.start().await.map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to start task scheduler: {err}"))
-        })?;
 
         *self.catalog.write().await = Some(catalog);
-        *self.scheduler.write().await = Some(scheduler);
+        for (task, cron) in task_crons {
+            self.schedule_task(task, cron);
+        }
         Ok(())
     }
 
-    async fn add_job(
-        &self,
-        scheduler: &mut JobScheduler,
-        task: &ScheduledTask,
-    ) -> Result<Option<DateTime<Utc>>, ServiceError> {
+    fn schedule_task(&self, task: ScheduledTask, cron: Cron) {
         let service = self.clone();
-        let task_key = task.task_key.to_string();
-        let expression = task.expression.to_string();
         let timezone = self.timezone;
-        let job = Job::new_async_tz(task.expression, timezone, move |_uuid, _lock| {
-            let service = service.clone();
-            let task_key = task_key.clone();
-            let expression = expression.clone();
-            Box::pin(async move {
-                let next_run_at = match service.next_run_at_for_expression(&expression).await {
+
+        tokio::spawn(async move {
+            loop {
+                let scheduled_for = match Self::next_run_at_for_cron(&cron, timezone) {
                     Ok(value) => value,
                     Err(err) => {
-                        tracing::error!("Failed to calculate next run for {}: {}", task_key, err);
-                        None
+                        tracing::error!(
+                            task_key = task.task_key,
+                            task_name = task.name,
+                            "Failed to calculate next run time"
+                        );
+                        tracing::debug!("Scheduling retry detail: {}", err);
+                        sleep(Duration::from_secs(10)).await;
+                        continue;
                     }
                 };
-                if let Err(err) = service.start_scheduled_task(&task_key, next_run_at).await {
-                    tracing::error!("Scheduled task {} failed: {}", task_key, err);
-                }
-            })
-        })
-        .map_err(|err| ServiceError::InvalidOperation(format!("Invalid cron expression: {err}")))?;
 
-        let job_id = scheduler.add(job).await.map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to register scheduled task: {err}"))
-        })?;
-        scheduler.next_tick_for_job(job_id).await.map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to read next task run time: {err}"))
+                let wait = (scheduled_for - Utc::now())
+                    .to_std()
+                    .unwrap_or_else(|_| Duration::from_millis(10));
+                sleep(wait).await;
+
+                let next_run_at =
+                    match Self::next_run_after_for_cron(&cron, timezone, scheduled_for) {
+                        Ok(value) => Some(value),
+                        Err(err) => {
+                            tracing::error!(
+                                task_key = task.task_key,
+                                task_name = task.name,
+                                "Failed to calculate following run time"
+                            );
+                            tracing::debug!("Following run calculation detail: {}", err);
+                            None
+                        }
+                    };
+
+                if let Err(err) = service.start_scheduled_task(task.task_key, next_run_at).await {
+                    tracing::error!("Scheduled task {} failed: {}", task.task_key, err);
+                }
+            }
+        });
+    }
+
+    fn cron_from_expression(expression: &str) -> Result<Cron, ServiceError> {
+        Cron::from_str(expression).map_err(|err| {
+            ServiceError::InvalidOperation(format!("Invalid cron expression: {err}"))
         })
+    }
+
+    fn next_run_at_for_cron(
+        cron: &Cron,
+        timezone: FixedOffset,
+    ) -> Result<DateTime<Utc>, ServiceError> {
+        let now = Utc::now().with_timezone(&timezone);
+        let next_run_at = cron.find_next_occurrence(&now, false).map_err(|err| {
+            ServiceError::InvalidOperation(format!("Failed to calculate next task run time: {err}"))
+        })?;
+        Ok(next_run_at.with_timezone(&Utc))
     }
 
     pub async fn list_tasks(&self) -> Result<Vec<TaskItem>, ServiceError> {
@@ -183,25 +205,6 @@ impl TaskService {
     ) -> Result<TaskRunItem, ServiceError> {
         self.repo.update_task_next_run_at(task_key, next_run_at).await?;
         self.start_task_by_key(task_key, TaskTriggerType::Scheduled, Some(Utc::now())).await
-    }
-
-    async fn next_run_at_for_expression(
-        &self,
-        expression: &str,
-    ) -> Result<Option<DateTime<Utc>>, ServiceError> {
-        let mut scheduler = JobScheduler::new().await.map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to create task scheduler: {err}"))
-        })?;
-        let job = Job::new_async_tz(expression, self.timezone, |_uuid, _lock| Box::pin(async {}))
-            .map_err(|err| {
-            ServiceError::InvalidOperation(format!("Invalid cron expression: {err}"))
-        })?;
-        let job_id = scheduler.add(job).await.map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to register scheduled task: {err}"))
-        })?;
-        scheduler.next_tick_for_job(job_id).await.map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to read next task run time: {err}"))
-        })
     }
 
     async fn start_task_by_key(
@@ -308,6 +311,54 @@ impl TaskService {
 
         Ok(run)
     }
+
+    fn next_run_after_for_cron(
+        cron: &Cron,
+        timezone: FixedOffset,
+        after: DateTime<Utc>,
+    ) -> Result<DateTime<Utc>, ServiceError> {
+        let after = after.with_timezone(&timezone);
+        let next_run_at = cron.find_next_occurrence(&after, false).map_err(|err| {
+            ServiceError::InvalidOperation(format!("Failed to calculate next task run time: {err}"))
+        })?;
+        Ok(next_run_at.with_timezone(&Utc))
+    }
+}
+
+fn parse_fixed_timezone(value: &str) -> Result<FixedOffset, ServiceError> {
+    let trimmed = value.trim();
+    let seconds = match trimmed {
+        "UTC" | "Etc/UTC" | "Z" | "+00:00" | "-00:00" => 0,
+        "Asia/Shanghai" | "Asia/Chongqing" | "Asia/Harbin" | "Asia/Urumqi" | "CST" => 8 * 3600,
+        _ => parse_timezone_offset_seconds(trimmed).ok_or_else(|| {
+            ServiceError::InvalidOperation(format!(
+                "Invalid RUSTZEN_TIMEZONE: {trimmed}; use UTC, Asia/Shanghai, or offsets like +08:00"
+            ))
+        })?,
+    };
+
+    FixedOffset::east_opt(seconds).ok_or_else(|| {
+        ServiceError::InvalidOperation(format!("Invalid RUSTZEN_TIMEZONE offset: {trimmed}"))
+    })
+}
+
+fn parse_timezone_offset_seconds(value: &str) -> Option<i32> {
+    let sign = match value.as_bytes().first()? {
+        b'+' => 1,
+        b'-' => -1,
+        _ => return None,
+    };
+    let rest = &value[1..];
+    let (hours, minutes) = if let Some((hours, minutes)) = rest.split_once(':') {
+        (hours.parse::<i32>().ok()?, minutes.parse::<i32>().ok()?)
+    } else {
+        (rest.parse::<i32>().ok()?, 0)
+    };
+
+    if !(0..=23).contains(&hours) || !(0..=59).contains(&minutes) {
+        return None;
+    }
+    Some(sign * ((hours * 3600) + (minutes * 60)))
 }
 
 impl TaskCatalog {
@@ -337,6 +388,26 @@ impl TaskKind {
             TaskKind::CleanupOperationLogs => Arc::new(CleanupOperationLogsExecutor { pool }),
             TaskKind::CleanupTaskRuns => Arc::new(CleanupTaskRunsExecutor { repo }),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_supported_fixed_timezones() {
+        assert_eq!(parse_fixed_timezone("UTC").unwrap().local_minus_utc(), 0);
+        assert_eq!(parse_fixed_timezone("Asia/Shanghai").unwrap().local_minus_utc(), 8 * 3600);
+        assert_eq!(parse_fixed_timezone("+08:00").unwrap().local_minus_utc(), 8 * 3600);
+        assert_eq!(parse_fixed_timezone("-05:30").unwrap().local_minus_utc(), -((5 * 3600) + 1800));
+    }
+
+    #[test]
+    fn rejects_named_timezone_database_entries() {
+        let err = parse_fixed_timezone("America/New_York").expect_err("timezone is unsupported");
+
+        assert!(err.to_string().contains("Invalid RUSTZEN_TIMEZONE"));
     }
 }
 

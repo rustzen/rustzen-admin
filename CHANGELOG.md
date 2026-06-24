@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-06-24
+
+### Changed
+
+- Slimmed the server release binary by replacing the scheduled-task runtime with
+  lightweight cron calculation and fixed-offset timezone handling.
+
+### Fixed
+
+- Added the legacy `build_id: "manual"` field to signed web deploy markers so
+  new web release zips can still be uploaded through existing deployed servers.
+- Fixed signed web deploy package hashing so uploaded release zips validate
+  against the backend signature policy.
+- Changed server deployment to return before triggering the service restart, so
+  nginx does not report the deploy request as a bad gateway during restart.
+
 ## [0.4.1] - 2026-06-24
 
 ### Added

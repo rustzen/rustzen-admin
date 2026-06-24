@@ -34,7 +34,12 @@ Vercel, Tauri, Docker-only, or legacy `zen-server` deployment guide.
 - The deployment backend API port is `9880`.
 - Production must provide `RUSTZEN_SQLITE_PATH` and `RUSTZEN_JWT_SECRET`.
 - `config/app.env` is only an environment-variable carrier.
-- `RUSTZEN_TIMEZONE` controls process-local timezone behavior such as local log dates and scheduled task cron evaluation; the default is `UTC`.
+- `RUSTZEN_TIMEZONE` controls process-local timezone behavior such as local log
+  dates and scheduled task cron evaluation; the default is `UTC`.
+- Scheduled task cron evaluation supports fixed-offset timezone values:
+  `UTC`, `Asia/Shanghai`, `CST`, `+08:00`, `+8`, and similar `+HH[:MM]` or
+  `-HH[:MM]` offsets. The release build intentionally avoids shipping a full
+  timezone database.
 - Backend static files are served from `<runtime_root>/web/dist`.
 - SQLite database files live under `<runtime_root>/data/db`.
 - Uploads live under `<runtime_root>/data/uploads`.
@@ -63,6 +68,9 @@ Vercel, Tauri, Docker-only, or legacy `zen-server` deployment guide.
 - The build `config/app.env` sets `RUSTZEN_DEPLOY_SIGNATURE_REQUIRED=true` and
   writes the matching `RUSTZEN_DEPLOY_VERIFY_KEY`. The private key stays local
   or in CI secrets and is never written to release artifacts.
+- Server release size follows the RustZen size playbook: keep the workspace
+  release profile size-focused, avoid general timezone databases, and use
+  lightweight cron parsing plus Tokio sleep loops for local scheduled tasks.
 - Frontend release builds use pnpm with `apps/web/pnpm-lock.yaml`.
 - The sqlite-first phase uses SQLite by default and does not require PostgreSQL for local startup.
 - Deploy version management accepts only `server` and `web` components.
@@ -164,6 +172,8 @@ warning for manual inspection.
 - Runtime data and log directories are writable.
 - `data/db` exists for SQLite database files.
 - `systemd/rustzen-admin.service` exists.
-- `systemd/rustzen-admin.service` does not set `TZ`; backend startup sets process `TZ` from `RUSTZEN_TIMEZONE`.
-- `config/app.env` carries `RUSTZEN_TIMEZONE=UTC` for process-local timezone behavior.
+- `systemd/rustzen-admin.service` does not set `TZ`; backend startup sets
+  process `TZ` from `RUSTZEN_TIMEZONE`.
+- `config/app.env` carries `RUSTZEN_TIMEZONE=UTC` for process-local timezone
+  behavior and fixed-offset scheduled task cron evaluation.
 - Uploaded deploy file SHA-256 matches the stored database record before deployment.

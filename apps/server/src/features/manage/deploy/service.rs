@@ -6,6 +6,8 @@ use std::{
 };
 
 use axum::extract::Multipart;
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use tokio::process::Command;
 use zip::ZipArchive;
@@ -30,6 +32,21 @@ const SERVER_BINARY_NAME: &str = "rustzen-admin";
 const SERVER_SYSTEMD_UNIT: &str = "rustzen-admin.service";
 const WEB_MARKER_FILE: &str = "dist/__rustzen_admin_marker__.json";
 const SERVER_MARKER_PREFIX: &[u8] = b"RUSTZEN_ADMIN_MARKER\ncomponent=server\n";
+const SIGNED_MARKER_BEGIN: &[u8] = b"\nRUSTZEN_ADMIN_SIGNED_MARKER_BEGIN\n";
+const SIGNED_MARKER_END: &[u8] = b"\nRUSTZEN_ADMIN_SIGNED_MARKER_END\n";
+const DEPLOY_SIGNATURE_SCHEMA_VERSION: u8 = 1;
+const DEPLOY_SIGNATURE_PAYLOAD_VERSION: &str = "rustzen-admin-deploy-v1";
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DeploySignatureMarker {
+    schema_version: u8,
+    component: String,
+    version: String,
+    arch: String,
+    content_sha256: String,
+    signature: String,
+}
 
 #[derive(Clone)]
 pub struct DeployService {
@@ -117,11 +134,11 @@ impl DeployService {
                     })?
                     .as_str(),
                 )?;
-                validate_server_file(&file_data, &arch)?;
+                validate_server_file(&file_data, &version, &arch)?;
                 arch
             }
             DeployComponent::Web => {
-                validate_web_file(&file_data)?;
+                validate_web_file(&file_data, &version)?;
                 "x86_64".to_string()
             }
         };
@@ -431,8 +448,8 @@ fn validate_stored_file(version: &DeploymentItem) -> Result<(), ServiceError> {
     }
 
     match version.component {
-        DeployComponent::Server => validate_server_file(&data, &version.arch),
-        DeployComponent::Web => validate_web_file(&data),
+        DeployComponent::Server => validate_server_file(&data, &version.version, &version.arch),
+        DeployComponent::Web => validate_web_file(&data, &version.version),
     }
 }
 
@@ -449,7 +466,27 @@ fn validate_upload_size(file_data: &[u8]) -> Result<(), ServiceError> {
     Ok(())
 }
 
-fn validate_server_file(file_data: &[u8], expected_arch: &str) -> Result<(), ServiceError> {
+fn validate_server_file(
+    file_data: &[u8],
+    expected_version: &str,
+    expected_arch: &str,
+) -> Result<(), ServiceError> {
+    validate_server_file_with_signature_policy(
+        file_data,
+        expected_version,
+        expected_arch,
+        CONFIG.deploy_signature_required,
+        CONFIG.deploy_verify_key.as_deref(),
+    )
+}
+
+fn validate_server_file_with_signature_policy(
+    file_data: &[u8],
+    expected_version: &str,
+    expected_arch: &str,
+    signature_required: bool,
+    verify_key: Option<&str>,
+) -> Result<(), ServiceError> {
     if is_zip(file_data) {
         return Err(ServiceError::InvalidOperation(
             "server component does not accept zip files".to_string(),
@@ -460,7 +497,13 @@ fn validate_server_file(file_data: &[u8], expected_arch: &str) -> Result<(), Ser
             "server file must be an executable binary".to_string(),
         ));
     }
-    if !file_data.windows(SERVER_MARKER_PREFIX.len()).any(|window| window == SERVER_MARKER_PREFIX) {
+    if signature_required {
+        validate_server_signed_marker(file_data, expected_version, expected_arch, verify_key)?;
+    } else if !file_data
+        .windows(SERVER_MARKER_PREFIX.len())
+        .any(|window| window == SERVER_MARKER_PREFIX)
+        && split_server_signed_marker(file_data).is_err()
+    {
         return Err(ServiceError::InvalidOperation("server file marker check failed".to_string()));
     }
     if let Some(detected_arch) = detect_binary_arch(file_data)?
@@ -473,7 +516,7 @@ fn validate_server_file(file_data: &[u8], expected_arch: &str) -> Result<(), Ser
     Ok(())
 }
 
-fn validate_web_file(file_data: &[u8]) -> Result<(), ServiceError> {
+fn validate_web_file(file_data: &[u8], expected_version: &str) -> Result<(), ServiceError> {
     const MAX_FILES: usize = 5000;
     const MAX_SINGLE_UNCOMPRESSED: u64 = 5 * 1024 * 1024;
     const MAX_TOTAL_UNCOMPRESSED: u64 = 50 * 1024 * 1024;
@@ -495,8 +538,9 @@ fn validate_web_file(file_data: &[u8]) -> Result<(), ServiceError> {
 
     let mut has_index = false;
     let mut has_asset = false;
-    let mut has_marker = false;
+    let mut marker_content = None;
     let mut total_uncompressed = 0_u64;
+    let mut content_entries = Vec::new();
 
     for index in 0..file_count {
         let mut file = archive
@@ -520,8 +564,7 @@ fn validate_web_file(file_data: &[u8]) -> Result<(), ServiceError> {
             has_asset = true;
         }
         if name == WEB_MARKER_FILE {
-            has_marker = true;
-            validate_web_marker(&mut file)?;
+            marker_content = Some(read_web_marker(&mut file)?);
         }
 
         let size = file.size();
@@ -536,6 +579,11 @@ fn validate_web_file(file_data: &[u8]) -> Result<(), ServiceError> {
                 "web zip total uncompressed size is too large".to_string(),
             ));
         }
+
+        if name != WEB_MARKER_FILE && file.is_file() {
+            let content_hash = zip_file_content_hash(&mut file)?;
+            content_entries.push((name, size, content_hash));
+        }
     }
 
     if !has_index {
@@ -548,22 +596,66 @@ fn validate_web_file(file_data: &[u8]) -> Result<(), ServiceError> {
             "web zip must contain dist/assets/*.js or *.css".to_string(),
         ));
     }
-    if !has_marker {
+    let Some(marker_content) = marker_content else {
         return Err(ServiceError::InvalidOperation(format!(
             "web zip must contain {WEB_MARKER_FILE}"
         )));
-    }
+    };
+
+    let content_hash = web_content_hash(content_entries);
+    validate_web_marker_content_with_signature_policy(
+        &marker_content,
+        expected_version,
+        CONFIG.deploy_signature_required,
+        CONFIG.deploy_verify_key.as_deref(),
+        &content_hash,
+    )?;
 
     Ok(())
 }
 
-fn validate_web_marker<R: Read>(reader: &mut R) -> Result<(), ServiceError> {
+fn read_web_marker<R: Read>(reader: &mut R) -> Result<String, ServiceError> {
     let mut content = String::new();
     reader
         .read_to_string(&mut content)
         .map_err(|_| ServiceError::InvalidOperation("web marker cannot be read".to_string()))?;
+    Ok(content)
+}
+
+fn validate_web_marker_content_with_signature_policy(
+    content: &str,
+    expected_version: &str,
+    signature_required: bool,
+    verify_key: Option<&str>,
+    content_hash: &str,
+) -> Result<(), ServiceError> {
+    if signature_required {
+        let marker: DeploySignatureMarker = serde_json::from_str(content).map_err(|_| {
+            ServiceError::InvalidOperation("web signature marker is not valid JSON".to_string())
+        })?;
+        return validate_signed_marker(
+            &marker,
+            "web",
+            expected_version,
+            "universal",
+            content_hash,
+            verify_key,
+        );
+    }
+
     let marker: serde_json::Value = serde_json::from_str(&content)
         .map_err(|_| ServiceError::InvalidOperation("web marker is not valid JSON".to_string()))?;
+
+    if marker.get("schemaVersion").and_then(|value| value.as_u64())
+        == Some(DEPLOY_SIGNATURE_SCHEMA_VERSION as u64)
+    {
+        if marker.get("component").and_then(|value| value.as_str()) == Some("web") {
+            return Ok(());
+        }
+        return Err(ServiceError::InvalidOperation(
+            "web signature marker component must be web".to_string(),
+        ));
+    }
 
     if marker.get("component").and_then(|value| value.as_str()) != Some("web") {
         return Err(ServiceError::InvalidOperation("web marker component must be web".to_string()));
@@ -574,6 +666,188 @@ fn validate_web_marker<R: Read>(reader: &mut R) -> Result<(), ServiceError> {
         ));
     }
     Ok(())
+}
+
+fn zip_file_content_hash<R: Read>(reader: &mut R) -> Result<String, ServiceError> {
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 8192];
+    loop {
+        let read = reader
+            .read(&mut buffer)
+            .map_err(|_| ServiceError::InvalidOperation("web zip read failed".to_string()))?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+    Ok(finalize_sha256_hex(hasher))
+}
+
+fn web_content_hash(mut entries: Vec<(String, u64, String)>) -> String {
+    entries.sort_by(|left, right| left.0.cmp(&right.0));
+    let mut hasher = Sha256::new();
+    for (name, size, content_hash) in entries {
+        hasher.update(name.as_bytes());
+        hasher.update([0]);
+        hasher.update(size.to_le_bytes());
+        hasher.update(content_hash.as_bytes());
+        hasher.update([0]);
+    }
+    finalize_sha256_hex(hasher)
+}
+
+fn validate_server_signed_marker(
+    file_data: &[u8],
+    expected_version: &str,
+    expected_arch: &str,
+    verify_key: Option<&str>,
+) -> Result<(), ServiceError> {
+    let (content, marker) = split_server_signed_marker(file_data)?;
+    let marker: DeploySignatureMarker = serde_json::from_slice(marker).map_err(|_| {
+        ServiceError::InvalidOperation("server signature marker is not valid JSON".to_string())
+    })?;
+    let content_hash = sha256_hex(content);
+    validate_signed_marker(
+        &marker,
+        "server",
+        expected_version,
+        expected_arch,
+        &content_hash,
+        verify_key,
+    )
+}
+
+fn split_server_signed_marker(file_data: &[u8]) -> Result<(&[u8], &[u8]), ServiceError> {
+    let marker_start = find_last_subslice(file_data, SIGNED_MARKER_BEGIN).ok_or_else(|| {
+        ServiceError::InvalidOperation("server signature marker is required".to_string())
+    })?;
+    let marker_content_start = marker_start + SIGNED_MARKER_BEGIN.len();
+    let marker_end = find_subslice(&file_data[marker_content_start..], SIGNED_MARKER_END)
+        .map(|offset| marker_content_start + offset)
+        .ok_or_else(|| {
+            ServiceError::InvalidOperation("server signature marker is incomplete".to_string())
+        })?;
+    Ok((&file_data[..marker_start], &file_data[marker_content_start..marker_end]))
+}
+
+fn validate_signed_marker(
+    marker: &DeploySignatureMarker,
+    expected_component: &str,
+    expected_version: &str,
+    expected_arch: &str,
+    expected_content_hash: &str,
+    verify_key: Option<&str>,
+) -> Result<(), ServiceError> {
+    if marker.schema_version != DEPLOY_SIGNATURE_SCHEMA_VERSION {
+        return Err(ServiceError::InvalidOperation(
+            "deploy signature marker schema version is invalid".to_string(),
+        ));
+    }
+    if marker.component != expected_component {
+        return Err(ServiceError::InvalidOperation(format!(
+            "deploy signature component mismatch: expected {expected_component}"
+        )));
+    }
+    if marker.version != expected_version {
+        return Err(ServiceError::InvalidOperation(format!(
+            "deploy signature version mismatch: expected {expected_version}"
+        )));
+    }
+    if marker.arch != expected_arch {
+        return Err(ServiceError::InvalidOperation(format!(
+            "deploy signature arch mismatch: expected {expected_arch}"
+        )));
+    }
+    if marker.content_sha256 != expected_content_hash {
+        return Err(ServiceError::InvalidOperation(
+            "deploy signature content hash mismatch".to_string(),
+        ));
+    }
+
+    let verify_key =
+        verify_key.and_then(|value| normalize_optional(value.to_string())).ok_or_else(|| {
+            ServiceError::InvalidOperation(
+                "deploy signature verification key is required".to_string(),
+            )
+        })?;
+    let verifying_key = parse_verify_key(&verify_key)?;
+    let signature = parse_signature(&marker.signature)?;
+    let payload = deploy_signature_payload(
+        expected_component,
+        expected_version,
+        expected_arch,
+        expected_content_hash,
+    );
+    verifying_key.verify(payload.as_bytes(), &signature).map_err(|_| {
+        ServiceError::InvalidOperation("deploy signature verification failed".to_string())
+    })
+}
+
+fn deploy_signature_payload(
+    component: &str,
+    version: &str,
+    arch: &str,
+    content_hash: &str,
+) -> String {
+    format!(
+        "{DEPLOY_SIGNATURE_PAYLOAD_VERSION}\ncomponent={component}\nversion={version}\narch={arch}\ncontent_sha256={content_hash}\n"
+    )
+}
+
+fn parse_verify_key(value: &str) -> Result<VerifyingKey, ServiceError> {
+    let bytes = decode_hex(value).map_err(|err| {
+        ServiceError::InvalidOperation(format!(
+            "deploy signature verification key is invalid: {err}"
+        ))
+    })?;
+    let key_bytes: [u8; 32] = bytes.try_into().map_err(|_| {
+        ServiceError::InvalidOperation(
+            "deploy signature verification key must be 32 bytes hex".to_string(),
+        )
+    })?;
+    VerifyingKey::from_bytes(&key_bytes).map_err(|_| {
+        ServiceError::InvalidOperation("deploy signature verification key is invalid".to_string())
+    })
+}
+
+fn parse_signature(value: &str) -> Result<Signature, ServiceError> {
+    let bytes = decode_hex(value).map_err(|err| {
+        ServiceError::InvalidOperation(format!("deploy signature is invalid: {err}"))
+    })?;
+    Signature::from_slice(&bytes).map_err(|_| {
+        ServiceError::InvalidOperation("deploy signature must be 64 bytes hex".to_string())
+    })
+}
+
+fn decode_hex(value: &str) -> Result<Vec<u8>, String> {
+    let value = value.trim();
+    if !value.len().is_multiple_of(2) {
+        return Err("hex length must be even".to_string());
+    }
+    let mut bytes = Vec::with_capacity(value.len() / 2);
+    for chunk in value.as_bytes().chunks_exact(2) {
+        let high = hex_value(chunk[0])?;
+        let low = hex_value(chunk[1])?;
+        bytes.push((high << 4) | low);
+    }
+    Ok(bytes)
+}
+
+fn hex_value(byte: u8) -> Result<u8, String> {
+    match byte {
+        b'0'..=b'9' => Ok(byte - b'0'),
+        b'a'..=b'f' => Ok(byte - b'a' + 10),
+        b'A'..=b'F' => Ok(byte - b'A' + 10),
+        _ => Err("contains non-hex characters".to_string()),
+    }
+}
+
+fn find_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack.windows(needle.len()).position(|window| window == needle)
+}
+
+fn find_last_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack.windows(needle.len()).rposition(|window| window == needle)
 }
 
 fn extract_zip_to_dir(zip_path: &Path, output_dir: &Path) -> Result<(), ServiceError> {
@@ -903,6 +1177,10 @@ fn sha256_hex(data: &[u8]) -> String {
     digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>()
 }
 
+fn finalize_sha256_hex(hasher: Sha256) -> String {
+    hasher.finalize().iter().map(|byte| format!("{byte:02x}")).collect::<String>()
+}
+
 fn non_empty(value: String, field: &str) -> Result<String, ServiceError> {
     let value = value.trim().to_string();
     if value.is_empty() {
@@ -932,6 +1210,7 @@ fn remove_deploy_file_path(path: &Path) -> Result<(), ServiceError> {
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
+    use ed25519_dalek::{Signer, SigningKey};
 
     use super::*;
 
@@ -949,6 +1228,64 @@ mod tests {
         let version = deployment_item(false);
 
         assert!(ensure_version_is_deployable(&version).is_ok());
+    }
+
+    #[test]
+    fn signed_server_marker_is_required_when_signature_check_is_enabled() {
+        let signing_key = SigningKey::from_bytes(&[7; 32]);
+        let verify_key = hex_encode(signing_key.verifying_key().as_bytes());
+        let mut file_data = sample_elf_x86_64();
+        append_signed_server_marker(&mut file_data, "v0.4.0", "x86_64", &signing_key);
+
+        validate_server_file_with_signature_policy(
+            &file_data,
+            "v0.4.0",
+            "x86_64",
+            true,
+            Some(&verify_key),
+        )
+        .expect("signed server marker is valid");
+
+        let unsigned = sample_elf_x86_64_with_legacy_marker();
+        let err = validate_server_file_with_signature_policy(
+            &unsigned,
+            "v0.4.0",
+            "x86_64",
+            true,
+            Some(&verify_key),
+        )
+        .expect_err("legacy marker is rejected when signatures are required");
+
+        assert!(err.to_string().contains("signature"));
+    }
+
+    #[test]
+    fn signed_web_marker_is_required_when_signature_check_is_enabled() {
+        let signing_key = SigningKey::from_bytes(&[9; 32]);
+        let verify_key = hex_encode(signing_key.verifying_key().as_bytes());
+        let content_hash = "aa".repeat(32);
+        let marker = signed_marker_json("web", "v0.4.0", "universal", &content_hash, &signing_key);
+
+        validate_web_marker_content_with_signature_policy(
+            &marker,
+            "v0.4.0",
+            true,
+            Some(&verify_key),
+            &content_hash,
+        )
+        .expect("signed web marker is valid");
+
+        let legacy_marker = r#"{"component":"web","build_id":"manual"}"#;
+        let err = validate_web_marker_content_with_signature_policy(
+            legacy_marker,
+            "v0.4.0",
+            true,
+            Some(&verify_key),
+            &content_hash,
+        )
+        .expect_err("legacy marker is rejected when signatures are required");
+
+        assert!(err.to_string().contains("signature"));
     }
 
     fn deployment_item(is_expired: bool) -> DeploymentItem {
@@ -972,5 +1309,55 @@ mod tests {
             created_at: now,
             updated_at: now,
         }
+    }
+
+    fn sample_elf_x86_64() -> Vec<u8> {
+        let mut bytes = vec![0_u8; 64];
+        bytes[0] = 0x7f;
+        bytes[1] = b'E';
+        bytes[2] = b'L';
+        bytes[3] = b'F';
+        bytes[4] = 2;
+        bytes[5] = 1;
+        bytes[18] = 62;
+        bytes
+    }
+
+    fn sample_elf_x86_64_with_legacy_marker() -> Vec<u8> {
+        let mut bytes = sample_elf_x86_64();
+        bytes.extend_from_slice(b"RUSTZEN_ADMIN_MARKER\ncomponent=server\nbuild_id=v0.4.0\n");
+        bytes
+    }
+
+    fn append_signed_server_marker(
+        file_data: &mut Vec<u8>,
+        version: &str,
+        arch: &str,
+        signing_key: &SigningKey,
+    ) {
+        let content_hash = sha256_hex(file_data);
+        let marker = signed_marker_json("server", version, arch, &content_hash, signing_key);
+        file_data.extend_from_slice(SIGNED_MARKER_BEGIN);
+        file_data.extend_from_slice(marker.as_bytes());
+        file_data.extend_from_slice(SIGNED_MARKER_END);
+    }
+
+    fn signed_marker_json(
+        component: &str,
+        version: &str,
+        arch: &str,
+        content_hash: &str,
+        signing_key: &SigningKey,
+    ) -> String {
+        let payload = deploy_signature_payload(component, version, arch, content_hash);
+        let signature = signing_key.sign(payload.as_bytes());
+        format!(
+            r#"{{"schemaVersion":1,"component":"{component}","version":"{version}","arch":"{arch}","contentSha256":"{content_hash}","signature":"{}"}}"#,
+            hex_encode(&signature.to_bytes())
+        )
+    }
+
+    fn hex_encode(bytes: &[u8]) -> String {
+        bytes.iter().map(|byte| format!("{byte:02x}")).collect()
     }
 }

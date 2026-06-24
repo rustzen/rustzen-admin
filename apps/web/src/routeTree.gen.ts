@@ -15,6 +15,7 @@ import { Route as R404RouteImport } from './routes/404'
 import { Route as R403RouteImport } from './routes/403'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SystemUserRouteImport } from './routes/system/user'
+import { Route as SystemStatusRouteImport } from './routes/system/status'
 import { Route as SystemRoleRouteImport } from './routes/system/role'
 import { Route as SystemMenuRouteImport } from './routes/system/menu'
 import { Route as ManageTaskRouteImport } from './routes/manage/task'
@@ -50,6 +51,11 @@ const IndexRoute = IndexRouteImport.update({
 const SystemUserRoute = SystemUserRouteImport.update({
   id: '/system/user',
   path: '/system/user',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SystemStatusRoute = SystemStatusRouteImport.update({
+  id: '/system/status',
+  path: '/system/status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SystemRoleRoute = SystemRoleRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/manage/task': typeof ManageTaskRoute
   '/system/menu': typeof SystemMenuRoute
   '/system/role': typeof SystemRoleRoute
+  '/system/status': typeof SystemStatusRoute
   '/system/user': typeof SystemUserRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/manage/task': typeof ManageTaskRoute
   '/system/menu': typeof SystemMenuRoute
   '/system/role': typeof SystemRoleRoute
+  '/system/status': typeof SystemStatusRoute
   '/system/user': typeof SystemUserRoute
 }
 export interface FileRoutesById {
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/manage/task': typeof ManageTaskRoute
   '/system/menu': typeof SystemMenuRoute
   '/system/role': typeof SystemRoleRoute
+  '/system/status': typeof SystemStatusRoute
   '/system/user': typeof SystemUserRoute
 }
 export interface FileRouteTypes {
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/manage/task'
     | '/system/menu'
     | '/system/role'
+    | '/system/status'
     | '/system/user'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/manage/task'
     | '/system/menu'
     | '/system/role'
+    | '/system/status'
     | '/system/user'
   id:
     | '__root__'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/manage/task'
     | '/system/menu'
     | '/system/role'
+    | '/system/status'
     | '/system/user'
   fileRoutesById: FileRoutesById
 }
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   ManageTaskRoute: typeof ManageTaskRoute
   SystemMenuRoute: typeof SystemMenuRoute
   SystemRoleRoute: typeof SystemRoleRoute
+  SystemStatusRoute: typeof SystemStatusRoute
   SystemUserRoute: typeof SystemUserRoute
 }
 
@@ -228,6 +241,13 @@ declare module '@tanstack/react-router' {
       path: '/system/user'
       fullPath: '/system/user'
       preLoaderRoute: typeof SystemUserRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system/status': {
+      id: '/system/status'
+      path: '/system/status'
+      fullPath: '/system/status'
+      preLoaderRoute: typeof SystemStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/system/role': {
@@ -287,6 +307,7 @@ const rootRouteChildren: RootRouteChildren = {
   ManageTaskRoute: ManageTaskRoute,
   SystemMenuRoute: SystemMenuRoute,
   SystemRoleRoute: SystemRoleRoute,
+  SystemStatusRoute: SystemStatusRoute,
   SystemUserRoute: SystemUserRoute,
 }
 export const routeTree = rootRouteImport

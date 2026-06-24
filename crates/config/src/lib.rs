@@ -51,6 +51,10 @@ const DEFAULT_TIMEZONE: &str = "UTC";
 /// Default task run retention days.
 const DEFAULT_TASK_RUN_RETENTION_DAYS: i64 = 30;
 
+fn default_deploy_signature_required() -> bool {
+    false
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default = "default_sqlite_path")]
@@ -83,6 +87,9 @@ pub struct Config {
     pub timezone: String,
     #[serde(default = "default_task_run_retention_days")]
     pub task_run_retention_days: i64,
+    #[serde(default = "default_deploy_signature_required")]
+    pub deploy_signature_required: bool,
+    pub deploy_verify_key: Option<String>,
 }
 
 /// Global process configuration loaded from `RUSTZEN_*` env.
@@ -235,6 +242,8 @@ mod tests {
             log_retention_days: 30,
             timezone: "UTC".to_string(),
             task_run_retention_days: 30,
+            deploy_signature_required: false,
+            deploy_verify_key: None,
         }
     }
 
@@ -261,6 +270,8 @@ mod tests {
             log_retention_days: 30,
             timezone: "UTC".to_string(),
             task_run_retention_days: 30,
+            deploy_signature_required: false,
+            deploy_verify_key: None,
         };
 
         assert_eq!(config.web_dist_dir(), PathBuf::from(".rustzen-admin/web/dist"));
@@ -289,6 +300,8 @@ mod tests {
             log_retention_days: 30,
             timezone: "UTC".to_string(),
             task_run_retention_days: 30,
+            deploy_signature_required: false,
+            deploy_verify_key: None,
         };
 
         let expected = resolve_path_with_runtime_root(".rustzen-admin", "./data/db/rustzen.db");

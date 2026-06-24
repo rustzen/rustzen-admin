@@ -93,7 +93,7 @@ const HealthCard = () => {
         queryFn: dashboardAPI.health,
     });
     const memoryUsage = calculatePercent(health?.memoryUsed, health?.memoryTotal);
-    const cpuUsage = health?.cpuUsed ?? 0;
+    const cpuUsage = formatProgressPercent(health?.cpuUsed);
     const diskUsage = calculatePercent(health?.diskUsed, health?.diskTotal);
 
     return (
@@ -244,4 +244,9 @@ const normalizeTrendItems = (items?: Dashboard.TrendItem[]) => {
             date: item.date ?? "",
             count: item.count ?? 0,
         }));
+};
+
+const formatProgressPercent = (value?: number | null) => {
+    if (!value) return 0;
+    return Number(Math.max(0, Math.min(100, value)).toFixed(1));
 };

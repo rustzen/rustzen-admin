@@ -21,6 +21,7 @@ reset-db:
 # Build all (production)
 build:
     just build-server
+    VERSION=$(awk -F '"' '/^version = / { print $2; exit }' apps/server/Cargo.toml) && node scripts/deploy-sign.mjs sign-server --file target/rustzen-admin/rustzen-admin-$VERSION-x86_64 --version $VERSION --arch x86_64
     just build-web
     just build-config
 
@@ -31,7 +32,9 @@ build-server:
 # Build web production bundle
 build-web:
     rm -f apps/web/dist-rustzen-admin-*.zip
-    cd apps/web && pnpm build
+    cd apps/web && pnpm exec vp build
+    VERSION=$(awk -F '"' '/^version = / { print $2; exit }' apps/server/Cargo.toml) && node scripts/deploy-sign.mjs sign-web --dir apps/web/dist --version $VERSION
+    cd apps/web && pnpm exec rz-zip -o dist-rustzen-admin
     VERSION=$(awk -F '"' '/^version = / { print $2; exit }' apps/server/Cargo.toml) && mkdir -p target/rustzen-admin && mv apps/web/dist-rustzen-admin-*.zip target/rustzen-admin/dist-$VERSION.zip
 
 # Build minimal deployment configuration files
@@ -41,6 +44,8 @@ build-config:
     perl -pi -e 's#^RUSTZEN_RUNTIME_ROOT=.*#RUSTZEN_RUNTIME_ROOT=.#' target/rustzen-admin/config/app.env
     perl -pi -e 's#^RUSTZEN_APP_PORT=.*#RUSTZEN_APP_PORT=9880#' target/rustzen-admin/config/app.env
     perl -pi -e 's#^RUSTZEN_SQLITE_PATH=.*#RUSTZEN_SQLITE_PATH=./data/db/rustzen.db#' target/rustzen-admin/config/app.env
+    perl -pi -e 's#^RUSTZEN_DEPLOY_SIGNATURE_REQUIRED=.*#RUSTZEN_DEPLOY_SIGNATURE_REQUIRED=true#' target/rustzen-admin/config/app.env
+    VERIFY_KEY=$(node scripts/deploy-sign.mjs public-key) && perl -pi -e "s#^RUSTZEN_DEPLOY_VERIFY_KEY=.*#RUSTZEN_DEPLOY_VERIFY_KEY=$VERIFY_KEY#" target/rustzen-admin/config/app.env
     cp deploy/rustzen-admin.service target/rustzen-admin/systemd/rustzen-admin.service
     cp deploy/setup-layout.sh target/rustzen-admin/setup-layout.sh
     chmod +x target/rustzen-admin/setup-layout.sh

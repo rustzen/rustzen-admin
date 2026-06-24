@@ -67,7 +67,7 @@ Demo login:
 
 ## Demo
 
-- Local demo URL: [https://rustzen-admin.idaibin.dev](https://rustzen-admin.idaibin.dev)
+- Local demo URL: [https://admin.rustzen.dev](https://admin.rustzen.dev)
 - Demo username: `superadmin`
 - Demo password: `rustzen@123`
 

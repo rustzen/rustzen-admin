@@ -27,21 +27,16 @@ export const Route = createFileRoute("/manage/deploy")({
 });
 
 const componentOptions: Array<{ label: string; value: Deploy.Component }> = [
-    { label: "Server", value: "server" },
     { label: "Web", value: "web" },
+    { label: "Server", value: "server" },
 ];
 
 type ComponentFilter = "all" | Deploy.Component;
 
 const componentFilterOptions: Array<{ label: string; value: ComponentFilter }> = [
     { label: "All", value: "all" },
-    { label: "Server", value: "server" },
     { label: "Web", value: "web" },
-];
-
-const archOptions = [
-    { label: "x86_64", value: "x86_64" },
-    { label: "aarch64", value: "aarch64" },
+    { label: "Server", value: "server" },
 ];
 
 function DeployPage() {
@@ -222,7 +217,6 @@ const deployColumns: ProColumns<Deploy.Item>[] = [
 interface UploadVersionFormValues {
     component: Deploy.Component;
     version: string;
-    arch?: string;
     notes?: string;
     file?: UploadFile[];
 }
@@ -240,7 +234,7 @@ function UploadVersionModal({
             layout="horizontal"
             title="Upload Deploy Version"
             trigger={children}
-            initialValues={{ arch: "x86_64" }}
+            initialValues={{ component: "web" }}
             labelCol={{ span: 5 }}
             wrapperCol={{ span: 19 }}
             modalProps={{
@@ -260,7 +254,6 @@ function UploadVersionModal({
                 await manageAPI.deploy.upload({
                     component: values.component,
                     version: values.version,
-                    arch: values.component === "server" ? values.arch : undefined,
                     notes: values.notes,
                     file: uploadFile,
                 });
@@ -282,19 +275,6 @@ function UploadVersionModal({
                 placeholder="v0.4.0"
                 rules={[{ required: true, message: "Please enter version" }]}
             />
-            <Form.Item noStyle shouldUpdate={(prev, next) => prev.component !== next.component}>
-                {({ getFieldValue }) =>
-                    getFieldValue("component") === "server" ? (
-                        <Form.Item
-                            name="arch"
-                            label="Arch"
-                            rules={[{ required: true, message: "Please select arch" }]}
-                        >
-                            <Segmented options={archOptions} />
-                        </Form.Item>
-                    ) : null
-                }
-            </Form.Item>
             <Form.Item
                 name="file"
                 label="File"

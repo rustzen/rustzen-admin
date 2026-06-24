@@ -5,9 +5,12 @@ import {
     DashboardOutlined,
     HistoryOutlined,
     MenuOutlined,
+    MonitorOutlined,
+    ProfileOutlined,
     SettingOutlined,
     TeamOutlined,
     UserOutlined,
+    WarningOutlined,
 } from "@ant-design/icons";
 import type { ReactNode } from "react";
 
@@ -19,12 +22,13 @@ export type AppRoutePath =
     | "/system/user"
     | "/system/role"
     | "/system/menu"
+    | "/system/status"
     | "/manage/dict"
     | "/manage/log"
     | "/manage/task"
     | "/manage/deploy";
 
-type AppRouteGroupPath = "/system" | "/manage";
+type AppRouteGroupPath = "/system" | "/manage" | "/demo";
 
 export type AppRouteItem = {
     name: string;
@@ -75,6 +79,11 @@ const systemRoutes: AppRouteItem = {
             name: "Menu",
             icon: <MenuOutlined />,
         },
+        {
+            path: "/system/status",
+            name: "System Status",
+            icon: <MonitorOutlined />,
+        },
     ],
 };
 
@@ -106,6 +115,26 @@ const manageRoutes: AppRouteItem = {
     ],
 };
 
+const demoRoutes: AppRouteItem = {
+    name: "Demo",
+    icon: <ProfileOutlined />,
+    path: "/demo",
+    children: [
+        {
+            path: "/403",
+            name: "403",
+            icon: <WarningOutlined />,
+            requiresPermission: false,
+        },
+        {
+            path: "/404",
+            name: "404",
+            icon: <WarningOutlined />,
+            requiresPermission: false,
+        },
+    ],
+};
+
 const appRoutePaths = new Set<string>([
     "/",
     "/profile",
@@ -114,6 +143,7 @@ const appRoutePaths = new Set<string>([
     "/system/user",
     "/system/role",
     "/system/menu",
+    "/system/status",
     "/manage/dict",
     "/manage/log",
     "/manage/task",
@@ -124,6 +154,7 @@ export const layoutMenuRoutes: AppRouteItem[] = [
     dashboardRoute,
     systemRoutes,
     manageRoutes,
+    demoRoutes,
 ];
 
 export const layoutSearchRoutes: AppRouteItem[] = [
@@ -131,6 +162,7 @@ export const layoutSearchRoutes: AppRouteItem[] = [
     profileRoute,
     systemRoutes,
     manageRoutes,
+    demoRoutes,
 ];
 
 export const getMenuData = (checkMenuPermissions: (path: string) => boolean): AppRouteItem[] => {

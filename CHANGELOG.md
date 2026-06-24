@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-06-24
+
+### Added
+
+- Added signed deploy artifacts for server binaries and web release zips.
+- Added the system status page and API for runtime storage and resource usage.
+
+### Changed
+
+- Updated the release workflow to read `RUSTZEN_DEPLOY_SIGN_KEY` from GitHub Actions secrets.
+- Updated production build config to require deploy signature verification.
+
 ## [0.4.0] - 2026-06-08
 
 ### Added

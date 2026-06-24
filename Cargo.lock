@@ -2029,7 +2029,7 @@ checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
 name = "rustzen-config"
-version = "0.1.0"
+version = "0.4.1"
 dependencies = [
  "figment",
  "once_cell",
@@ -2039,7 +2039,7 @@ dependencies = [
 
 [[package]]
 name = "rustzen-core"
-version = "0.1.0"
+version = "0.4.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -2056,11 +2056,11 @@ dependencies = [
 
 [[package]]
 name = "rustzen-runtime"
-version = "0.1.0"
+version = "0.4.1"
 
 [[package]]
 name = "rustzen-storage"
-version = "0.1.0"
+version = "0.4.1"
 dependencies = [
  "sqlx",
 ]
@@ -2165,7 +2165,7 @@ dependencies = [
 
 [[package]]
 name = "server"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "argon2",
  "async-trait",
@@ -2174,6 +2174,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "dotenvy",
+ "ed25519-dalek",
  "figment",
  "futures",
  "once_cell",

@@ -33,6 +33,8 @@ jobs:
               working-directory: apps/web
 
             - name: Build release artifacts
+              env:
+                  RUSTZEN_DEPLOY_SIGN_KEY: ${{ secrets.RUSTZEN_DEPLOY_SIGN_KEY }}
               run: just build
 
             - name: Read package version

@@ -40,6 +40,11 @@ pub mod system_menu {
     pub const OPTIONS: &str = "system:menu:options";
 }
 
+/// System status capability boundary.
+pub mod system_status {
+    pub const VIEW: &str = "system:status:view";
+}
+
 /// Dictionary management capability boundaries.
 pub mod manage_dict {
     pub const LIST: &str = "manage:dict:list";

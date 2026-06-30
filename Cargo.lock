@@ -2018,6 +2018,9 @@ dependencies = [
 [[package]]
 name = "rustzen-runtime"
 version = "0.4.2"
+dependencies = [
+ "rz-config",
+]
 
 [[package]]
 name = "rustzen-storage"
@@ -2031,6 +2034,11 @@ name = "ryu"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9774ba4a74de5f7b1c1451ed6cd5285a32eddb5cccb8cc655a4e50009e06477f"
+
+[[package]]
+name = "rz-config"
+version = "0.1.0"
+source = "git+https://github.com/rustzen/rustzen-core?rev=df2090e2d8db0070ab251af0a0355c812b42b7b3#df2090e2d8db0070ab251af0a0355c812b42b7b3"
 
 [[package]]
 name = "scopeguard"

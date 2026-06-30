@@ -4,3 +4,4 @@ version = "0.4.2"
 edition = "2024"
 
 [dependencies]
+rz-config = { git = "https://github.com/rustzen/rustzen-core", rev = "df2090e2d8db0070ab251af0a0355c812b42b7b3" }

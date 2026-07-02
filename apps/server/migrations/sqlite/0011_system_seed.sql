@@ -14,24 +14,41 @@ VALUES (
 ON CONFLICT DO NOTHING;
 
 INSERT INTO roles (name, code, description, status, is_system, sort_order)
-VALUES (
-    'System Administrator',
-    'SYSTEM_ADMIN',
-    'Wildcard admin role. The "*" permission grants access to all system functions.',
-    1,
-    1,
-    1
-)
+VALUES
+    (
+        'Owner',
+        'owner',
+        'Built-in owner role with the full wildcard grant.',
+        1,
+        1,
+        1
+    ),
+    (
+        'Admin',
+        'admin',
+        'Built-in administrator role with deploy view-only access.',
+        1,
+        1,
+        2
+    ),
+    (
+        'Viewer',
+        'viewer',
+        'Built-in viewer role with read-only capabilities.',
+        1,
+        1,
+        3
+    )
 ON CONFLICT DO NOTHING;
 
 INSERT INTO menus (parent_id, name, code, menu_type, sort_order, status, is_system, is_manual)
 VALUES (
     0,
-    'All Permissions',
+    'All Capabilities',
     '*',
     1,
     1,
-    2,
+    1,
     1,
     0
 )
@@ -41,8 +58,16 @@ INSERT INTO role_menus (role_id, menu_id, created_at)
 SELECT r.id, m.id, CURRENT_TIMESTAMP
 FROM roles r
 CROSS JOIN menus m
-WHERE r.code = 'SYSTEM_ADMIN'
+WHERE r.code = 'owner'
   AND m.code = '*'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO user_roles (user_id, role_id, created_at)
+SELECT u.id, r.id, CURRENT_TIMESTAMP
+FROM users u
+CROSS JOIN roles r
+WHERE u.username = 'superadmin'
+  AND r.code = 'owner'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO dicts (dict_type, label, value, status, sort_order)

@@ -27,11 +27,11 @@ Current capability model and usage rules.
 
 - `owner` is the only built-in role that receives `*`.
 - Built-in roles cannot be edited or deleted through role management.
-- `admin` receives concrete leaf capabilities outside deploy management.
-- `viewer` receives concrete read-only leaf capabilities outside deploy management.
+- `admin` receives concrete leaf capabilities. Deploy management is limited to `manage:deploy:list`.
+- `viewer` receives concrete read-only leaf capabilities, including `manage:deploy:list`.
 - Built-in role permission sets are synchronized by the server from the current menu capability catalog.
 - Ordinary role creation and updates save explicit menu selections only; they do not apply `admin` or `viewer` policy rules.
-- Generic role creation and updates cannot assign `*` or deploy capabilities.
+- Generic role creation and updates cannot assign `*` or deploy management capabilities.
 
 ## Capability Naming
 
@@ -42,7 +42,7 @@ Current capability model and usage rules.
   - menus
   - manage tasks
   - manage deploy versions
-- New checks should describe capabilities with intent. For example:
+- New checks describe capabilities with intent. For example:
   - `system:user:list` (read users)
   - `system:role:create` (manage roles)
   - `dashboard:view` (read dashboard summaries)

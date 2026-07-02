@@ -15,11 +15,8 @@ This classification does not make Peripheral Vercel, Tauri client, or legacy
 - `crates/runtime/` owns concrete runtime-path primitives for local-first deployment topology.
 - `crates/storage/` owns SQLite connection helpers and migration helpers.
 - `apps/server/` owns the Axum backend runtime and business features.
-- `apps/server/migrations/` owns SQL migrations.
+- `apps/server/migrations/sqlite/` owns active SQL migrations.
 - `apps/web/` owns the React frontend.
-
-SQLite is the default storage backend. PostgreSQL-first migration history is
-archived under `apps/server/migrations/postgresql_legacy/`.
 - `deploy/` owns deployment assets.
 - `docs/` owns repository documentation.
 
@@ -75,7 +72,7 @@ unit file.
 - Backend capability cache and menu synchronization live in `apps/server/src/infra/`.
 - New protected backend routes use `PermissionsCheck::Require(...)` by default.
 - `*` is the only full-authorization grant.
-- `owner`, `admin`, and `viewer` are built-in roles synchronized from the menu capability catalog.
+- `owner`, `admin`, and `viewer` are built-in roles synchronized from the menu capability catalog. `owner` receives `*`, `admin` receives deploy view-only access plus other concrete leaf capabilities, and `viewer` receives read-only leaf capabilities.
 - Built-in roles are immutable in role management.
 - `users.is_system`, `roles.is_system`, and `menus.is_system` mark protected built-in records only; they do not grant permissions.
 

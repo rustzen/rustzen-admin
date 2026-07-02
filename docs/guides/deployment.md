@@ -119,35 +119,6 @@ Vercel, Tauri, Docker-only, or legacy `zen-server` deployment guide.
 cargo run -p server
 ```
 
-## Existing SQLite Path Move
-
-The server runs a startup migration before opening SQLite. If an older
-deployment left `rustzen.db`, `rustzen.db-shm`, or `rustzen.db-wal` directly
-under `data/`, startup moves those files into `data/db/`.
-
-Special case: the migration treats `rustzen.db`, `rustzen.db-shm`, and
-`rustzen.db-wal` as one SQLite file group. If any target file already exists
-under `data/db/`, startup logs a warning and leaves the whole legacy group for
-manual inspection instead of mixing files from different databases.
-
-## Existing Deploy Version Move
-
-The server also runs a startup migration for older uploaded server versions.
-Files under `<runtime_root>/versions/server-<version>-<arch>` move to
-`<runtime_root>/bin/rustzen-admin-<version>-<arch>` before SQLite opens. If the
-target file already exists, startup logs a warning and leaves the legacy file
-in place for manual inspection.
-
-If `<runtime_root>/bin/rustzen-admin` is a symlink to the moved legacy
-`versions/server-*` file, startup rewrites it to the migrated
-`bin/rustzen-admin-*` file so the runtime service entrypoint remains valid.
-
-After embedded database migrations complete, startup also updates matching
-`deploy_versions.file_path` rows from the old `versions/server-*` path to the
-new `bin/rustzen-admin-*` path when the migrated target file exists. If the
-target file is missing, the database row stays unchanged and startup logs a
-warning for manual inspection.
-
 ## Build Output Checks
 
 - `target/rustzen-admin/rustzen-admin-<version>-<arch>` exists and is executable.

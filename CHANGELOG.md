@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-02
+
+### Added
+
+- Added the new default role baseline for fresh deployments: `owner`, `admin`,
+  and `viewer`.
+- Added direct initialization of `superadmin` with the `owner` role.
+
+### Changed
+
+- Changed fresh SQLite seed data to initialize the final built-in role model
+  directly.
+- Changed `admin` to keep deploy view-only access while retaining other
+  concrete leaf capabilities.
+- Changed `viewer` to receive read-only capabilities, including deploy list
+  access.
+- Adopted the shared Rustzen core runtime layout helper.
+
+### Removed
+
+- Removed the `SYSTEM_ADMIN` seed and owner-role compatibility path.
+- Removed startup compatibility migrations for previous SQLite and deploy file
+  layouts.
+- Removed PostgreSQL migration files from the current deployment baseline.
+
 ## [0.4.2] - 2026-06-24
 
 ### Changed
@@ -45,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Breaking:** SQLite is now the default runtime storage backend. PostgreSQL-first migration history is archived under `apps/server/migrations/postgresql_legacy/`.
+- **Breaking:** SQLite is now the default runtime storage backend.
 - Moved source ownership to the current monorepo layout: `apps/server`, `apps/web`, and shared `crates/*`.
 - Moved local development ports to backend `9801` and frontend `9800`.
 - Reworked system permission checks around explicit capability boundaries while keeping existing capability codes.

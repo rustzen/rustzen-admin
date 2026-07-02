@@ -422,10 +422,10 @@ fn classify_user_unique_conflict(
     message: &str,
 ) -> Option<UserUniqueConflict> {
     match constraint {
-        Some("idx_users_username" | "users_username_key") => {
+        Some("idx_users_username") => {
             return Some(UserUniqueConflict::Username);
         }
-        Some("idx_users_email" | "users_email_key") => return Some(UserUniqueConflict::Email),
+        Some("idx_users_email") => return Some(UserUniqueConflict::Email),
         _ => {}
     }
 
@@ -467,13 +467,6 @@ mod tests {
         );
 
         assert_eq!(conflict, Some(UserUniqueConflict::Email));
-    }
-
-    #[test]
-    fn classify_user_unique_conflict_returns_username_for_postgres_constraint() {
-        let conflict = classify_user_unique_conflict(Some("23505"), Some("users_username_key"), "");
-
-        assert_eq!(conflict, Some(UserUniqueConflict::Username));
     }
 
     #[test]

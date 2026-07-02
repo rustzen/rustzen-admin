@@ -1,6 +1,6 @@
 [package]
 name = "rustzen-core"
-version = "0.4.2"
+version = "0.5.0"
 edition = "2024"
 
 [dependencies]
@@ -10,6 +10,7 @@ chrono = { version = "0.4", features = ["serde"] }
 http = "1"
 jsonwebtoken = { version = "10.4", features = ["rust_crypto"] }
 once_cell = "1.21"
+rz-core = { git = "https://github.com/rustzen/rustzen-core", rev = "c51acfbe21a96fdf0ccc35f63c60583d43562e58", default-features = false }
 serde = { version = "1", features = ["derive"] }
 thiserror = "2.0"
 tokio = { version = "1", features = ["full"] }

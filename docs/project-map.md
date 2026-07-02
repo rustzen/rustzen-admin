@@ -34,7 +34,7 @@ This is a practical path index for task orientation. It maps where to look first
 | `crates/storage/` | Shared SQLite storage helpers and migration invocations. | You touch DB bootstrap, connection helpers, or migration wiring. |
 | `apps/server/AGENTS.md` | Backend-specific AI rules. | You work under `apps/server/`. |
 | `apps/server/src/infra/` | Config, app assembly, database, auth runtime, capability cache, and menu sync. | You touch startup, runtime paths, DB wiring, static serving, or capability sync. |
-| `apps/server/src/infra/db.rs` | SQLite pool creation, embedded migration runner, and startup moves for legacy SQLite files, legacy deploy server files, and `deploy_versions.file_path` rows. | You touch DB startup, runtime file migration, or deploy record migration behavior. |
+| `apps/server/src/infra/db.rs` | SQLite pool creation, embedded migration runner, and startup data migration hook. | You touch DB startup or migration wiring. |
 | `apps/server/src/common/` | Cross-feature backend helpers. | You touch shared file or utility behavior. |
 | `apps/server/src/middleware/` | Axum middleware. | You touch request middleware behavior. |
 | `apps/server/migrations/` | SQL migrations. | You change schema. |

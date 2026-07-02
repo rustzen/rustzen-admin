@@ -1,9 +1,12 @@
 //! Shared capability constants used by auth and permission checks.
 
-pub const SYSTEM_WILDCARD: &str = "*";
+pub use rz_core::role_policy::{
+    ADMIN_ROLE_CODE as BUILTIN_ADMIN_ROLE_CODE, OWNER_ROLE_CODE as BUILTIN_OWNER_ROLE_CODE,
+    RolePolicy, SYSTEM_WILDCARD, VIEWER_ROLE_CODE as BUILTIN_VIEWER_ROLE_CODE,
+};
 
 pub fn is_deploy_capability_code(code: &str) -> bool {
-    code == "manage:deploy:*" || code.starts_with("manage:deploy:")
+    RolePolicy::default().is_deploy_capability(code)
 }
 
 /// Dashboard capability boundary.

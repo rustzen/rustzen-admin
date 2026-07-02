@@ -16,7 +16,10 @@ Rules for Rust backend work under `apps/server/`.
   Documented read-only aggregation features may omit `repo.rs` when they do not
   own persistence; `features/dashboard/` is the current intentional exception.
 - Reuse auth and permission code from `crates/auth/`; do not re-implement it in `apps/server/`.
-- Use storage helpers from `crates/storage/` for SQLite connection and migration calls.
+- Use storage helpers from `crates/storage/` for SQLite connection and migration
+  calls; `crates/storage/` delegates shared connection behavior to `rz-core`.
+- Use `rz-core` logging helpers for daily rolling runtime log files and
+  retention cleanup.
 - Use `crates/config/` for runtime config and resolved runtime directories.
 - Use `crates/runtime/` for runtime path helpers where startup behavior needs stable runtime topology.
 - Use `PermissionsCheck::Require(...)` by default.

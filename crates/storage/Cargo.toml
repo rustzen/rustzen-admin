@@ -4,6 +4,7 @@ version = "0.5.0"
 edition = "2024"
 
 [dependencies]
+rz-core = { git = "https://github.com/rustzen/rustzen-core", rev = "f2e76ff42d6b3b9e7f2a3a66f4908d592e1b7a7d", default-features = false, features = ["sqlite"] }
 sqlx = { version = "0.9.0", features = [
     "runtime-tokio",
     "sqlite",

@@ -4,6 +4,6 @@ pub mod migration;
 pub mod sqlite;
 
 pub use sqlite::{
-    DatabaseConnectionOptions, SqlitePool, connect_sqlite, connect_sqlite_with_options,
+    CoreError, DatabaseConnectionOptions, SqlitePool, connect_sqlite, connect_sqlite_with_options,
     database_url_from_path, test_connection,
 };

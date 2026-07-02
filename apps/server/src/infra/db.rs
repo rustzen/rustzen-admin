@@ -51,9 +51,9 @@ fn db_idle_timeout(timeout_secs: u64) -> Option<Duration> {
 ///
 /// # Errors
 ///
-/// Returns a `sqlx::Error` if connecting to the database fails.
+/// Returns a storage error if connecting to the database fails.
 #[tracing::instrument(name = "create_db_pool", skip_all)]
-pub async fn create_pool(config: DatabaseConfig) -> Result<SqlitePool, sqlx::Error> {
+pub async fn create_pool(config: DatabaseConfig) -> Result<SqlitePool, rustzen_storage::CoreError> {
     tracing::info!("Creating database connection pool...");
     tracing::debug!("Connecting to SQLite URL: {}", config.url);
     let options = DatabaseConnectionOptions {
@@ -71,9 +71,9 @@ pub async fn create_pool(config: DatabaseConfig) -> Result<SqlitePool, sqlx::Err
 ///
 /// # Errors
 ///
-/// Returns a `sqlx::Error` if connecting to the database fails.
+/// Returns a storage error if connecting to the database fails.
 #[tracing::instrument(name = "create_default_db_pool")]
-pub async fn create_default_pool() -> Result<SqlitePool, sqlx::Error> {
+pub async fn create_default_pool() -> Result<SqlitePool, rustzen_storage::CoreError> {
     let config = DatabaseConfig::default();
     create_pool(config).await
 }

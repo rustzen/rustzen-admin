@@ -2027,6 +2027,7 @@ dependencies = [
 name = "rustzen-storage"
 version = "0.5.0"
 dependencies = [
+ "rz-core",
  "sqlx",
 ]
 
@@ -2044,11 +2045,16 @@ source = "git+https://github.com/rustzen/rustzen-core?rev=df2090e2d8db0070ab251a
 [[package]]
 name = "rz-core"
 version = "0.1.0"
-source = "git+https://github.com/rustzen/rustzen-core?rev=c51acfbe21a96fdf0ccc35f63c60583d43562e58#c51acfbe21a96fdf0ccc35f63c60583d43562e58"
+source = "git+https://github.com/rustzen/rustzen-core?rev=f2e76ff42d6b3b9e7f2a3a66f4908d592e1b7a7d#f2e76ff42d6b3b9e7f2a3a66f4908d592e1b7a7d"
 dependencies = [
+ "chrono",
  "serde",
  "serde_json",
+ "sqlx",
  "thiserror",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -2161,6 +2167,7 @@ dependencies = [
  "rustzen-config",
  "rustzen-core",
  "rustzen-storage",
+ "rz-core",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -2171,8 +2178,6 @@ dependencies = [
  "tokio-stream",
  "tower-http",
  "tracing",
- "tracing-appender",
- "tracing-subscriber",
  "uuid",
  "zip",
 ]

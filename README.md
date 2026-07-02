@@ -13,6 +13,7 @@ A structured monorepo foundation for Rust full-stack admin systems.
 The repository is organized as a monorepo:
 
 - `crates/auth/` contains shared auth and permission capabilities for Rust services
+- `crates/storage/` contains the admin SQLite adapter and migration entrypoints
 - `apps/server/` contains the Rust backend application
 - `apps/web/` contains the React frontend application
 - `deploy/` contains deployment assets and release support files
@@ -49,6 +50,8 @@ cargo run -p server
 ```
 
 Local startup is SQLite-first and does not require PostgreSQL.
+Shared SQLite connection primitives, role policy, and daily runtime logging are
+provided by `rz-core` from `rustzen-core`.
 Set `RUSTZEN_JWT_SECRET` in `.env` before starting the backend.
 
 If startup fails with `VersionMismatch`, your local database schema is out-of-date with current migration checksums. Run:

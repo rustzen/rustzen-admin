@@ -31,9 +31,9 @@ This is a practical path index for task orientation. It maps where to look first
 | `crates/auth/` | Shared auth and capability checks. | You touch auth context, JWT, extractors, or capability checks. |
 | `crates/config/` | Shared runtime configuration and runtime root layout helpers. | You touch runtime config parsing or env-driven startup behavior. |
 | `crates/runtime/` | Runtime path and startup context helpers. | You touch runtime path resolution or deployment topology behavior. |
-| `crates/storage/` | Shared SQLite storage helpers and migration invocations. | You touch DB bootstrap, connection helpers, or migration wiring. |
+| `crates/storage/` | Admin SQLite adapter and migration invocations backed by `rz-core` connection primitives. | You touch DB bootstrap, connection helpers, or migration wiring. |
 | `apps/server/AGENTS.md` | Backend-specific AI rules. | You work under `apps/server/`. |
-| `apps/server/src/infra/` | Config, app assembly, database, auth runtime, capability cache, and menu sync. | You touch startup, runtime paths, DB wiring, static serving, or capability sync. |
+| `apps/server/src/infra/` | Config, app assembly, database, `rz-core` daily logging wiring, auth runtime, capability cache, and menu sync. | You touch startup, runtime paths, DB wiring, logging, static serving, or capability sync. |
 | `apps/server/src/infra/db.rs` | SQLite pool creation, embedded migration runner, and startup data migration hook. | You touch DB startup or migration wiring. |
 | `apps/server/src/common/` | Cross-feature backend helpers. | You touch shared file or utility behavior. |
 | `apps/server/src/middleware/` | Axum middleware. | You touch request middleware behavior. |

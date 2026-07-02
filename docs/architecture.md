@@ -13,7 +13,9 @@ This classification does not make Peripheral Vercel, Tauri client, or legacy
 - `crates/auth/` owns shared auth and permission capability code.
 - `crates/config/` owns runtime configuration loading and layout paths.
 - `crates/runtime/` owns concrete runtime-path primitives for local-first deployment topology.
-- `crates/storage/` owns SQLite connection helpers and migration helpers.
+- `crates/storage/` owns the admin SQLite adapter and migration helpers; SQLite
+  URL/path, pool, tuning, and connection test primitives come from
+  `rz-core`.
 - `apps/server/` owns the Axum backend runtime and business features.
 - `apps/server/migrations/sqlite/` owns active SQL migrations.
 - `apps/web/` owns the React frontend.
@@ -62,6 +64,11 @@ unit file.
 - Backend handlers parse requests and return responses.
 - Backend services coordinate validation, transactions, permission-aware behavior, and repo calls.
 - Backend repos run SQL against SQLite by default.
+- Backend database bootstrap uses `crates/storage/`, which delegates shared
+  SQLite connection behavior to `rz-core`.
+- Backend logging uses `rz-core` daily rolling file logging and date-based
+  retention cleanup; `apps/server` supplies runtime paths and starts the
+  cleanup task.
 - The built-in task scheduler starts with the backend and registers fixed manage tasks from source.
 - Deploy version management stores uploaded `server` binaries and `web` dist zip files with version, arch, file size, and SHA-256. Deploying `server` switches the runtime binary symlink and triggers a service restart; deploying `web` extracts the zip into `<runtime_root>/web/dist`.
 - Static files and uploaded resources are served from paths derived from `RUSTZEN_RUNTIME_ROOT`.

@@ -1,14 +1,19 @@
 # rustzen-admin
 
-rustzen-admin is an AI-first and local-first Rust admin/runtime framework, designed for simple local development, SQLite-first storage, and long-term AI-assisted maintenance.
+`rustzen-admin` is a Web/Rust admin engineering template for projects that need
+an Axum backend, a React frontend, shared Rust crates, SQLite-first storage, and
+repeatable deployment assets in one repository.
 
-A structured monorepo foundation for Rust full-stack admin systems.
+A structured monorepo starting point for Rust full-stack admin systems.
 
-> `rustzen-admin` combines an Axum backend, a React frontend, and repository-level documentation in a single codebase designed for clear boundaries, maintainability, and AI-friendly collaboration.
+> `rustzen-admin` combines an Axum backend, a React frontend, shared crates,
+> deployment assets, and repository-level documentation in a single codebase
+> designed for clear boundaries, maintainability, and AI-friendly collaboration.
 
 ## Overview
 
-`rustzen-admin` is an open-source full-stack admin system foundation built for real-world projects, not just isolated UI demos.
+`rustzen-admin` is an open-source full-stack admin template built for real-world
+projects, not just isolated UI demos.
 
 The repository is organized as a monorepo:
 
@@ -78,3 +83,9 @@ Demo login:
 
 - `README.md` and `AGENTS.md` stay as lightweight entry documents.
 - `docs/history/` contains historical execution records and is not current implementation truth.
+
+## License and Commercial Rights
+
+Source code is available under the [MIT License](./LICENSE.md). Ownership,
+branding, trademark, publishing, and commercial-use boundaries are documented in
+[NOTICE.md](./NOTICE.md).

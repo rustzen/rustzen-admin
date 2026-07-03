@@ -1,6 +1,8 @@
 # Architecture
 
-`rustzen-admin` is a Rust full-stack admin foundation. The repository is a monorepo with shared Rust capability crates, one backend service, one React frontend, and deployment assets.
+`rustzen-admin` is a Web/Rust admin engineering template. The repository is a
+monorepo with shared Rust capability crates, one backend service, one React
+frontend, and deployment assets.
 
 RustZen standardization classification: Web/Rust A-class reference layout. New
 Web/Rust admin projects can use this repository as the default structure for
@@ -12,7 +14,7 @@ This classification does not make Peripheral Vercel, Tauri client, or legacy
 
 - `crates/auth/` owns shared auth and permission capability code.
 - `crates/config/` owns runtime configuration loading and layout paths.
-- `crates/runtime/` owns concrete runtime-path primitives for local-first deployment topology.
+- `crates/runtime/` owns concrete runtime-path primitives for packaged deployment topology.
 - `crates/storage/` owns the admin SQLite adapter and migration helpers; SQLite
   URL/path, pool, tuning, and connection test primitives come from
   `rz-core`.

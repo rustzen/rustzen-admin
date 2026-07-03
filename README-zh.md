@@ -1,16 +1,18 @@
 # rustzen-admin
 
-面向 Rust 全栈管理后台系统的结构化 monorepo 基座。
+`rustzen-admin` 是一个 Web/Rust 后台工程模板，适合需要 Axum 后端、React
+前端、共享 Rust crate、SQLite-first 存储和可重复部署资产的项目作为工程起点。
 
-> `rustzen-admin` 将 Axum 后端、React 前端和仓库级文档组织在同一个代码库中，强调清晰边界、可维护性，以及对 AI 协作友好的工程结构。
+> `rustzen-admin` 将 Axum 后端、React 前端、共享 crate、部署资产和仓库级文档组织在同一个代码库中，强调清晰边界、可维护性，以及对 AI 协作友好的工程结构。
 
 ## 概览
 
-`rustzen-admin` 是一个面向真实项目的开源全栈管理后台基础仓库，而不只是孤立的 UI 演示。
+`rustzen-admin` 是一个面向真实项目的开源全栈管理后台工程模板，而不只是孤立的 UI 演示。
 
 仓库采用 monorepo 组织方式：
 
 - `crates/auth/` — 共享的 Rust 认证与权限能力 crate
+- `crates/storage/` — SQLite 存储适配和迁移入口
 - `apps/server/` — Rust 后端应用
 - `apps/web/` — React 前端应用
 - `deploy/` — 部署资产和发布支持文件

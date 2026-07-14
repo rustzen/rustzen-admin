@@ -1,16 +1,17 @@
-# Ownership and Commercial Notice
+# Notice
 
 Copyright (c) 2025-present Bruce Dai.
 
-Rustzen is a product and organization maintained by Bruce Dai. The Rustzen name,
-product names, logos, domains, package publishing channels, hosted services,
-sponsorship channels, and commercial offerings are reserved to Bruce Dai or a
-future designated legal entity.
+This product includes software developed by Bruce Dai and Rustzen contributors.
 
-Source code in this repository is licensed under the MIT License unless a file or
-directory states otherwise. The MIT License does not grant trademark, branding,
-domain, package publishing, hosted-service, sponsorship, or commercial offering
-rights.
+Source code in this repository is licensed under the Apache License, Version 2.0,
+unless a file or directory states otherwise. Historical tags remain governed by
+the license included in each tag.
 
-Third-party contributions are accepted under the repository license unless a
-separate contributor agreement or written commercial agreement is required.
+The Apache License does not grant rights to Rustzen names, logos, domains,
+official package namespaces, official distribution channels, hosted services,
+or commercial offerings. See `TRADEMARKS.md` for the trademark boundary and
+`THIRD_PARTY_NOTICES.md` for third-party licensing guidance.
+
+Contributions intentionally submitted for inclusion in this repository are
+provided under the Apache License, Version 2.0, unless explicitly agreed otherwise.

@@ -11,7 +11,7 @@ use handler::{
     create_dict, delete_dict, get_dict_by_type, get_dict_options, list_dicts, update_dict,
     update_dict_status,
 };
-use rustzen_core::{
+use rustzen_auth::{
     capability::manage_dict,
     permission::{PermissionsCheck, RouterExt},
 };

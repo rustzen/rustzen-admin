@@ -9,6 +9,7 @@ export const dashboardAPI = {
             url: "/api/dashboard/health",
         });
     },
+    modules: () => apiRequest<Dashboard.ModuleHealth[]>({ url: "/api/dashboard/modules" }),
     metrics: () => {
         return apiRequest<Dashboard.SystemMetricsData>({
             url: "/api/dashboard/metrics",

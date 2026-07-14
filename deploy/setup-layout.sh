@@ -2,161 +2,74 @@
 set -eu
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-
 if [ -n "${RUSTZEN_ARTIFACT_DIR:-}" ]; then
     ARTIFACT_DIR="$RUSTZEN_ARTIFACT_DIR"
-elif [ -f "$SCRIPT_DIR/config/app.env" ]; then
+elif [ -f "$SCRIPT_DIR/config/rz.env" ]; then
     ARTIFACT_DIR="$SCRIPT_DIR"
 else
-    ARTIFACT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)/target/rustzen-admin"
+    ARTIFACT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/../target/rz" && pwd)"
 fi
+INSTALL_ROOT="${RUSTZEN_INSTALL_ROOT:-/opt/rz}"
+UNITS="rz-monitor.service rz-insights.service rz-reports.service rz-admin.service"
 
-if [ -n "${RUSTZEN_INSTALL_ROOT:-}" ]; then
-    INSTALL_ROOT="$RUSTZEN_INSTALL_ROOT"
-elif [ -x "$ARTIFACT_DIR/bin/rustzen-admin" ] && [ -d "$ARTIFACT_DIR/web/dist" ]; then
-    INSTALL_ROOT="$ARTIFACT_DIR"
-else
-    INSTALL_ROOT="/opt/rustzen-admin"
-fi
-copy_if_different() {
-    src="$1"
-    dest="$2"
-
-    if [ -e "$dest" ] && cmp -s "$src" "$dest"; then
-        return 0
-    fi
-
-    cp "$src" "$dest"
-}
-
-copy_if_missing() {
-    src="$1"
-    dest="$2"
-
-    if [ -e "$dest" ]; then
-        return 0
-    fi
-
-    cp "$src" "$dest"
-}
-
-has_release_jwt_placeholder() {
-    env_file="$1"
-
-    grep -Eq '^RUSTZEN_JWT_SECRET=(replace-me|rustzen-admin-release-.*)$' "$env_file"
-}
-
-print_jwt_and_restart_instructions() {
-    root="$1"
-
-    echo "Next steps:"
-    echo "  1. Set a real JWT secret:"
-    echo "     jwt_secret=\$(openssl rand -hex 32)"
-    echo "     sed -i \"s#^RUSTZEN_JWT_SECRET=.*#RUSTZEN_JWT_SECRET=\${jwt_secret}#\" $root/config/app.env"
-    echo "  2. Restart service:"
-    echo "     systemctl restart rustzen-admin"
-    echo "     systemctl status rustzen-admin --no-pager"
-}
-
-print_full_systemd_instructions() {
-    root="$1"
-
-    echo "Next steps:"
-    echo "  1. Install and enable systemd service:"
-    echo "     cp $root/systemd/rustzen-admin.service /etc/systemd/system/rustzen-admin.service"
-    echo "     systemctl daemon-reload"
-    echo "     systemctl enable rustzen-admin"
-    echo "  2. If JWT is still a placeholder, set a real JWT secret:"
-    echo "     jwt_secret=\$(openssl rand -hex 32)"
-    echo "     sed -i \"s#^RUSTZEN_JWT_SECRET=.*#RUSTZEN_JWT_SECRET=\${jwt_secret}#\" $root/config/app.env"
-    echo "  3. Start or restart service:"
-    echo "     systemctl restart rustzen-admin"
-    echo "     systemctl status rustzen-admin --no-pager"
-}
-
-if [ ! -f "$ARTIFACT_DIR/config/app.env" ]; then
-    echo "Missing config file: $ARTIFACT_DIR/config/app.env" >&2
+if [ ! -f "$ARTIFACT_DIR/config/rz.env" ]; then
+    echo "Missing config file: $ARTIFACT_DIR/config/rz.env" >&2
     exit 1
 fi
 
-if [ ! -f "$ARTIFACT_DIR/systemd/rustzen-admin.service" ]; then
-    echo "Missing systemd file: $ARTIFACT_DIR/systemd/rustzen-admin.service" >&2
+for unit in $UNITS; do
+    if [ ! -f "$ARTIFACT_DIR/systemd/$unit" ]; then
+        echo "Missing systemd unit: $ARTIFACT_DIR/systemd/$unit" >&2
+        exit 1
+    fi
+done
+
+RELEASE_FILE=""
+for file in "$ARTIFACT_DIR"/rz-*-*; do
+    if [ -f "$file" ]; then
+        RELEASE_FILE="$file"
+        break
+    fi
+done
+if [ -z "$RELEASE_FILE" ]; then
+    echo "Missing complete rz release in $ARTIFACT_DIR" >&2
     exit 1
 fi
 
-mkdir -p \
-    "$INSTALL_ROOT/bin" \
-    "$INSTALL_ROOT/config" \
-    "$INSTALL_ROOT/data/db" \
-    "$INSTALL_ROOT/data/uploads" \
-    "$INSTALL_ROOT/data/avatars" \
-    "$INSTALL_ROOT/logs" \
-    "$INSTALL_ROOT/systemd" \
-    "$INSTALL_ROOT/web"
-
-if [ -x "$ARTIFACT_DIR/bin/rustzen-admin" ] && [ -d "$ARTIFACT_DIR/web/dist" ]; then
-    chmod +x "$ARTIFACT_DIR/bin/rustzen-admin"
-else
-    SERVER_FILE=""
-    for file in "$ARTIFACT_DIR"/rustzen-admin-*; do
-        if [ -f "$file" ]; then
-            SERVER_FILE="$file"
-            break
-        fi
-    done
-
-    if [ -z "$SERVER_FILE" ]; then
-        echo "Missing server binary in $ARTIFACT_DIR" >&2
+RELEASE_NAME="$(basename "$RELEASE_FILE")"
+case "$RELEASE_NAME" in
+    rz-*-x86_64|rz-*-aarch64) ;;
+    *)
+        echo "Invalid release name: $RELEASE_NAME" >&2
         exit 1
-    fi
+        ;;
+esac
 
-    SERVER_NAME="$(basename "$SERVER_FILE")"
-    SERVER_META="${SERVER_NAME#rustzen-admin-}"
-    ARCH="${SERVER_META##*-}"
-    VERSION="${SERVER_META%-$ARCH}"
+mkdir -p "$INSTALL_ROOT/bin" "$INSTALL_ROOT/config" "$INSTALL_ROOT/data/db" "$INSTALL_ROOT/data/reports" "$INSTALL_ROOT/data/uploads" "$INSTALL_ROOT/data/avatars" "$INSTALL_ROOT/systemd"
+install -m 0755 "$RELEASE_FILE" "$INSTALL_ROOT/bin/$RELEASE_NAME"
 
-    case "$ARCH" in
-        x86_64|aarch64)
-            ;;
-        *)
-            echo "Invalid server artifact name, expected rustzen-admin-<version>-<arch>: $SERVER_NAME" >&2
-            exit 1
-            ;;
-    esac
-
-    WEB_ZIP="$ARTIFACT_DIR/dist-$VERSION.zip"
-
-    if [ ! -f "$WEB_ZIP" ]; then
-        echo "Missing web zip: $WEB_ZIP" >&2
-        exit 1
-    fi
-
-    install -m 0755 "$SERVER_FILE" "$INSTALL_ROOT/bin/$SERVER_NAME"
-
-    if [ -e "$INSTALL_ROOT/bin/rustzen-admin" ] && [ ! -L "$INSTALL_ROOT/bin/rustzen-admin" ]; then
-        echo "Refusing to replace non-symlink: $INSTALL_ROOT/bin/rustzen-admin" >&2
-        exit 1
-    fi
-
-    ln -sfn "$SERVER_NAME" "$INSTALL_ROOT/bin/rustzen-admin"
-    copy_if_missing "$ARTIFACT_DIR/config/app.env" "$INSTALL_ROOT/config/app.env"
-    copy_if_different "$ARTIFACT_DIR/systemd/rustzen-admin.service" "$INSTALL_ROOT/systemd/rustzen-admin.service"
-    unzip -oq "$WEB_ZIP" -d "$INSTALL_ROOT/web"
+if [ -e "$INSTALL_ROOT/bin/rz" ] && [ ! -L "$INSTALL_ROOT/bin/rz" ]; then
+    echo "Refusing to replace non-symlink: $INSTALL_ROOT/bin/rz" >&2
+    exit 1
 fi
+ln -sfn "$RELEASE_NAME" "$INSTALL_ROOT/bin/rz"
 
-echo "Prepared rustzen-admin layout at $INSTALL_ROOT"
+if [ ! -f "$INSTALL_ROOT/config/rz.env" ]; then
+    install -m 0600 "$ARTIFACT_DIR/config/rz.env" "$INSTALL_ROOT/config/rz.env"
+fi
+for unit in $UNITS; do
+    install -m 0644 "$ARTIFACT_DIR/systemd/$unit" "$INSTALL_ROOT/systemd/$unit"
+done
+
+echo "Prepared one rz artifact, four services, and four database paths at $INSTALL_ROOT"
 
 if command -v systemctl >/dev/null 2>&1 && [ "$(id -u)" -eq 0 ]; then
-    cp "$INSTALL_ROOT/systemd/rustzen-admin.service" /etc/systemd/system/rustzen-admin.service
+    for unit in $UNITS; do
+        install -m 0644 "$INSTALL_ROOT/systemd/$unit" "/etc/systemd/system/$unit"
+    done
     systemctl daemon-reload
-    systemctl enable rustzen-admin
-    if has_release_jwt_placeholder "$INSTALL_ROOT/config/app.env"; then
-        echo "Skipped service start because $INSTALL_ROOT/config/app.env still has a placeholder RUSTZEN_JWT_SECRET."
-        print_jwt_and_restart_instructions "$INSTALL_ROOT"
-    else
-        systemctl restart rustzen-admin
-        systemctl --no-pager status rustzen-admin
-    fi
+    systemctl enable $UNITS
+    echo "Set RUSTZEN_JWT_SECRET and RUSTZEN_IPC_TOKEN in $INSTALL_ROOT/config/rz.env before starting the services."
 else
-    print_full_systemd_instructions "$INSTALL_ROOT"
+    echo "Install the four files from $INSTALL_ROOT/systemd with administrator privileges when ready."
 fi

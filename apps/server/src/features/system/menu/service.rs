@@ -7,7 +7,7 @@ use super::{
 };
 use crate::common::{api::OptionsQuery, error::ServiceError, query::parse_optional_i16_filter};
 use crate::infra::permission::PermissionService;
-use rustzen_core::capability::SYSTEM_WILDCARD;
+use rustzen_auth::capability::SYSTEM_WILDCARD;
 
 use sqlx::SqlitePool;
 

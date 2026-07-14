@@ -11,7 +11,7 @@ use axum::{
     Json,
     extract::{Multipart, State},
 };
-use rustzen_core::auth::CurrentUser;
+use rustzen_auth::auth::CurrentUser;
 use sqlx::SqlitePool;
 
 /// Update current-account avatar.

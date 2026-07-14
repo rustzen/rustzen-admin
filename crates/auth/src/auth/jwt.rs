@@ -30,7 +30,8 @@ impl JwtCodec {
     }
 
     pub fn decode(&self, token: &str) -> Result<AuthClaims, jsonwebtoken::errors::Error> {
-        let validation = Validation::new(Algorithm::HS256);
+        let mut validation = Validation::new(Algorithm::HS256);
+        validation.leeway = 0;
         let token = decode::<AuthClaims>(
             token,
             &DecodingKey::from_secret(self.secret.as_bytes()),

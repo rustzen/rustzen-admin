@@ -4,7 +4,7 @@ pub mod types;
 
 use axum::{Router, routing::get};
 use handler::get_status_overview;
-use rustzen_core::{
+use rustzen_auth::{
     capability::system_status,
     permission::{PermissionsCheck, RouterExt},
 };

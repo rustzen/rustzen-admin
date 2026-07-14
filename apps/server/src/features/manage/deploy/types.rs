@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum DeployComponent {
-    Server,
-    Web,
+    Release,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,12 +45,6 @@ pub struct ListDeploymentsQuery {
 #[serde(rename_all = "camelCase")]
 pub struct CleanupDeploymentsQuery {
     pub component: Option<DeployComponent>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DeployVersionRequest {
-    pub deployed_by: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

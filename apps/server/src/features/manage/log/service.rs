@@ -38,11 +38,8 @@ impl LogService {
         LogRepository::insert_log_entry(pool, &command).await
     }
 
-    pub async fn cleanup_old_logs(
-        pool: &SqlitePool,
-        retention_days: i64,
-    ) -> Result<u64, ServiceError> {
-        LogRepository::cleanup_old_logs(pool, retention_days).await
+    pub async fn cleanup_old_logs(pool: &SqlitePool) -> Result<u64, ServiceError> {
+        LogRepository::cleanup_old_logs(pool).await
     }
 
     pub async fn export_logs_csv(

@@ -23,8 +23,8 @@
 - Frontend lives in `apps/web/`.
 - Deployment assets live in `deploy/`.
 - Root keeps workspace metadata, docs, command entry points, and shared crates.
-- Deployment contract uses `target/rustzen-admin`, `/opt/rustzen-admin`,
-  `deploy/rustzen-admin.service`, and `deploy/setup-layout.sh`.
+- Deployment contract uses one complete `target/rz/rz-<version>-<arch>` artifact,
+  `/opt/rz`, four `deploy/rz-*.service` units, and `deploy/setup-layout.sh`.
 - Do not apply Peripheral Vercel, Tauri client, or legacy `zen-server` /
   `zen-web` layout rules to this repository.
 - Do not add systemd `User`/`Group`, hardening, or install-path permission

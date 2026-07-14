@@ -1,36 +1,25 @@
 use crate::common::error::ServiceError;
-
 use sqlx::{QueryBuilder, Sqlite, SqlitePool, sqlite::SqliteRow};
 
-/// Apply a case-insensitive LIKE filter when the value is present and non-empty.
-pub fn push_ilike(query_builder: &mut QueryBuilder<Sqlite>, column: &str, value: Option<&str>) {
-    if let Some(value) = value {
-        let value = value.trim();
-        if !value.is_empty() {
-            query_builder
-                .push(" AND ")
-                .push("LOWER(")
-                .push(column)
-                .push(") LIKE ")
-                .push_bind(format!("%{}%", value.to_lowercase()));
-        }
+pub fn push_ilike(query: &mut QueryBuilder<Sqlite>, column: &'static str, value: Option<&str>) {
+    if let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) {
+        query
+            .push(" AND LOWER(")
+            .push(column)
+            .push(") LIKE ")
+            .push_bind(format!("%{}%", value.to_lowercase()));
     }
 }
 
-/// Apply an equality filter when the value is present.
-pub fn push_eq<T>(query_builder: &mut QueryBuilder<Sqlite>, column: &str, value: Option<T>)
+pub fn push_eq<T>(query: &mut QueryBuilder<Sqlite>, column: &'static str, value: Option<T>)
 where
     T: for<'q> sqlx::Encode<'q, Sqlite> + sqlx::Type<Sqlite>,
 {
     if let Some(value) = value {
-        query_builder.push(" AND ").push(column).push(" = ").push_bind(value);
+        query.push(" AND ").push(column).push(" = ").push_bind(value);
     }
 }
 
-/// Parse an optional `i16` filter from query text.
-///
-/// `default_on_empty` is used when the value is missing or empty.
-/// `all` always disables the filter.
 pub fn parse_optional_i16_filter(
     value: Option<&str>,
     field_name: &str,
@@ -40,17 +29,11 @@ pub fn parse_optional_i16_filter(
         None | Some("") => Ok(default_on_empty),
         Some("all") => Ok(None),
         Some(raw) => raw.parse::<i16>().map(Some).map_err(|_| {
-            ServiceError::InvalidOperation(format!("Invalid {} value: {}", field_name, raw))
+            ServiceError::InvalidOperation(format!("Invalid {field_name} value: {raw}"))
         }),
     }
 }
 
-fn map_db_error(context: &str, err: sqlx::Error) -> ServiceError {
-    tracing::error!("Database error {}: {:?}", context, err);
-    ServiceError::DatabaseQueryFailed
-}
-
-/// Count rows for a filtered query.
 pub async fn count_with_filters<F>(
     pool: &SqlitePool,
     base_sql: &'static str,
@@ -59,19 +42,14 @@ pub async fn count_with_filters<F>(
 where
     F: FnOnce(&mut QueryBuilder<Sqlite>),
 {
-    let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(base_sql);
-    apply_filters(&mut query_builder);
-
-    let count: (i64,) = query_builder
-        .build_query_as()
-        .fetch_one(pool)
-        .await
-        .map_err(|e| map_db_error("counting rows", e))?;
-
-    Ok(count.0)
+    let mut query = QueryBuilder::new(base_sql);
+    apply_filters(&mut query);
+    query.build_query_scalar().fetch_one(pool).await.map_err(|error| {
+        tracing::error!(?error, "Database count query failed");
+        ServiceError::DatabaseQueryFailed
+    })
 }
 
-/// Fetch rows for a filtered query with optional ordering and pagination.
 pub async fn fetch_with_filters<T, F>(
     pool: &SqlitePool,
     base_sql: &'static str,
@@ -84,26 +62,19 @@ where
     F: FnOnce(&mut QueryBuilder<Sqlite>),
     T: for<'r> sqlx::FromRow<'r, SqliteRow> + Send + Unpin,
 {
-    let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(base_sql);
-    apply_filters(&mut query_builder);
-
+    let mut query = QueryBuilder::new(base_sql);
+    apply_filters(&mut query);
     if let Some(order_by) = order_by {
-        query_builder.push(" ORDER BY ").push(order_by);
+        query.push(" ORDER BY ").push(order_by);
     }
-
     if let Some(limit) = limit {
-        query_builder.push(" LIMIT ").push_bind(limit);
+        query.push(" LIMIT ").push_bind(limit);
     }
-
     if let Some(offset) = offset {
-        query_builder.push(" OFFSET ").push_bind(offset);
+        query.push(" OFFSET ").push_bind(offset);
     }
-
-    let rows = query_builder
-        .build_query_as::<T>()
-        .fetch_all(pool)
-        .await
-        .map_err(|e| map_db_error("fetching rows", e))?;
-
-    Ok(rows)
+    query.build_query_as().fetch_all(pool).await.map_err(|error| {
+        tracing::error!(?error, "Database fetch query failed");
+        ServiceError::DatabaseQueryFailed
+    })
 }

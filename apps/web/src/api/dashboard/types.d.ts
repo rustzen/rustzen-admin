@@ -28,6 +28,12 @@ declare namespace Dashboard {
         totalRequests: number;
     }
 
+    interface ModuleHealth {
+        module: "monitor" | "insights" | "reports";
+        available: boolean;
+        releaseVersion: string | null;
+    }
+
     // 用户活动统计
     interface TrendItem {
         date?: string | null;

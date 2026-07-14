@@ -4,7 +4,10 @@ use crate::{
         account::account_routes,
         auth::{protected_auth_routes, public_auth_routes},
         dashboard::dashboard_routes,
+        insights,
         manage::{deploy::service::DeployService, manage_routes, task::service::TaskService},
+        monitor::monitor_routes,
+        reports::reports_routes,
         system::system_routes,
     },
     infra::{
@@ -25,13 +28,10 @@ use axum::{
     middleware,
     routing::get,
 };
-use rustzen_core::auth::auth_middleware;
+use rustzen_auth::auth::auth_middleware;
 use serde_json::json;
 use std::net::SocketAddr;
-use tower_http::{
-    cors::CorsLayer,
-    services::{ServeDir, ServeFile},
-};
+use tower_http::{cors::CorsLayer, services::ServeDir};
 
 #[tracing::instrument(name = "run_server")]
 pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
@@ -47,13 +47,21 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     let cors = CorsLayer::new()
         .allow_origin(HeaderValue::from_static("*"))
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::PATCH, Method::DELETE])
-        .allow_headers([CONTENT_TYPE, AUTHORIZATION, ACCEPT]);
+        .allow_headers([
+            CONTENT_TYPE,
+            AUTHORIZATION,
+            ACCEPT,
+            axum::http::HeaderName::from_static("x-rustzen-project-key"),
+        ]);
 
     let protected_api = Router::new()
         .nest("/account", account_routes())
         .nest("/auth", protected_auth_routes())
         .nest("/dashboard", dashboard_routes())
+        .nest("/insights", insights::protected_routes())
         .nest("/manage", manage_routes())
+        .nest("/monitor", monitor_routes())
+        .nest("/reports", reports_routes())
         .nest("/system", system_routes())
         .layer(Extension(task_service))
         .layer(Extension(deploy_service))
@@ -63,7 +71,9 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
             auth_middleware,
         ));
 
-    let public_api = Router::new().nest("/auth", public_auth_routes());
+    let public_api = Router::new()
+        .nest("/auth", public_auth_routes())
+        .nest("/insights", insights::public_routes());
 
     PermissionService::sync_permissions(&pool).await?;
 
@@ -73,10 +83,7 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
         ServeDir::new(CONFIG.uploads_dir()).append_index_html_on_directories(true);
     let avatars_service =
         ServeDir::new(CONFIG.avatars_dir()).append_index_html_on_directories(true);
-    let static_dir = CONFIG.web_dist_dir();
-    let index_path = static_dir.join("index.html");
-
-    tracing::info!(?static_dir, "Serving frontend assets from static dir");
+    tracing::info!("Serving frontend assets embedded in rz");
 
     let app = Router::new()
         .route("/api/summary", get(summary))
@@ -85,7 +92,7 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
         .nest_service(&uploads_prefix, uploads_service)
         .layer(cors)
         .with_state(pool)
-        .fallback_service(ServeDir::new(static_dir).not_found_service(ServeFile::new(index_path)))
+        .fallback(crate::infra::web::serve)
         .into_make_service_with_connect_info::<SocketAddr>();
 
     let addr = server_addr();

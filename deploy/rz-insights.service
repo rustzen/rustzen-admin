@@ -1,0 +1,16 @@
+[Unit]
+Description=RustZen Insights Worker
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+EnvironmentFile=/opt/rz/config/rz.env
+ExecStart=/opt/rz/bin/rz insights worker
+WorkingDirectory=/opt/rz
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

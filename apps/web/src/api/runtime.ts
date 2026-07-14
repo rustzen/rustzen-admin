@@ -1,15 +1,20 @@
-import { App } from "antd";
-import type { MessageInstance } from "antd/es/message/interface";
-import type { ModalStaticFunctions } from "antd/es/modal/confirm";
+import { createElement } from "react";
+import { toast } from "sonner";
 
-let appMessage: MessageInstance;
-let appModal: Omit<ModalStaticFunctions, "warn">;
+import { Toaster } from "@/components/ui/sonner";
 
-export const MessageContent = () => {
-    const staticFunction = App.useApp();
-    appMessage = staticFunction.message;
-    appModal = staticFunction.modal;
-    return null;
+type MessageContent = string | Error;
+
+const formatMessage = (message: MessageContent) => {
+    return message instanceof Error ? message.message : message;
 };
 
-export { appMessage, appModal };
+export const appMessage = {
+    success: (message: MessageContent) => toast.success(formatMessage(message)),
+    error: (message: MessageContent) => toast.error(formatMessage(message)),
+    info: (message: MessageContent) => toast.info(formatMessage(message)),
+    warning: (message: MessageContent) => toast.warning(formatMessage(message)),
+    loading: (message: MessageContent) => toast.loading(formatMessage(message)),
+};
+
+export const MessageContent = () => createElement(Toaster, { richColors: true, position: "top-right" });

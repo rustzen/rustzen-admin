@@ -8,7 +8,7 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use handler::{create_menu, delete_menu, get_menu_options, list_menus, update_menu};
-use rustzen_core::{
+use rustzen_auth::{
     capability::system_menu,
     permission::{PermissionsCheck, RouterExt},
 };

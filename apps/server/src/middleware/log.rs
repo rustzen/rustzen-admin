@@ -7,7 +7,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use rustzen_core::auth::CurrentUser;
+use rustzen_auth::auth::CurrentUser;
 use sqlx::SqlitePool;
 use std::{net::SocketAddr, time::Instant};
 

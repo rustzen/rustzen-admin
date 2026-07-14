@@ -5,7 +5,7 @@ pub mod types;
 
 use axum::{Router, routing::get};
 use handler::{export_logs, list_logs};
-use rustzen_core::{
+use rustzen_auth::{
     capability::manage_log,
     permission::{PermissionsCheck, RouterExt},
 };

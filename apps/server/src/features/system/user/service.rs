@@ -15,7 +15,7 @@ use crate::{
     infra::password::PasswordUtils,
     infra::permission::PermissionService,
 };
-use rustzen_core::capability::SYSTEM_WILDCARD;
+use rustzen_auth::capability::SYSTEM_WILDCARD;
 
 use sqlx::SqlitePool;
 

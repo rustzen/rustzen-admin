@@ -6,7 +6,7 @@ use crate::{
 
 use async_trait::async_trait;
 use once_cell::sync::Lazy;
-use rustzen_core::{
+use rustzen_auth::{
     auth::{AuthClaims, AuthContextLoader, CurrentUser, JwtCodec},
     capability::SYSTEM_WILDCARD,
     error::CoreError,

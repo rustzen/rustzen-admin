@@ -115,30 +115,6 @@ impl DeployRepository {
         row_to_item(row)
     }
 
-    pub async fn find_current(
-        &self,
-        component: &DeployComponent,
-        arch: &str,
-    ) -> Result<Option<DeploymentItem>, ServiceError> {
-        let row = sqlx::query_as::<_, DeploymentRow>(
-            r#"
-            SELECT id, component, version, arch, file_path, file_size, file_hash,
-                   is_current, is_deployed, is_expired, deployed_at, expired_at, deleted_at,
-                   deployed_by, notes, created_at, updated_at
-            FROM deploy_versions
-            WHERE component = ? AND arch = ? AND is_current = 1 AND deleted_at IS NULL
-            ORDER BY COALESCE(deployed_at, created_at) DESC, id DESC
-            LIMIT 1
-            "#,
-        )
-        .bind(component_to_str(component))
-        .bind(arch)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(map_db_error)?;
-        row.map(row_to_item).transpose()
-    }
-
     pub async fn set_current(
         &self,
         component: &DeployComponent,
@@ -394,15 +370,13 @@ fn row_to_item(row: DeploymentRow) -> Result<DeploymentItem, ServiceError> {
 
 pub fn component_to_str(component: &DeployComponent) -> &'static str {
     match component {
-        DeployComponent::Server => "server",
-        DeployComponent::Web => "web",
+        DeployComponent::Release => "release",
     }
 }
 
 fn component_from_str(raw: &str) -> Result<DeployComponent, ServiceError> {
     match raw {
-        "server" => Ok(DeployComponent::Server),
-        "web" => Ok(DeployComponent::Web),
+        "release" => Ok(DeployComponent::Release),
         other => Err(ServiceError::InvalidOperation(format!("Invalid deploy component: {other}"))),
     }
 }

@@ -1,12 +1,14 @@
-import { LockOutlined, UserOutlined } from "@ant-design/icons";
+import { LockIcon, UserIcon } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Form, Input } from "antd";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
-import { authAPI } from "@/api";
+import { appMessage, authAPI } from "@/api";
 import loginIllustrationUrl from "@/assets/login-illustration.png";
 import rustzenLogoUrl from "@/assets/rustzen-logo.png";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { APP_BRAND_NAME, RUSTZEN_BRAND_NAME } from "@/constant/brand";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -17,14 +19,28 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
     const { handleLogin } = useAuthStore();
     const currentYear = new Date().getFullYear();
-    const onLogin = async (values: Auth.LoginRequest) => {
+
+    const onLogin = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const trimmedUsername = username.trim();
+        if (trimmedUsername.length < 3) {
+            appMessage.error("Username must be at least 3 characters");
+            return;
+        }
+        if (password.length < 6) {
+            appMessage.error("Password must be at least 6 characters");
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const res = await authAPI.login({
-                username: values.username,
-                password: values.password,
+                username: trimmedUsername,
+                password,
             });
             handleLogin(res.token, res.userInfo);
             void navigate({ to: "/", replace: true });
@@ -94,40 +110,23 @@ function LoginPage() {
                             </p>
                         </div>
 
-                        <Form<Auth.LoginRequest>
-                            name="login"
-                            onFinish={onLogin}
-                            autoComplete="off"
-                            size="large"
-                            layout="vertical"
-                            requiredMark={false}
-                        >
-                            <Form.Item
-                                name="username"
-                                className="mb-8"
-                                label={
-                                    <span className="text-base font-semibold text-[#10213d]">
-                                        Username
-                                    </span>
-                                }
-                                rules={[
-                                    {
-                                        required: true,
-                                        message: "Please enter username",
-                                    },
-                                    {
-                                        min: 3,
-                                        message: "Username must be at least 3 characters",
-                                    },
-                                ]}
-                            >
-                                <Input
-                                    prefix={<UserOutlined className="text-[#8a9ab5]" />}
-                                    placeholder="Enter username"
-                                    autoComplete="username"
-                                    className="h-15 rounded-[10px] border-[#dce4f1] px-4 text-base shadow-none hover:border-[#1677ff] focus:border-[#1677ff]"
-                                />
-                            </Form.Item>
+                        <form autoComplete="off" onSubmit={onLogin}>
+                            <div className="mb-8 grid gap-3">
+                                <Label className="text-base font-semibold text-[#10213d]" htmlFor="login_username">
+                                    Username
+                                </Label>
+                                <div className="relative">
+                                    <UserIcon className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-[#8a9ab5]" />
+                                    <Input
+                                        id="login_username"
+                                        value={username}
+                                        placeholder="Enter username"
+                                        autoComplete="username"
+                                        className="h-15 rounded-[10px] border-[#dce4f1] px-12 text-base shadow-none hover:border-[#1677ff] focus-visible:border-[#1677ff]"
+                                        onChange={(event) => setUsername(event.target.value)}
+                                    />
+                                </div>
+                            </div>
 
                             <div className="mb-3 flex items-center justify-between text-base leading-none">
                                 <label
@@ -141,38 +140,29 @@ function LoginPage() {
                                 </span>
                             </div>
 
-                            <Form.Item
-                                name="password"
-                                className="mb-7"
-                                rules={[
-                                    {
-                                        required: true,
-                                        message: "Please enter password",
-                                    },
-                                    {
-                                        min: 6,
-                                        message: "Password must be at least 6 characters",
-                                    },
-                                ]}
-                            >
-                                <Input.Password
-                                    id="login_password"
-                                    prefix={<LockOutlined className="text-[#8a9ab5]" />}
-                                    placeholder="Enter password"
-                                    autoComplete="current-password"
-                                    className="h-15 rounded-[10px] border-[#dce4f1] px-4 text-base shadow-none hover:border-[#1677ff] focus:border-[#1677ff]"
-                                />
-                            </Form.Item>
+                            <div className="mb-7">
+                                <div className="relative">
+                                    <LockIcon className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-[#8a9ab5]" />
+                                    <Input
+                                        id="login_password"
+                                        type="password"
+                                        value={password}
+                                        placeholder="Enter password"
+                                        autoComplete="current-password"
+                                        className="h-15 rounded-[10px] border-[#dce4f1] px-12 text-base shadow-none hover:border-[#1677ff] focus-visible:border-[#1677ff]"
+                                        onChange={(event) => setPassword(event.target.value)}
+                                    />
+                                </div>
+                            </div>
 
                             <Button
-                                type="primary"
-                                htmlType="submit"
-                                loading={isSubmitting}
-                                className="h-15 w-full rounded-[10px] bg-[#1677ff] text-lg font-semibold shadow-[0_12px_22px_rgba(22,119,255,0.24)]"
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="h-15 w-full rounded-[10px] bg-[#1677ff] text-lg font-semibold shadow-[0_12px_22px_rgba(22,119,255,0.24)] hover:bg-[#1677ff]/90"
                             >
-                                Login
+                                {isSubmitting ? "Logging in..." : "Login"}
                             </Button>
-                        </Form>
+                        </form>
                     </section>
                 </div>
 

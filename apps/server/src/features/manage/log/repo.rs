@@ -116,11 +116,8 @@ impl LogRepository {
         .await
     }
 
-    pub async fn cleanup_old_logs(
-        pool: &SqlitePool,
-        retention_days: i64,
-    ) -> Result<u64, ServiceError> {
-        let cutoff = Utc::now().naive_utc() - Duration::days(retention_days.max(1));
+    pub async fn cleanup_old_logs(pool: &SqlitePool) -> Result<u64, ServiceError> {
+        let cutoff = Utc::now().naive_utc() - Duration::days(rustzen_config::RETENTION_DAYS as i64);
         let result = sqlx::query("DELETE FROM operation_logs WHERE created_at < ?")
             .bind(cutoff)
             .execute(pool)
@@ -235,5 +232,39 @@ impl LogRepository {
             tracing::error!("Database error getting hourly active users: {:?}", e);
             ServiceError::DatabaseQueryFailed
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::{Duration, Utc};
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    use super::LogRepository;
+
+    #[tokio::test]
+    async fn cleanup_keeps_logs_inside_thirty_day_window() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("connect");
+        crate::infra::db::run_migrations(&pool).await.expect("migrate");
+        for created_at in [Utc::now() - Duration::days(31), Utc::now() - Duration::days(29)] {
+            sqlx::query(
+                "INSERT INTO operation_logs (action, status, created_at) VALUES ('TEST', 'SUCCESS', ?)",
+            )
+            .bind(created_at.naive_utc())
+            .execute(&pool)
+            .await
+            .expect("log");
+        }
+
+        assert_eq!(LogRepository::cleanup_old_logs(&pool).await.expect("cleanup"), 1);
+        let remaining: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM operation_logs")
+            .fetch_one(&pool)
+            .await
+            .expect("remaining");
+        assert_eq!(remaining, 1);
     }
 }

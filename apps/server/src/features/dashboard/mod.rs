@@ -3,13 +3,13 @@ pub mod service;
 pub mod types;
 
 use axum::{Router, routing::get};
-use rustzen_core::{
+use rustzen_auth::{
     capability::dashboard,
     permission::{PermissionsCheck, RouterExt},
 };
 use sqlx::SqlitePool;
 
-use handler::{get_health, get_metrics, get_stats, get_trends};
+use handler::{get_health, get_metrics, get_module_health, get_stats, get_trends};
 
 pub fn dashboard_routes() -> Router<SqlitePool> {
     Router::new()
@@ -17,6 +17,11 @@ pub fn dashboard_routes() -> Router<SqlitePool> {
         .route_with_permission(
             "/health",
             get(get_health),
+            PermissionsCheck::Require(dashboard::VIEW),
+        )
+        .route_with_permission(
+            "/modules",
+            get(get_module_health),
             PermissionsCheck::Require(dashboard::VIEW),
         )
         .route_with_permission(

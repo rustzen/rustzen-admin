@@ -394,7 +394,7 @@ Expected command shape:
 
 ```make
 build-web:
-    cd apps/web && pnpm build
+    cd apps/web && npm run build
 ```
 
 - [x] Verify command paths.

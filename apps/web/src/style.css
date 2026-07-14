@@ -1,49 +1,59 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "./styles/theme.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+    }
+
+    html {
+        overflow-x: hidden;
+    }
+
+    body {
+        min-height: 100svh;
+        width: 100%;
+        background: var(--background);
+        color: var(--foreground);
+    }
+
+    body[data-scroll-locked] {
+        overflow: unset !important;
+    }
+
+    button:not(:disabled),
+    [role="button"]:not(:disabled) {
+        cursor: pointer;
+    }
+
+    @media screen and (max-width: 767px) {
+        input,
+        select,
+        textarea {
+            font-size: 16px !important;
+        }
+    }
+}
+
+@utility no-scrollbar {
+    &::-webkit-scrollbar {
+        display: none;
+    }
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+@utility faded-bottom {
+    @apply after:pointer-events-none after:absolute after:inset-s-0 after:bottom-0 after:hidden after:h-32 after:w-full after:rounded-b-lg after:bg-[linear-gradient(180deg,transparent_10%,var(--background)_70%)] md:after:block;
+}
 
 #root {
     width: 100vw;
     height: 100vh;
     overflow: hidden;
-}
-
-.ant-pro-sider-collapsed .ant-menu-item > .ant-menu-title-content,
-.ant-pro-sider-collapsed .ant-menu-submenu-title > .ant-menu-title-content {
-    display: flex;
-    flex: 0 0 40px !important;
-    align-items: center;
-    justify-content: center;
-    width: 40px !important;
-    min-width: 40px;
-    overflow: visible !important;
-    opacity: 1 !important;
-}
-
-.ant-pro-sider-collapsed .ant-pro-base-menu-vertical-item-title-collapsed {
-    width: 40px;
-}
-
-.ant-pro-sider-collapsed .ant-pro-base-menu-vertical-item-text {
-    display: none;
-}
-
-.manage-log-page .ant-pro-table-list-toolbar-right,
-.manage-log-page .ant-pro-table-list-toolbar-right > div:first-child {
-    min-width: 0;
-}
-
-@media (max-width: 768px) {
-    .manage-log-page .ant-pro-table-list-toolbar-right,
-    .manage-log-page .ant-pro-table-list-toolbar-right > div:first-child {
-        width: 100%;
-        flex-wrap: wrap;
-    }
-
-    .manage-log-page .ant-pro-table-list-toolbar-right .ant-segmented {
-        max-width: 100%;
-        overflow-x: auto;
-    }
-
-    .manage-log-page .ant-pro-table-list-toolbar-right .ant-input-search {
-        width: min(240px, 100%) !important;
-    }
 }

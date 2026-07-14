@@ -7,13 +7,22 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 /// Default path to the local SQLite database file.
-const DEFAULT_SQLITE_PATH: &str = "./data/db/rustzen.db";
+const DEFAULT_SQLITE_PATH: &str = "./data/db/admin.db";
 
 /// Default host for the HTTP service.
 const DEFAULT_APP_HOST: &str = "0.0.0.0";
 
 /// Default port for the HTTP service.
 const DEFAULT_APP_PORT: u16 = 9801;
+
+const DEFAULT_MONITOR_PORT: u16 = 9802;
+const DEFAULT_INSIGHTS_PORT: u16 = 9803;
+const DEFAULT_REPORTS_PORT: u16 = 9804;
+const DEFAULT_WORKER_HOST: &str = "127.0.0.1";
+const DEFAULT_MONITOR_SQLITE_PATH: &str = "./data/db/monitor.db";
+const DEFAULT_INSIGHTS_SQLITE_PATH: &str = "./data/db/insights.db";
+const DEFAULT_REPORTS_SQLITE_PATH: &str = "./data/db/reports.db";
+const DEFAULT_IPC_TOKEN: &str = "rustzen-dev-ipc-token-change-in-production";
 
 /// Default maximum database pool size.
 const DEFAULT_DB_MAX_CONN: u32 = 4;
@@ -42,14 +51,14 @@ const RELEASE_JWT_SECRET_PREFIX: &str = "rustzen-admin-release-";
 /// Default logging file prefix.
 const DEFAULT_LOG_FILE_PREFIX: &str = "server";
 
-/// Default log retention days.
-const DEFAULT_LOG_RETENTION_DAYS: u64 = 30;
+/// Fixed retention period for Admin logs, task runs, metrics, events, and reports.
+pub const RETENTION_DAYS: u64 = 30;
 
 /// Default process and business timezone.
 const DEFAULT_TIMEZONE: &str = "UTC";
 
-/// Default task run retention days.
-const DEFAULT_TASK_RUN_RETENTION_DAYS: i64 = 30;
+/// Default task executor timeout in seconds.
+const DEFAULT_TASK_RUN_TIMEOUT_SECONDS: u64 = 1800;
 
 fn default_deploy_signature_required() -> bool {
     false
@@ -63,6 +72,22 @@ pub struct Config {
     pub app_port: u16,
     #[serde(default = "default_app_host")]
     pub app_host: String,
+    #[serde(default = "default_worker_host")]
+    pub worker_host: String,
+    #[serde(default = "default_monitor_port")]
+    pub monitor_port: u16,
+    #[serde(default = "default_insights_port")]
+    pub insights_port: u16,
+    #[serde(default = "default_reports_port")]
+    pub reports_port: u16,
+    #[serde(default = "default_monitor_sqlite_path")]
+    pub monitor_sqlite_path: String,
+    #[serde(default = "default_insights_sqlite_path")]
+    pub insights_sqlite_path: String,
+    #[serde(default = "default_reports_sqlite_path")]
+    pub reports_sqlite_path: String,
+    #[serde(default = "default_ipc_token")]
+    pub ipc_token: String,
     #[serde(default = "default_db_max_conn")]
     pub db_max_conn: u32,
     #[serde(default = "default_db_min_conn")]
@@ -81,15 +106,22 @@ pub struct Config {
     pub files_prefix: String,
     #[serde(default = "default_log_file_prefix")]
     pub log_file_prefix: String,
-    #[serde(default = "default_log_retention_days")]
-    pub log_retention_days: u64,
     #[serde(default = "default_timezone")]
     pub timezone: String,
-    #[serde(default = "default_task_run_retention_days")]
-    pub task_run_retention_days: i64,
+    #[serde(default = "default_task_run_timeout_seconds")]
+    pub task_run_timeout_seconds: u64,
     #[serde(default = "default_deploy_signature_required")]
     pub deploy_signature_required: bool,
     pub deploy_verify_key: Option<String>,
+    pub monitor_agent_release_url: Option<String>,
+    pub monitor_agent_release_sha256: Option<String>,
+    pub monitor_agent_release_version: Option<String>,
+    pub monitor_agent_release_os: Option<String>,
+    pub monitor_agent_release_arch: Option<String>,
+    pub monitor_agent_release_size_bytes: Option<u64>,
+    pub monitor_agent_rollout_stage: Option<String>,
+    pub monitor_agent_canary_ids: Option<String>,
+    pub monitor_agent_batch_percent: Option<u8>,
 }
 
 /// Global process configuration loaded from `RUSTZEN_*` env.
@@ -138,6 +170,30 @@ impl Config {
     pub fn sqlite_database_path(&self) -> PathBuf {
         self.runtime_layout().resolve_runtime_path(&self.sqlite_path)
     }
+
+    pub fn monitor_database_path(&self) -> PathBuf {
+        self.runtime_layout().resolve_runtime_path(&self.monitor_sqlite_path)
+    }
+
+    pub fn insights_database_path(&self) -> PathBuf {
+        self.runtime_layout().resolve_runtime_path(&self.insights_sqlite_path)
+    }
+
+    pub fn reports_database_path(&self) -> PathBuf {
+        self.runtime_layout().resolve_runtime_path(&self.reports_sqlite_path)
+    }
+
+    pub fn monitor_base_url(&self) -> String {
+        format!("http://{}:{}", self.worker_host, self.monitor_port)
+    }
+
+    pub fn insights_base_url(&self) -> String {
+        format!("http://{}:{}", self.worker_host, self.insights_port)
+    }
+
+    pub fn reports_base_url(&self) -> String {
+        format!("http://{}:{}", self.worker_host, self.reports_port)
+    }
 }
 
 fn default_sqlite_path() -> String {
@@ -148,16 +204,12 @@ fn default_log_file_prefix() -> String {
     DEFAULT_LOG_FILE_PREFIX.to_string()
 }
 
-fn default_log_retention_days() -> u64 {
-    DEFAULT_LOG_RETENTION_DAYS
-}
-
 fn default_timezone() -> String {
     DEFAULT_TIMEZONE.to_string()
 }
 
-fn default_task_run_retention_days() -> i64 {
-    DEFAULT_TASK_RUN_RETENTION_DAYS
+fn default_task_run_timeout_seconds() -> u64 {
+    DEFAULT_TASK_RUN_TIMEOUT_SECONDS
 }
 
 fn default_app_port() -> u16 {
@@ -166,6 +218,38 @@ fn default_app_port() -> u16 {
 
 fn default_app_host() -> String {
     DEFAULT_APP_HOST.to_string()
+}
+
+fn default_worker_host() -> String {
+    DEFAULT_WORKER_HOST.to_string()
+}
+
+fn default_monitor_port() -> u16 {
+    DEFAULT_MONITOR_PORT
+}
+
+fn default_insights_port() -> u16 {
+    DEFAULT_INSIGHTS_PORT
+}
+
+fn default_reports_port() -> u16 {
+    DEFAULT_REPORTS_PORT
+}
+
+fn default_monitor_sqlite_path() -> String {
+    DEFAULT_MONITOR_SQLITE_PATH.to_string()
+}
+
+fn default_insights_sqlite_path() -> String {
+    DEFAULT_INSIGHTS_SQLITE_PATH.to_string()
+}
+
+fn default_reports_sqlite_path() -> String {
+    DEFAULT_REPORTS_SQLITE_PATH.to_string()
+}
+
+fn default_ipc_token() -> String {
+    DEFAULT_IPC_TOKEN.to_string()
 }
 
 fn default_db_max_conn() -> u32 {
@@ -210,11 +294,17 @@ fn ensure_production_jwt_secret(config: &Config) {
         || config.jwt_secret == RELEASE_JWT_SECRET_PLACEHOLDER
         || config.jwt_secret.starts_with(RELEASE_JWT_SECRET_PREFIX);
     let is_empty = config.jwt_secret.trim().is_empty();
+    let uses_dev_ipc_token = config.ipc_token == DEFAULT_IPC_TOKEN;
+    let ipc_token_is_empty = config.ipc_token.trim().is_empty();
 
     assert!(
         !((is_production || is_release_layout)
             && (uses_dev_default || uses_placeholder || is_empty)),
         "RUSTZEN_JWT_SECRET must be explicitly set for release/production and cannot use default or placeholder values"
+    );
+    assert!(
+        !((is_production || is_release_layout) && (uses_dev_ipc_token || ipc_token_is_empty)),
+        "RUSTZEN_IPC_TOKEN must be explicitly set for release/production and cannot use the development default"
     );
 }
 
@@ -227,9 +317,17 @@ mod tests {
 
     fn test_config(jwt_secret: &str, runtime_root: &str) -> Config {
         Config {
-            sqlite_path: "./data/db/rustzen.db".to_string(),
+            sqlite_path: "./data/db/admin.db".to_string(),
             app_port: 9801,
             app_host: "0.0.0.0".to_string(),
+            worker_host: "127.0.0.1".to_string(),
+            monitor_port: 9802,
+            insights_port: 9803,
+            reports_port: 9804,
+            monitor_sqlite_path: "./data/db/monitor.db".to_string(),
+            insights_sqlite_path: "./data/db/insights.db".to_string(),
+            reports_sqlite_path: "./data/db/reports.db".to_string(),
+            ipc_token: "test-ipc-token".to_string(),
             db_max_conn: 4,
             db_min_conn: 1,
             db_conn_timeout: 10,
@@ -239,11 +337,19 @@ mod tests {
             runtime_root: runtime_root.to_string(),
             files_prefix: "/resources".to_string(),
             log_file_prefix: "server".to_string(),
-            log_retention_days: 30,
             timezone: "UTC".to_string(),
-            task_run_retention_days: 30,
+            task_run_timeout_seconds: 1800,
             deploy_signature_required: false,
             deploy_verify_key: None,
+            monitor_agent_release_url: None,
+            monitor_agent_release_sha256: None,
+            monitor_agent_release_version: None,
+            monitor_agent_release_os: None,
+            monitor_agent_release_arch: None,
+            monitor_agent_release_size_bytes: None,
+            monitor_agent_rollout_stage: None,
+            monitor_agent_canary_ids: None,
+            monitor_agent_batch_percent: None,
         }
     }
 
@@ -254,25 +360,7 @@ mod tests {
 
     #[test]
     fn runtime_root_derives_standard_runtime_paths() {
-        let config = Config {
-            sqlite_path: "./data/db/rustzen.db".to_string(),
-            app_port: 9801,
-            app_host: "0.0.0.0".to_string(),
-            db_max_conn: 4,
-            db_min_conn: 1,
-            db_conn_timeout: 10,
-            db_idle_timeout: 600,
-            jwt_secret: "secret".to_string(),
-            jwt_expiration: 3600,
-            runtime_root: ".rustzen-admin".to_string(),
-            files_prefix: "/resources".to_string(),
-            log_file_prefix: "server".to_string(),
-            log_retention_days: 30,
-            timezone: "UTC".to_string(),
-            task_run_retention_days: 30,
-            deploy_signature_required: false,
-            deploy_verify_key: None,
-        };
+        let config = test_config("secret", ".rustzen-admin");
 
         assert_eq!(config.web_dist_dir(), PathBuf::from(".rustzen-admin/web/dist"));
         assert_eq!(config.data_dir(), PathBuf::from(".rustzen-admin/data"));
@@ -284,30 +372,12 @@ mod tests {
     #[test]
     fn sqlite_path_is_relative_to_runtime_root_when_not_absolute() {
         let cwd = env::current_dir().expect("cwd");
-        let config = Config {
-            sqlite_path: "./data/db/rustzen.db".to_string(),
-            app_port: 9801,
-            app_host: "0.0.0.0".to_string(),
-            db_max_conn: 4,
-            db_min_conn: 1,
-            db_conn_timeout: 10,
-            db_idle_timeout: 600,
-            jwt_secret: "secret".to_string(),
-            jwt_expiration: 3600,
-            runtime_root: ".rustzen-admin".to_string(),
-            files_prefix: "/resources".to_string(),
-            log_file_prefix: "server".to_string(),
-            log_retention_days: 30,
-            timezone: "UTC".to_string(),
-            task_run_retention_days: 30,
-            deploy_signature_required: false,
-            deploy_verify_key: None,
-        };
+        let config = test_config("secret", ".rustzen-admin");
 
-        let expected = resolve_path_with_runtime_root(".rustzen-admin", "./data/db/rustzen.db");
+        let expected = resolve_path_with_runtime_root(".rustzen-admin", "./data/db/admin.db");
         assert_eq!(config.sqlite_database_path(), expected);
         assert!(config.sqlite_database_path().is_absolute());
-        assert_eq!(config.sqlite_database_path(), cwd.join(".rustzen-admin/data/db/rustzen.db"));
+        assert_eq!(config.sqlite_database_path(), cwd.join(".rustzen-admin/data/db/admin.db"));
     }
 
     #[test]

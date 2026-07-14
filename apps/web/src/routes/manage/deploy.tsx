@@ -1,371 +1,472 @@
-import {
-    CloudUploadOutlined,
-    DeleteOutlined,
-    ExclamationCircleOutlined,
-    UploadOutlined,
-} from "@ant-design/icons";
-import {
-    ModalForm,
-    ProFormText,
-    ProFormTextArea,
-    ProTable,
-    type ActionType,
-    type ProColumns,
-} from "@ant-design/pro-components";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Button, Form, Segmented, Space, Tag, Upload, type UploadFile } from "antd";
-import type { ReactElement } from "react";
-import { useRef, useState } from "react";
+import { CloudUploadIcon, TrashIcon, UploadIcon, XCircleIcon } from "lucide-react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { appMessage, manageAPI } from "@/api";
-import { AuthPopconfirm, AuthWrap } from "@/components/base-auth";
-import { TABLE_ACTION_SPACE_SIZE, TableActionButton } from "@/components/base-button";
-import { useAuthStore } from "@/store/useAuthStore";
+import { ConfirmDialog } from "@/components/app/confirm-dialog";
+import { DataTableShell } from "@/components/app/data-table-shell";
+import { PageCard } from "@/components/app/page-card";
+import { TablePagination } from "@/components/app/table-pagination";
+import { AuthWrap } from "@/components/base-auth";
+import { TextField } from "@/components/form/text-field";
+import { TextareaField } from "@/components/form/textarea-field";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/manage/deploy")({
     component: DeployPage,
 });
 
-const componentOptions: Array<{ label: string; value: Deploy.Component }> = [
-    { label: "Web", value: "web" },
-    { label: "Server", value: "server" },
-];
-
-type ComponentFilter = "all" | Deploy.Component;
-
-const componentFilterOptions: Array<{ label: string; value: ComponentFilter }> = [
-    { label: "All", value: "all" },
-    { label: "Web", value: "web" },
-    { label: "Server", value: "server" },
-];
+const PAGE_SIZE = 20;
 
 function DeployPage() {
-    const actionRef = useRef<ActionType>(null);
-    const [component, setComponent] = useState<ComponentFilter>("all");
-    const selectedComponent = component === "all" ? undefined : component;
+    const [currentPage, setCurrentPage] = useState(1);
+    const params: Deploy.ListParams = { current: currentPage, pageSize: PAGE_SIZE };
+    const { data, isFetching, refetch } = useQuery({
+        queryKey: ["manage", "deploy", params],
+        queryFn: () => manageAPI.deploy.list(params),
+    });
+    const rows = data?.data ?? [];
+    const total = data?.total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+    const refresh = () => {
+        void refetch();
+    };
 
     return (
-        <ProTable<Deploy.Item>
-            rowKey="id"
-            search={false}
-            scroll={{ y: "calc(100vh - 287px)" }}
-            headerTitle="Deploy Versions"
-            columns={deployColumns}
-            params={{ component: selectedComponent }}
-            request={manageAPI.deploy.list}
-            actionRef={actionRef}
-            toolBarRender={() => [
-                <Segmented
-                    key="component"
-                    value={component}
-                    options={componentFilterOptions}
-                    onChange={(value) => setComponent(value as ComponentFilter)}
-                />,
-                <AuthWrap key="upload" code="manage:deploy:create">
-                    <UploadVersionModal
-                        onSuccess={() => {
-                            void actionRef.current?.reload();
-                        }}
+        <PageCard
+            title="Deploy Versions"
+            description="Upload and apply one signed rz release across all four services."
+            actions={
+                <div className="flex flex-wrap gap-2">
+                    <AuthWrap code="manage:deploy:create">
+                        <UploadVersionDialog onSuccess={refresh}>
+                            <Button>
+                                <UploadIcon data-icon="inline-start" />
+                                Upload Version
+                            </Button>
+                        </UploadVersionDialog>
+                    </AuthWrap>
+                    <AuthWrap code="manage:deploy:delete">
+                        <CleanupDialog onSuccess={refresh}>
+                            <Button type="button" variant="outline">
+                                <TrashIcon data-icon="inline-start" />
+                                Clean Expired
+                            </Button>
+                        </CleanupDialog>
+                    </AuthWrap>
+                </div>
+            }
+        >
+            <DataTableShell>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="min-w-28">Component</TableHead>
+                            <TableHead className="min-w-32">Version</TableHead>
+                            <TableHead className="min-w-28">Arch</TableHead>
+                            <TableHead className="min-w-28">Size</TableHead>
+                            <TableHead className="min-w-28">Status</TableHead>
+                            <TableHead className="min-w-32">Deployed By</TableHead>
+                            <TableHead className="min-w-44">Deployed At</TableHead>
+                            <TableHead className="min-w-44">Expired At</TableHead>
+                            <TableHead className="min-w-56">Notes</TableHead>
+                            <TableHead className="w-32 text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {rows.length > 0 ? (
+                            rows.map((record) => (
+                                <TableRow key={record.id}>
+                                    <TableCell>{componentLabel(record.component)}</TableCell>
+                                    <TableCell className="font-medium">{record.version}</TableCell>
+                                    <TableCell>{record.arch}</TableCell>
+                                    <TableCell>{formatFileSize(record.fileSize)}</TableCell>
+                                    <TableCell>
+                                        <DeployStatusBadge record={record} />
+                                    </TableCell>
+                                    <TableCell>{record.deployedBy || "-"}</TableCell>
+                                    <TableCell>{formatDateTime(record.deployedAt)}</TableCell>
+                                    <TableCell>{formatDateTime(record.expiredAt)}</TableCell>
+                                    <TableCell className="max-w-64 truncate">
+                                        {record.notes || "-"}
+                                    </TableCell>
+                                    <TableCell>
+                                        <DeployActions record={record} onSuccess={refresh} />
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={10} className="h-40 text-center">
+                                    {isFetching
+                                        ? "Loading deploy versions..."
+                                        : "No deploy versions found."}
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </DataTableShell>
+            <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                total={total}
+                disabled={isFetching}
+                onPageChange={setCurrentPage}
+            />
+        </PageCard>
+    );
+}
+
+function DeployActions({ record, onSuccess }: { record: Deploy.Item; onSuccess: () => void }) {
+    return (
+        <div className="flex justify-end gap-2">
+            <AuthWrap code="manage:deploy:run">
+                <DeployVersionDialog record={record} onSuccess={onSuccess} />
+            </AuthWrap>
+            <AuthWrap code="manage:deploy:update">
+                <ExpireVersionDialog version={record} onSuccess={onSuccess}>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        className="size-8 p-0"
+                        disabled={record.isCurrent || record.isExpired}
+                        aria-label="Expire version"
                     >
-                        <Button type="primary" icon={<UploadOutlined />}>
-                            Upload Version
-                        </Button>
-                    </UploadVersionModal>
-                </AuthWrap>,
-                <AuthWrap key="cleanup" code="manage:deploy:delete">
-                    <CleanupButton
-                        component={selectedComponent}
-                        onSuccess={() => {
-                            void actionRef.current?.reload();
-                        }}
+                        <XCircleIcon />
+                    </Button>
+                </ExpireVersionDialog>
+            </AuthWrap>
+            <AuthWrap code="manage:deploy:delete">
+                <DeleteVersionDialog record={record} onSuccess={onSuccess} />
+            </AuthWrap>
+        </div>
+    );
+}
+
+function UploadVersionDialog({
+    children,
+    onSuccess,
+}: {
+    children: ReactNode;
+    onSuccess?: () => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const [version, setVersion] = useState("");
+    const [notes, setNotes] = useState("");
+    const [file, setFile] = useState<File | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    const reset = () => {
+        setVersion("");
+        setNotes("");
+        setFile(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!version.trim()) {
+            appMessage.error("Please enter version");
+            return;
+        }
+        if (!file) {
+            appMessage.error("Please choose a deploy file");
+            return;
+        }
+
+        setSubmitting(true);
+        try {
+            await manageAPI.deploy.upload({
+                version: version.trim(),
+                notes: notes.trim() || undefined,
+                file,
+            });
+            appMessage.success("Upload succeeded");
+            onSuccess?.();
+            reset();
+            setOpen(false);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <Dialog
+            open={open}
+            onOpenChange={(nextOpen) => {
+                setOpen(nextOpen);
+                if (!nextOpen) {
+                    reset();
+                }
+            }}
+        >
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent className="max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>Upload Complete Release</DialogTitle>
+                    <DialogDescription>
+                        Upload one signed rz ELF containing Admin, Monitor, Insights, Reports, and
+                        Web.
+                    </DialogDescription>
+                </DialogHeader>
+                <form className="grid gap-4" onSubmit={submit}>
+                    <TextField
+                        id="deploy-version"
+                        label="Version"
+                        value={version}
+                        placeholder="v0.4.0"
+                        onChange={setVersion}
                     />
-                </AuthWrap>,
-            ]}
+                    <div className="grid gap-2">
+                        <Label htmlFor="deploy-file">File</Label>
+                        <Input
+                            ref={fileInputRef}
+                            id="deploy-file"
+                            type="file"
+                            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                        />
+                        <div className="text-sm text-muted-foreground">
+                            {file
+                                ? `${file.name} · ${formatFileSize(file.size)}`
+                                : "No file selected."}
+                        </div>
+                    </div>
+                    <TextareaField
+                        id="deploy-notes"
+                        label="Notes"
+                        value={notes}
+                        placeholder="Optional notes"
+                        onChange={setNotes}
+                    />
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={submitting}>
+                            Upload
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function DeployVersionDialog({
+    record,
+    onSuccess,
+}: {
+    record: Deploy.Item;
+    onSuccess: () => void;
+}) {
+    const description =
+        "All four services stop, the rz symlink switches once, and all services restart on the same release. A failed gate restores the previous binary and four database backups.";
+
+    const submit = async () => {
+        await manageAPI.deploy.deploy(record.id);
+        appMessage.success("Deploy task submitted");
+        onSuccess();
+    };
+
+    return (
+        <ConfirmDialog
+            trigger={
+                <Button
+                    type="button"
+                    variant="ghost"
+                    className="size-8 p-0"
+                    disabled={record.isExpired}
+                    aria-label="Deploy version"
+                >
+                    <CloudUploadIcon />
+                </Button>
+            }
+            title={`Deploy ${componentLabel(record.component)} ${record.version}?`}
+            description={description}
+            confirmLabel="Deploy"
+            disabled={record.isExpired}
+            onConfirm={submit}
         />
     );
 }
 
-const deployColumns: ProColumns<Deploy.Item>[] = [
-    {
-        title: "Component",
-        dataIndex: "component",
-        width: 100,
-        render: (_, record) => componentLabel(record.component),
-    },
-    {
-        title: "Version",
-        dataIndex: "version",
-        width: 120,
-        ellipsis: true,
-    },
-    {
-        title: "Arch",
-        dataIndex: "arch",
-        width: 100,
-        render: (_, record) => (record.component === "web" ? "universal" : record.arch),
-    },
-    {
-        title: "Size",
-        dataIndex: "fileSize",
-        width: 100,
-        render: (_, record) => formatFileSize(record.fileSize),
-    },
-    {
-        title: "File Hash",
-        dataIndex: "fileHash",
-        width: 220,
-        ellipsis: true,
-        hideInTable: true,
-    },
-    {
-        title: "Status",
-        key: "status",
-        width: 120,
-        render: (_, record) => renderStatus(record),
-    },
-    {
-        title: "Deployed By",
-        dataIndex: "deployedBy",
-        width: 120,
-        render: (_, record) => record.deployedBy || "-",
-    },
-    {
-        title: "Deployed At",
-        dataIndex: "deployedAt",
-        width: 180,
-        render: (_, record) => formatDateTime(record.deployedAt),
-    },
-    {
-        title: "Expired At",
-        dataIndex: "expiredAt",
-        width: 180,
-        render: (_, record) => formatDateTime(record.expiredAt),
-    },
-    {
-        title: "Notes",
-        dataIndex: "notes",
-        ellipsis: true,
-        render: (_, record) => record.notes || "-",
-    },
-    {
-        title: "Actions",
-        key: "actions",
-        width: 172,
-        fixed: "right",
-        render: (_dom, record, _index, action) => (
-            <Space size={TABLE_ACTION_SPACE_SIZE}>
-                <AuthPopconfirm
-                    code="manage:deploy:run"
-                    title="Deploy this version?"
-                    description={
-                        record.component === "web"
-                            ? "Web deployment replaces the runtime web/dist directory."
-                            : "Server deployment switches the runtime binary and restarts the service."
-                    }
-                    onConfirm={async () => {
-                        const username = useAuthStore.getState().userInfo?.username || "developer";
-                        await manageAPI.deploy.deploy(record.id, {
-                            deployedBy: username,
-                        });
-                        appMessage.success("Deploy task submitted");
-                        void action?.reload();
-                    }}
-                >
-                    <TableActionButton
-                        color="blue"
-                        label="Deploy"
-                        icon={<CloudUploadOutlined />}
-                        disabled={record.isExpired}
-                    />
-                </AuthPopconfirm>
-                <AuthWrap code="manage:deploy:update">
-                    <ExpireVersionModal
-                        version={record}
-                        onSuccess={() => {
-                            void action?.reload();
-                        }}
-                    >
-                        <TableActionButton
-                            color="default"
-                            label="Expire"
-                            icon={<ExclamationCircleOutlined />}
-                            disabled={record.isCurrent || record.isExpired}
-                        />
-                    </ExpireVersionModal>
-                </AuthWrap>
-                <AuthPopconfirm
-                    code="manage:deploy:delete"
-                    title="Delete this version?"
-                    description="The version will be removed from the list. The saved file will be cleaned up when possible."
-                    onConfirm={async () => {
-                        await manageAPI.deploy.remove(record.id);
-                        void action?.reload();
-                    }}
-                >
-                    <TableActionButton
-                        color="danger"
-                        label="Delete"
-                        icon={<DeleteOutlined />}
-                        disabled={record.isCurrent}
-                    />
-                </AuthPopconfirm>
-            </Space>
-        ),
-    },
-];
-
-interface UploadVersionFormValues {
-    component: Deploy.Component;
-    version: string;
-    notes?: string;
-    file?: UploadFile[];
-}
-
-function UploadVersionModal({
-    children,
-    onSuccess,
-}: {
-    children: ReactElement;
-    onSuccess?: () => void;
-}) {
-    return (
-        <ModalForm<UploadVersionFormValues>
-            width={620}
-            layout="horizontal"
-            title="Upload Deploy Version"
-            trigger={children}
-            initialValues={{ component: "web" }}
-            labelCol={{ span: 5 }}
-            wrapperCol={{ span: 19 }}
-            modalProps={{
-                destroyOnHidden: true,
-                forceRender: true,
-                mask: { closable: false },
-                okText: "Upload",
-                cancelText: "Cancel",
-            }}
-            onFinish={async (values) => {
-                const uploadFile = values.file?.[0]?.originFileObj;
-                if (!uploadFile) {
-                    appMessage.error("Please choose a deploy file");
-                    return false;
-                }
-
-                await manageAPI.deploy.upload({
-                    component: values.component,
-                    version: values.version,
-                    notes: values.notes,
-                    file: uploadFile,
-                });
-                appMessage.success("Upload succeeded");
-                onSuccess?.();
-                return true;
-            }}
-        >
-            <Form.Item
-                name="component"
-                label="Component"
-                rules={[{ required: true, message: "Please select component" }]}
-            >
-                <Segmented options={componentOptions} />
-            </Form.Item>
-            <ProFormText
-                name="version"
-                label="Version"
-                placeholder="v0.4.0"
-                rules={[{ required: true, message: "Please enter version" }]}
-            />
-            <Form.Item
-                name="file"
-                label="File"
-                valuePropName="fileList"
-                getValueFromEvent={getUploadFileList}
-                rules={[{ required: true, message: "Please choose deploy file" }]}
-            >
-                <Upload beforeUpload={() => false} maxCount={1}>
-                    <Button icon={<UploadOutlined />}>Choose File</Button>
-                </Upload>
-            </Form.Item>
-            <ProFormTextArea name="notes" label="Notes" placeholder="Optional notes" />
-        </ModalForm>
-    );
-}
-
-function ExpireVersionModal({
+function ExpireVersionDialog({
     version,
     children,
     onSuccess,
 }: {
     version: Deploy.Item;
-    children: ReactElement;
+    children: ReactNode;
     onSuccess?: () => void;
 }) {
+    const [open, setOpen] = useState(false);
+    const [notes, setNotes] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const disabled = version.isCurrent || version.isExpired;
+
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setSubmitting(true);
+        try {
+            await manageAPI.deploy.expire(version.id, {
+                notes: notes.trim() || null,
+            });
+            appMessage.success("Version expired");
+            onSuccess?.();
+            setOpen(false);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     return (
-        <ModalForm<Deploy.ExpireRequest>
-            width={520}
-            layout="horizontal"
-            title={`Expire ${componentLabel(version.component)} ${version.version}`}
-            trigger={children}
-            disabled={version.isCurrent || version.isExpired}
-            labelCol={{ span: 6 }}
-            wrapperCol={{ span: 18 }}
-            modalProps={{
-                destroyOnHidden: true,
-                mask: { closable: false },
-                okText: "Expire",
-                cancelText: "Cancel",
-            }}
-            onFinish={async (values) => {
-                await manageAPI.deploy.expire(version.id, {
-                    notes: values.notes || null,
-                });
-                onSuccess?.();
-                return true;
+        <Dialog
+            open={open}
+            onOpenChange={(nextOpen) => {
+                if (!disabled) {
+                    setOpen(nextOpen);
+                }
+                if (!nextOpen) {
+                    setNotes("");
+                }
             }}
         >
-            <ProFormTextArea name="notes" label="Notes" placeholder="Optional reason" />
-        </ModalForm>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>
+                        Expire {componentLabel(version.component)} {version.version}
+                    </DialogTitle>
+                    <DialogDescription>
+                        Expire this version and optionally record a reason.
+                    </DialogDescription>
+                </DialogHeader>
+                <form className="grid gap-4" onSubmit={submit}>
+                    <TextareaField
+                        id={`expire-notes-${version.id}`}
+                        label="Notes"
+                        value={notes}
+                        placeholder="Optional reason"
+                        onChange={setNotes}
+                    />
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={submitting}>
+                            Expire
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }
 
-function CleanupButton({
+function DeleteVersionDialog({
+    record,
+    onSuccess,
+}: {
+    record: Deploy.Item;
+    onSuccess: () => void;
+}) {
+    const submit = async () => {
+        await manageAPI.deploy.remove(record.id);
+        appMessage.success("Version deleted");
+        onSuccess();
+    };
+
+    return (
+        <ConfirmDialog
+            trigger={
+                <Button
+                    type="button"
+                    variant="ghost"
+                    className="size-8 p-0 text-destructive"
+                    disabled={record.isCurrent}
+                    aria-label="Delete version"
+                >
+                    <TrashIcon />
+                </Button>
+            }
+            title="Delete Version"
+            description={`Delete ${componentLabel(record.component)} ${record.version}? The saved file will be cleaned up when possible.`}
+            confirmLabel="Delete"
+            destructive
+            disabled={record.isCurrent}
+            onConfirm={submit}
+        />
+    );
+}
+
+function CleanupDialog({
     component,
+    children,
     onSuccess,
 }: {
     component?: Deploy.Component;
+    children: ReactNode;
     onSuccess?: () => void;
 }) {
+    const submit = async () => {
+        const count = await manageAPI.deploy.cleanup(component);
+        appMessage.success(`Cleaned ${count} expired versions`);
+        onSuccess?.();
+    };
+
     return (
-        <AuthPopconfirm
-            code="manage:deploy:delete"
-            title="Clean expired versions?"
+        <ConfirmDialog
+            trigger={children}
+            title="Clean Expired Versions?"
             description="Expired non-current versions will be removed from the list. Saved files will be cleaned up when possible."
-            onConfirm={async () => {
-                const count = await manageAPI.deploy.cleanup(component);
-                appMessage.success(`Cleaned ${count} expired versions`);
-                onSuccess?.();
-            }}
-        >
-            <Button danger>Clean Expired</Button>
-        </AuthPopconfirm>
+            confirmLabel="Clean Expired"
+            destructive
+            onConfirm={submit}
+        />
     );
 }
 
-function renderStatus(record: Deploy.Item) {
+function DeployStatusBadge({ record }: { record: Deploy.Item }) {
     if (record.isCurrent) {
-        return <Tag color="green">Current</Tag>;
+        return <Badge variant="secondary">Current</Badge>;
     }
     if (record.isExpired) {
-        return <Tag color="orange">Expired</Tag>;
+        return <Badge variant="destructive">Expired</Badge>;
     }
     if (record.isDeployed) {
-        return <Tag color="blue">Deployed</Tag>;
+        return <Badge>Deployed</Badge>;
     }
-    return <Tag color="default">Uploaded</Tag>;
+    return <Badge variant="outline">Uploaded</Badge>;
 }
 
 function componentLabel(component: Deploy.Component) {
-    return component === "server" ? "Server" : "Web";
+    return component === "release" ? "Release" : component;
 }
 
 function formatFileSize(value: number) {
@@ -380,11 +481,4 @@ function formatDateTime(value?: string | null) {
         return "-";
     }
     return new Date(value).toLocaleString();
-}
-
-function getUploadFileList(event: UploadFile[] | { fileList?: UploadFile[] }) {
-    if (Array.isArray(event)) {
-        return event;
-    }
-    return event?.fileList;
 }

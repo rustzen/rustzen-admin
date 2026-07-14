@@ -1,6 +1,6 @@
 use super::{
     service::DashboardService,
-    types::{StatsResp, SystemMetricsDataResp, UserTrendsResp},
+    types::{ModuleHealthResp, StatsResp, SystemMetricsDataResp, UserTrendsResp},
 };
 use crate::common::api::{ApiResponse, AppResult};
 use crate::infra::system_info::SystemInfo;
@@ -16,6 +16,10 @@ pub async fn get_stats(State(pool): State<SqlitePool>) -> AppResult<StatsResp> {
 
 pub async fn get_health() -> AppResult<SystemInfo> {
     Ok(ApiResponse::success(DashboardService::get_health()))
+}
+
+pub async fn get_module_health() -> AppResult<Vec<ModuleHealthResp>> {
+    Ok(ApiResponse::success(DashboardService::module_health().await))
 }
 
 pub async fn get_metrics(State(pool): State<SqlitePool>) -> AppResult<SystemMetricsDataResp> {

@@ -2,7 +2,7 @@ use crate::common::error::ServiceError;
 
 use chrono::{DateTime, Duration, Utc};
 use once_cell::sync::Lazy;
-use rustzen_core::{
+use rustzen_auth::{
     auth::CurrentUser,
     capability::{
         BUILTIN_ADMIN_ROLE_CODE, BUILTIN_OWNER_ROLE_CODE, BUILTIN_VIEWER_ROLE_CODE, RolePolicy,
@@ -491,7 +491,7 @@ async fn list_menu_code_rows(
 }
 
 fn builtin_role_permission_codes(role_code: &str, menu_codes: &[String]) -> Vec<String> {
-    let policy = RolePolicy::default();
+    let policy = RolePolicy;
     menu_codes
         .iter()
         .filter(|code| policy.role_allows_capability(role_code, code))
@@ -742,7 +742,7 @@ mod tests {
             .expect("in-memory sqlite pool");
         crate::infra::db::run_migrations(&pool).await.expect("migrations");
 
-        rustzen_core::permission::register_permission_codes([
+        rustzen_auth::permission::register_permission_codes([
             "dashboard:view",
             "system:user:list",
             "system:user:create",

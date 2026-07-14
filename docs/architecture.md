@@ -1,96 +1,114 @@
 # Architecture
 
-`rustzen-admin` is a Web/Rust admin engineering template. The repository is a
-monorepo with shared Rust capability crates, one backend service, one React
-frontend, and deployment assets.
+`rustzen-admin` is the source authority for the RustZen Admin runtime. It is a
+Web/Rust A-class monorepo and produces one complete `rz` release artifact.
 
-RustZen standardization classification: Web/Rust A-class reference layout. New
-Web/Rust admin projects can use this repository as the default structure for
-`apps/server`, `apps/web`, shared `crates/*`, root `justfile`, and `deploy/`.
-This classification does not make Peripheral Vercel, Tauri client, or legacy
-`zen-server` / `zen-web` rules applicable here.
+## Ownership
 
-## Module Boundaries
+- `crates/auth/` owns authentication and role/capability policy.
+- `crates/config/` owns `RUSTZEN_*` configuration and the four database paths.
+- `crates/runtime/` owns runtime layout primitives.
+- `crates/storage/` owns SQLite connection and maintenance primitives.
+- `apps/server/` owns the `rz` CLI, Admin API, Worker adapters, migrations, and
+  embedded Web assets.
+- `apps/web/` owns the React UI and typed API clients.
+- `deploy/` owns the four service units and initial installation layout.
 
-- `crates/auth/` owns shared auth and permission capability code.
-- `crates/config/` owns runtime configuration loading and layout paths.
-- `crates/runtime/` owns concrete runtime-path primitives for packaged deployment topology.
-- `crates/storage/` owns the admin SQLite adapter and migration helpers; SQLite
-  URL/path, pool, tuning, and connection test primitives come from
-  `rz-core`.
-- `apps/server/` owns the Axum backend runtime and business features.
-- `apps/server/migrations/sqlite/` owns active SQL migrations.
-- `apps/web/` owns the React frontend.
-- `deploy/` owns deployment assets.
-- `docs/` owns repository documentation.
+There is no runtime dependency on `rustzen-core` or `rz-core`. Monitor,
+Insights, and Reports reuse Admin authentication, permission, menu, logging,
+configuration, and UI carriers; old standalone authentication and system
+management implementations are not migrated.
 
-Backend feature code lives under `apps/server/src/features/<feature>/` with `mod.rs`, `handler.rs`, `service.rs`, `repo.rs`, and `types.rs` unless the feature is intentionally smaller. `features/dashboard/` is an intentional smaller read-only aggregation feature: it has no `repo.rs` because it delegates dashboard counts and trends to owning services such as system user and manage log instead of owning persistence. System user/role/menu stay under `features/system/`; dictionary, logs, scheduled tasks, and deploy version management live under `features/manage/`.
+## Runtime topology
 
-Frontend pages live under `apps/web/src/routes/`. Frontend API modules live under `apps/web/src/api/`.
+One `rz` file runs as four independent server processes:
 
-## Runtime Topology
+```text
+rz admin serve          -> 0.0.0.0:9801 -> data/db/admin.db
+rz monitor controller   -> 127.0.0.1:9802 -> data/db/monitor.db
+rz insights worker      -> 127.0.0.1:9803 -> data/db/insights.db
+rz reports worker       -> 127.0.0.1:9804 -> data/db/reports.db
+```
 
-Local development runs backend and frontend separately:
+`rz monitor agent` is an additional node-side mode of the same complete source
+and version line. It does not create another server release authority. Agent
+heartbeats register protocol, version, OS, architecture, and available space.
+Controller rollout configuration first targets explicit Canary IDs, then a
+stable bounded percentage. The signed directive fixes the download URL,
+SHA-256, size, OS, architecture, and version. An Agent downloads to a temporary
+file, verifies it, runs the fixed candidate self-test, atomically replaces its
+binary, and retains the previous binary until a successful heartbeat. Three
+failed heartbeats restore the previous binary.
 
-- backend and frontend development targets are defined in the root `justfile`.
-- frontend dev server runs on `127.0.0.1:9800`.
-- backend API defaults to `RUSTZEN_APP_PORT=9801`.
-- frontend dev traffic proxies `/api` and `/resources` to the backend API through `apps/web/vite.config.ts`.
+Admin communicates with Workers only through versioned loopback HTTP. Every
+request carries a 30-second HMAC-SHA256 context bound to method, path, contract
+version, and module capability. Workers independently reject expired,
+cross-module, or unsigned contexts. Calls time out after five seconds.
 
-Packaged deployment runs the backend as the serving process:
+Worker failure is degraded locally: Admin login and unrelated modules remain
+available, the failed module returns service unavailable, and the dashboard
+health summary probes all Workers concurrently with a one-second timeout.
 
-- backend binary: `<runtime_root>/bin/rustzen-admin` symlinked to a versioned file
-- deploy versions: `<runtime_root>/bin/rustzen-admin-<version>-<arch>` for server files and `<runtime_root>/web/web-<version>.zip` for web files
-- frontend static files: `<runtime_root>/web/dist`
-- database: `<runtime_root>/data/db/rustzen.db`
-- uploads: `<runtime_root>/data/uploads`
-- avatars: `<runtime_root>/data/avatars`
-- logs: `<runtime_root>/logs`
-- process env: `<runtime_root>/config/app.env`
+## Module scope
 
-`RUSTZEN_RUNTIME_ROOT` is the single runtime root. Production uses `.` from the deploy root. Local development defaults to `.rustzen-admin`.
-Deployment packages set `RUSTZEN_APP_PORT=9880`.
+- Monitor: authenticated Agent heartbeat, latest CPU/memory/disk metrics,
+  online/offline state, 30-day metric retention, node list and detail.
+- Insights: project keys stored as SHA-256 hashes, exact origin allowlists,
+  `page_view` and `api_request`, PV/UV/request/error/average/P95 summaries, and
+  30-day event retention. The only public ingestion endpoint is
+  `POST /api/insights/track`; `/api/analytics/track` is not exposed.
+- Reports: HTML templates, scalar placeholder substitution with HTML escaping,
+  manual jobs, status, download, restart recovery, and 30-day output expiry.
 
-Production deployment contract: `just build` assembles
-`target/rustzen-admin/`, `deploy/rustzen-admin.service` runs
-`/opt/rustzen-admin/bin/rustzen-admin` with
-`WorkingDirectory=/opt/rustzen-admin`, and `deploy/setup-layout.sh` owns the
-install layout. Systemd user/group or hardening changes must be reviewed with
-runtime directory ownership and setup script behavior, not edited only in the
-unit file.
+Admin runtime files, operation logs, task-run history, Monitor metrics,
+Insights events, and Reports outputs all use one fixed 30-day retention policy.
+SQLite row deletion is paired with WAL checkpoint, planner optimization, and
+incremental vacuum maintenance.
 
-## Data Flow
-
-- Browser pages call typed frontend API modules from `apps/web/src/api/`.
-- Frontend API modules call backend HTTP endpoints through `apps/web/src/api/request.ts`.
-- Backend handlers parse requests and return responses.
-- Backend services coordinate validation, transactions, permission-aware behavior, and repo calls.
-- Backend repos run SQL against SQLite by default.
-- Backend database bootstrap uses `crates/storage/`, which delegates shared
-  SQLite connection behavior to `rz-core`.
-- Backend logging uses `rz-core` daily rolling file logging and date-based
-  retention cleanup; `apps/server` supplies runtime paths and starts the
-  cleanup task.
-- The built-in task scheduler starts with the backend and registers fixed manage tasks from source.
-- Deploy version management stores uploaded `server` binaries and `web` dist zip files with version, arch, file size, and SHA-256. Deploying `server` switches the runtime binary symlink and triggers a service restart; deploying `web` extracts the zip into `<runtime_root>/web/dist`.
-- Static files and uploaded resources are served from paths derived from `RUSTZEN_RUNTIME_ROOT`.
+The modules use only fixed queries needed by these loops. They do not include
+standalone auth, duplicate dashboards, general query builders, cron report
+generation, or cross-database joins.
 
 ## Permissions
 
-- JWT, auth context extraction, and capability checks live in `crates/auth/`.
-- Backend capability cache and menu synchronization live in `apps/server/src/infra/`.
-- New protected backend routes use `PermissionsCheck::Require(...)` by default.
-- `*` is the only full-authorization grant.
-- `owner`, `admin`, and `viewer` are built-in roles synchronized from the menu capability catalog. `owner` receives `*`, `admin` receives deploy view-only access plus other concrete leaf capabilities, and `viewer` receives read-only leaf capabilities.
-- Built-in roles are immutable in role management.
-- `users.is_system`, `roles.is_system`, and `menus.is_system` mark protected built-in records only; they do not grant permissions.
+- `owner` receives `*` and is the only role allowed to apply releases.
+- `admin` receives `monitor:view/manage`, `insights:view/manage`, and
+  `reports:view/manage` through concrete synchronized leaf capabilities.
+- `viewer` receives only the three `*:view` capabilities.
 
-## Change Sync
+Frontend visibility is supplementary. Every protected route performs a backend
+capability check, and each Worker verifies the signed module capability again.
 
-- API contract changes update backend types, frontend API modules, frontend types, and relevant docs together.
-- Schema changes update migrations, SQL queries, API types, and relevant docs together.
-- Structure changes update `README.md`, `AGENTS.md`, `docs/README.md`, this file, and `docs/project-map.md` together.
+## Release topology
 
-## Command Source
+Web assets and all four migration sets are embedded into `rz`. Production uses:
 
-- Use root `justfile` as the command source of truth; inspect the relevant target before running it.
+```text
+/opt/rz/
+├── bin/rz -> rz-<version>-<arch>
+├── config/rz.env
+├── data/db/{admin,monitor,insights,reports}.db
+├── data/reports/
+└── systemd/rz-{admin,monitor,insights,reports}.service
+```
+
+Active deployment records accept only `release`. Historical split Server/Web
+records are retained in `deploy_versions_legacy` and cannot be activated.
+
+An update uses a transient `rz update worker` outside the Admin service cgroup.
+It validates the signed complete artifact, creates consistent online backups of
+all four databases, atomically switches `bin/rz`, then restarts Monitor,
+Insights, Reports, and Admin one at a time through health gates. A failed gate
+stops the sequence and restores the previous link plus the databases owned by
+processes already restarted. A durable update journal records every restarted
+unit; a bounded transient-worker restart recovers interruptions without leaving
+two Current releases. Long-lived mixed versions, module-only activation, and
+zero-downtime dual-instance behavior are not implemented.
+
+## Local development and verification
+
+The root `justfile` is the command authority. The frontend uses Bun 1.3.14 and
+`apps/web/bun.lock`. `just verify-processes` performs local four-process health,
+termination isolation, module-unavailable behavior, database separation,
+four-database corruption, and restore checks. GitHub Actions are not part of
+the build or verification path for this migration.

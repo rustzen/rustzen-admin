@@ -9,7 +9,7 @@ use axum::{
     response::IntoResponse,
     routing::get,
 };
-use rustzen_core::{
+use rustzen_auth::{
     auth::{AuthClaims, AuthContextLoader, CurrentUser, JwtCodec, auth_middleware},
     error::CoreError,
     permission::{
@@ -29,6 +29,14 @@ async fn jwt_codec_round_trip() {
         claims,
         AuthClaims { user_id: 7, username: "alice".to_string(), exp: claims.exp, iat: claims.iat }
     );
+}
+
+#[test]
+fn jwt_codec_rejects_expired_tokens() {
+    let codec = JwtCodec::new("secret", -1);
+    let token = codec.encode(7, "alice").expect("token should encode");
+
+    assert!(codec.decode(&token).is_err());
 }
 
 #[tokio::test]
@@ -119,6 +127,21 @@ async fn auth_middleware_inserts_loaded_user() {
         .expect("response");
 
     assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn auth_middleware_rejects_missing_credentials() {
+    let codec = JwtCodec::new("secret", 3600);
+    let app = Router::new()
+        .route("/me", get(|user: CurrentUser| async move { user.username }))
+        .route_layer(middleware::from_fn_with_state((codec, FixedLoader), auth_middleware));
+
+    let response = app
+        .oneshot(Request::builder().uri("/me").body(Body::empty()).expect("request"))
+        .await
+        .expect("response");
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
 
 async fn inject_user_without_permission(

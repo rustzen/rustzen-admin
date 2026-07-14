@@ -12,17 +12,14 @@ pub const DEFAULT_FILES_PREFIX: &str = "/resources";
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct RuntimeLayout {
     runtime_root: String,
-    inner: rz_config::RuntimeLayout,
+    files_prefix: String,
 }
 
 impl RuntimeLayout {
     /// Creates a layout bound to a runtime root and public files prefix.
     pub fn new(runtime_root: impl Into<String>, files_prefix: impl Into<String>) -> Self {
         let runtime_root = runtime_root.into();
-        Self {
-            inner: rz_config::RuntimeLayout::new(runtime_root.clone(), files_prefix.into()),
-            runtime_root,
-        }
+        Self { runtime_root, files_prefix: normalize_prefix(files_prefix.into()) }
     }
 
     /// Returns the configured runtime root as string.
@@ -32,47 +29,62 @@ impl RuntimeLayout {
 
     /// Root directory path as configured (relative or absolute).
     pub fn runtime_root_dir(&self) -> PathBuf {
-        self.inner.runtime_root_dir()
+        PathBuf::from(&self.runtime_root)
     }
 
     /// Directory for packaged frontend assets.
     pub fn web_dist_dir(&self) -> PathBuf {
-        self.inner.web_dist_dir()
+        self.runtime_root_dir().join("web/dist")
     }
 
     /// Directory for uploaded and runtime data.
     pub fn data_dir(&self) -> PathBuf {
-        self.inner.data_dir()
+        self.runtime_root_dir().join("data")
     }
 
     /// Directory for SQLite database files.
     pub fn db_dir(&self) -> PathBuf {
-        self.inner.db_dir()
+        self.data_dir().join("db")
     }
 
     /// Directory for logs.
     pub fn log_dir(&self) -> PathBuf {
-        self.inner.log_dir()
+        self.runtime_root_dir().join("logs")
     }
 
     /// Avatar file directory.
     pub fn avatars_dir(&self) -> PathBuf {
-        self.inner.avatars_dir()
+        self.data_dir().join("avatars")
     }
 
     /// Upload root directory.
     pub fn uploads_dir(&self) -> PathBuf {
-        self.inner.uploads_dir()
+        self.data_dir().join("uploads")
     }
 
     /// Public avatar prefix for static file route.
     pub fn avatars_prefix(&self) -> String {
-        self.inner.avatars_prefix()
+        format!("{}/avatars", self.files_prefix.trim_end_matches('/'))
     }
 
     /// Resolves a runtime path value relative to runtime root.
     pub fn resolve_runtime_path(&self, value: &str) -> PathBuf {
-        self.inner.resolve_runtime_path(value)
+        let value = PathBuf::from(value);
+        if value.is_absolute()
+            || value.to_str().is_some_and(|raw| raw == ":memory:" || raw.starts_with("sqlite:"))
+        {
+            value
+        } else {
+            let root = self.runtime_root_dir();
+            if root.is_absolute() {
+                root.join(value)
+            } else {
+                match std::env::current_dir() {
+                    Ok(cwd) => cwd.join(root).join(value),
+                    Err(_) => root.join(value),
+                }
+            }
+        }
     }
 }
 
@@ -80,7 +92,15 @@ impl RuntimeLayout {
 ///
 /// Relative paths use the local working directory when runtime root is relative.
 pub fn resolve_path_with_runtime_root(runtime_root: &str, value: &str) -> PathBuf {
-    rz_config::RuntimeLayout::new(runtime_root, DEFAULT_FILES_PREFIX).resolve_runtime_path(value)
+    RuntimeLayout::new(runtime_root, DEFAULT_FILES_PREFIX).resolve_runtime_path(value)
+}
+
+fn normalize_prefix(value: String) -> String {
+    let value = value.trim();
+    if value.is_empty() || value == "/" {
+        return String::new();
+    }
+    format!("/{}", value.trim_matches('/'))
 }
 
 #[cfg(test)]

@@ -1,22 +1,27 @@
 import {
-    BookOutlined,
-    ClockCircleOutlined,
-    CloudUploadOutlined,
-    DashboardOutlined,
-    HistoryOutlined,
-    MenuOutlined,
-    MonitorOutlined,
-    ProfileOutlined,
-    SettingOutlined,
-    TeamOutlined,
-    UserOutlined,
-    WarningOutlined,
-} from "@ant-design/icons";
+    BookOpenIcon,
+    ChartNoAxesCombinedIcon,
+    ClockIcon,
+    CloudUploadIcon,
+    GaugeIcon,
+    HistoryIcon,
+    LayoutDashboardIcon,
+    MenuIcon,
+    MonitorIcon,
+    FileTextIcon,
+    SettingsIcon,
+    ShieldAlertIcon,
+    UserIcon,
+    UsersIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
 export type AppRoutePath =
     | "/"
     | "/profile"
+    | "/monitor"
+    | "/insights"
+    | "/reports"
     | "/403"
     | "/404"
     | "/system/user"
@@ -49,87 +54,93 @@ export type SearchRouteItem = {
 const dashboardRoute: AppRouteItem = {
     path: "/",
     name: "Dashboard",
-    icon: <DashboardOutlined />,
+    icon: <LayoutDashboardIcon />,
 };
 
 const profileRoute: AppRouteItem = {
     path: "/profile",
     name: "Profile",
-    icon: <UserOutlined />,
+    icon: <UserIcon />,
     requiresPermission: false,
 };
 
+const moduleRoutes: AppRouteItem[] = [
+    { path: "/monitor", name: "Monitor", icon: <MonitorIcon /> },
+    { path: "/insights", name: "Insights", icon: <ChartNoAxesCombinedIcon /> },
+    { path: "/reports", name: "Reports", icon: <FileTextIcon /> },
+];
+
 const systemRoutes: AppRouteItem = {
     name: "System",
-    icon: <SettingOutlined />,
+    icon: <SettingsIcon />,
     path: "/system",
     children: [
         {
             path: "/system/user",
             name: "User",
-            icon: <UserOutlined />,
+            icon: <UserIcon />,
         },
         {
             path: "/system/role",
             name: "Role",
-            icon: <TeamOutlined />,
+            icon: <UsersIcon />,
         },
         {
             path: "/system/menu",
             name: "Menu",
-            icon: <MenuOutlined />,
+            icon: <MenuIcon />,
         },
         {
             path: "/system/status",
             name: "System Status",
-            icon: <MonitorOutlined />,
+            icon: <MonitorIcon />,
         },
     ],
 };
 
 const manageRoutes: AppRouteItem = {
     name: "Manage",
-    icon: <CloudUploadOutlined />,
+    icon: <CloudUploadIcon />,
     path: "/manage",
     children: [
         {
             path: "/manage/dict",
             name: "Dictionary",
-            icon: <BookOutlined />,
+            icon: <BookOpenIcon />,
         },
         {
             path: "/manage/log",
             name: "Log",
-            icon: <HistoryOutlined />,
+            icon: <HistoryIcon />,
         },
         {
             path: "/manage/task",
             name: "Scheduled Task",
-            icon: <ClockCircleOutlined />,
+            icon: <ClockIcon />,
         },
         {
             path: "/manage/deploy",
             name: "Deploy Versions",
-            icon: <CloudUploadOutlined />,
+            icon: <CloudUploadIcon />,
         },
     ],
 };
 
 const demoRoutes: AppRouteItem = {
     name: "Demo",
-    icon: <ProfileOutlined />,
+    icon: <GaugeIcon />,
     path: "/demo",
     children: [
         {
             path: "/403",
             name: "403",
-            icon: <WarningOutlined />,
+            icon: <ShieldAlertIcon />,
             requiresPermission: false,
         },
         {
             path: "/404",
             name: "404",
-            icon: <WarningOutlined />,
+            icon: <ShieldAlertIcon />,
             requiresPermission: false,
         },
     ],
@@ -138,6 +149,9 @@ const demoRoutes: AppRouteItem = {
 const appRoutePaths = new Set<string>([
     "/",
     "/profile",
+    "/monitor",
+    "/insights",
+    "/reports",
     "/403",
     "/404",
     "/system/user",
@@ -152,6 +166,7 @@ const appRoutePaths = new Set<string>([
 
 export const layoutMenuRoutes: AppRouteItem[] = [
     dashboardRoute,
+    ...moduleRoutes,
     systemRoutes,
     manageRoutes,
     demoRoutes,
@@ -160,6 +175,7 @@ export const layoutMenuRoutes: AppRouteItem[] = [
 export const layoutSearchRoutes: AppRouteItem[] = [
     dashboardRoute,
     profileRoute,
+    ...moduleRoutes,
     systemRoutes,
     manageRoutes,
     demoRoutes,

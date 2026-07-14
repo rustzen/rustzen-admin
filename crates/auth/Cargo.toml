@@ -1,7 +1,9 @@
 [package]
-name = "rustzen-core"
+name = "rustzen-auth"
 version = "0.5.0"
 edition = "2024"
+license = "Apache-2.0"
+publish = false
 
 [dependencies]
 async-trait = "0.1"
@@ -10,7 +12,6 @@ chrono = { version = "0.4", features = ["serde"] }
 http = "1"
 jsonwebtoken = { version = "10.4", features = ["rust_crypto"] }
 once_cell = "1.21"
-rz-core = { git = "https://github.com/rustzen/rustzen-core", rev = "f2e76ff42d6b3b9e7f2a3a66f4908d592e1b7a7d", default-features = false }
 serde = { version = "1", features = ["derive"] }
 thiserror = "2.0"
 tokio = { version = "1", features = ["full"] }

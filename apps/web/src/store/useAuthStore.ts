@@ -72,6 +72,9 @@ export const useAuthStore = create<AuthState>()(
 const formatPathCode = (pathname: string) => {
     const explicitRouteCapability: Record<string, string> = {
         "/": "dashboard:view",
+        "/monitor": "monitor:view",
+        "/insights": "insights:view",
+        "/reports": "reports:view",
     };
     const explicitCode = explicitRouteCapability[pathname];
     if (explicitCode) {

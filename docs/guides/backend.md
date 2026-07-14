@@ -17,8 +17,8 @@ Rules for Rust backend work under `apps/server/`.
   own persistence; `features/dashboard/` is the current intentional exception.
 - Reuse auth and permission code from `crates/auth/`; do not re-implement it in `apps/server/`.
 - Use storage helpers from `crates/storage/` for SQLite connection and migration
-  calls; `crates/storage/` delegates shared connection behavior to `rz-core`.
-- Use `rz-core` logging helpers for daily rolling runtime log files and
+  calls; all connection behavior required by this application is owned locally.
+- Use the local logging infrastructure for daily rolling runtime log files and
   retention cleanup.
 - Use `crates/config/` for runtime config and resolved runtime directories.
 - Use `crates/runtime/` for runtime path helpers where startup behavior needs stable runtime topology.
@@ -30,6 +30,11 @@ Rules for Rust backend work under `apps/server/`.
 - Schema changes require migrations.
 - Runtime config uses `RUSTZEN_SQLITE_PATH` and `RUSTZEN_*`.
 - SQLite is the default runtime storage backend.
+- Scheduled task executors must remain bounded by
+  `RUSTZEN_TASK_RUN_TIMEOUT_SECONDS`.
+- SQLite cleanup that deletes rows must be paired with the built-in SQLite
+  maintenance task instead of relying on `DELETE` to shrink database or WAL
+  files immediately.
 - PostgreSQL compatibility is not part of this sqlite-first phase implementation.
 - Use root `justfile` as the command source of truth.
 

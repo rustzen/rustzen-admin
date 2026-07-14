@@ -15,7 +15,7 @@ export default defineConfig({
     },
     plugins: [
         tanstackRouter({ autoCodeSplitting: true }),
-        viteReact({ jsxImportSource: "@emotion/react" }),
+        viteReact(),
         tailwindcss(),
     ],
     resolve: {

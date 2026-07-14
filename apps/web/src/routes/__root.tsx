@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { createRootRoute, Navigate, Outlet, redirect } from "@tanstack/react-router";
-import { App, ConfigProvider } from "antd";
 import { lazy, Suspense, useEffect } from "react";
 
 import { MessageContent, authAPI } from "@/api";
@@ -73,19 +72,17 @@ function RootLayout() {
     }, [userInfo, updateUserInfo]);
 
     return (
-        <ConfigProvider>
-            <App>
-                <BaseLayout hidden={!token}>
-                    <Outlet />
-                </BaseLayout>
-                <MessageContent />
-            </App>
+        <>
+            <BaseLayout hidden={!token}>
+                <Outlet />
+            </BaseLayout>
+            <MessageContent />
             {ReactQueryDevtools && TanStackRouterDevtools && (
                 <Suspense fallback={null}>
                     <ReactQueryDevtools buttonPosition="bottom-right" />
                     <TanStackRouterDevtools />
                 </Suspense>
             )}
-        </ConfigProvider>
+        </>
     );
 }

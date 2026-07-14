@@ -6,13 +6,11 @@ use axum::{
 };
 
 use crate::common::api::{ApiResponse, AppResult};
+use rustzen_auth::auth::CurrentUser;
 
 use super::{
     service::DeployService,
-    types::{
-        CleanupDeploymentsQuery, DeployVersionRequest, DeploymentItem, ExpireVersionRequest,
-        ListDeploymentsQuery,
-    },
+    types::{CleanupDeploymentsQuery, DeploymentItem, ExpireVersionRequest, ListDeploymentsQuery},
 };
 
 pub async fn list_deployments(
@@ -38,11 +36,11 @@ pub async fn get_deployment(
 }
 
 pub async fn deploy_version(
+    current_user: CurrentUser,
     Extension(deploy_service): Extension<Arc<DeployService>>,
     Path(id): Path<i64>,
-    Json(request): Json<DeployVersionRequest>,
 ) -> AppResult<bool> {
-    Ok(ApiResponse::success(deploy_service.deploy(id, request).await?))
+    Ok(ApiResponse::success(deploy_service.deploy(id, current_user.username).await?))
 }
 
 pub async fn expire_version(

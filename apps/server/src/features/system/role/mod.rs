@@ -8,7 +8,7 @@ use axum::{
     routing::{delete, get, post, put},
 };
 use handler::{create_role, delete_role, get_role_options, list_roles, update_role};
-use rustzen_core::{
+use rustzen_auth::{
     capability::system_role,
     permission::{PermissionsCheck, RouterExt},
 };

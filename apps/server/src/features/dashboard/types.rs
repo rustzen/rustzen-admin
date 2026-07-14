@@ -31,3 +31,11 @@ pub struct UserTrendsResp {
     pub daily_logins: Vec<TrendResp>,
     pub hourly_active: Vec<TrendResp>,
 }
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModuleHealthResp {
+    pub module: &'static str,
+    pub available: bool,
+    pub release_version: Option<String>,
+}

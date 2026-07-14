@@ -1,8 +1,7 @@
 # rustzen-admin
 
-`rustzen-admin` is a Web/Rust admin engineering template for projects that need
-an Axum backend, a React frontend, shared Rust crates, SQLite-first storage, and
-repeatable deployment assets in one repository.
+`rustzen-admin` provides the RustZen Admin, Monitor, Insights, and Reports
+runtime in one source repository and one complete `rz` release artifact.
 
 A structured monorepo starting point for Rust full-stack admin systems.
 
@@ -19,7 +18,7 @@ The repository is organized as a monorepo:
 
 - `crates/auth/` contains shared auth and permission capabilities for Rust services
 - `crates/storage/` contains the admin SQLite adapter and migration entrypoints
-- `apps/server/` contains the Rust backend application
+- `apps/server/` contains the Admin API plus isolated Monitor, Insights, and Reports process modes
 - `apps/web/` contains the React frontend application
 - `deploy/` contains deployment assets and release support files
 - `docs/` contains repository-level architecture and development guides
@@ -51,12 +50,12 @@ Use the root `justfile` as the command source of truth; inspect the relevant tar
 
 ```bash
 cp .env.example .env
-cargo run -p server
+cargo run -p server -- admin serve
 ```
 
 Local startup is SQLite-first and does not require PostgreSQL.
-Shared SQLite connection primitives, role policy, and daily runtime logging are
-provided by `rz-core` from `rustzen-core`.
+SQLite connection primitives, role policy, runtime layout, and logging are owned
+inside this repository; there is no `rustzen-core` runtime dependency.
 Set `RUSTZEN_JWT_SECRET` in `.env` before starting the backend.
 
 If startup fails with `VersionMismatch`, your local database schema is out-of-date with current migration checksums. Run:
@@ -64,7 +63,7 @@ If startup fails with `VersionMismatch`, your local database schema is out-of-da
 ```bash
 cp .env.example .env
 just reset-db
-cargo run -p server
+cargo run -p server -- admin serve
 ```
 
 If startup succeeds, the database will be recreated automatically.
@@ -84,8 +83,9 @@ Demo login:
 - `README.md` and `AGENTS.md` stay as lightweight entry documents.
 - `docs/history/` contains historical execution records and is not current implementation truth.
 
-## License and Commercial Rights
+## License and Trademark Boundary
 
-Source code is available under the [MIT License](./LICENSE.md). Ownership,
-branding, trademark, publishing, and commercial-use boundaries are documented in
-[NOTICE.md](./NOTICE.md).
+Current source code is available under the
+[Apache License, Version 2.0](./LICENSE.md). Historical tags remain governed by
+the license included in each tag. Attribution and trademark boundaries are
+documented in [NOTICE.md](./NOTICE.md) and [TRADEMARKS.md](./TRADEMARKS.md).

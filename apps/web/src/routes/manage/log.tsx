@@ -1,10 +1,26 @@
-import { ProTable, type ProColumns } from "@ant-design/pro-components";
-import { createFileRoute } from "@tanstack/react-router";
-import { Button, Input, Segmented, Tag } from "antd";
+import { DownloadIcon, SearchIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+
 import { manageAPI } from "@/api";
+import { DataTableShell } from "@/components/app/data-table-shell";
+import { PageCard } from "@/components/app/page-card";
+import { TablePagination } from "@/components/app/table-pagination";
 import { AuthWrap } from "@/components/base-auth";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocalStore } from "@/store/useLocalStore";
 
 export const Route = createFileRoute("/manage/log")({
@@ -13,6 +29,7 @@ export const Route = createFileRoute("/manage/log")({
 
 const DEFAULT_ACTION = "AUTH_LOGIN";
 const ALL_ACTION = "all";
+const PAGE_SIZE = 20;
 
 const actionOptions: Array<{ label: string; value: string }> = [
     { label: "All", value: ALL_ACTION },
@@ -29,144 +46,168 @@ function LogPage() {
     const selectedAction = actionType === ALL_ACTION ? undefined : actionType;
     const [searchInput, setSearchInput] = useState("");
     const [searchKeyword, setSearchKeyword] = useState("");
-    const params = useMemo(
+    const [currentPage, setCurrentPage] = useState(1);
+    const params = useMemo<Log.QueryParams>(
         () => ({
+            current: currentPage,
+            pageSize: PAGE_SIZE,
             action: selectedAction,
             search: searchKeyword || undefined,
         }),
-        [searchKeyword, selectedAction],
+        [currentPage, searchKeyword, selectedAction],
     );
+    const { data, isFetching } = useQuery({
+        queryKey: ["manage", "log", params],
+        queryFn: () => manageAPI.log.list(params),
+    });
+    const rows = data?.data ?? [];
+    const total = data?.total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+    const updateAction = (value: string) => {
+        setActionType(value);
+        setCurrentPage(1);
+    };
+
+    const submitSearch = () => {
+        setSearchKeyword(searchInput.trim());
+        setCurrentPage(1);
+    };
+
+    const clearSearch = () => {
+        setSearchInput("");
+        setSearchKeyword("");
+        setCurrentPage(1);
+    };
 
     return (
-        <div className="manage-log-page">
-            <ProTable<Log.Item>
-                rowKey="id"
-                search={false}
-                scroll={{ y: "calc(100vh - 287px)" }}
-                columns={columns}
-                params={params}
-                request={manageAPI.log.list}
-                headerTitle="Log"
-                toolBarRender={() => [
-                    <Segmented
-                        key="action"
-                        value={actionType}
-                        options={actionOptions}
-                        onChange={(value) => {
-                            setActionType(value as string);
-                        }}
-                    />,
-                    <Input.Search
-                        key="search"
-                        allowClear
-                        placeholder="Search user or IP"
-                        value={searchInput}
-                        style={{ width: 240 }}
-                        onChange={(event) => {
-                            const value = event.target.value;
-                            setSearchInput(value);
-                            if (!value) {
-                                setSearchKeyword("");
-                            }
-                        }}
-                        onSearch={(value) => {
-                            setSearchKeyword(value.trim());
-                        }}
-                    />,
-                    <AuthWrap key="export" code="manage:log:export">
+        <PageCard
+            title="Log"
+            description="Audit login and HTTP operation records across the admin service."
+            actions={
+                    <AuthWrap code="manage:log:export">
                         <Button
-                            type="primary"
                             onClick={() => {
                                 void manageAPI.log.export(params);
                             }}
                         >
+                            <DownloadIcon data-icon="inline-start" />
                             Export
                         </Button>
-                    </AuthWrap>,
-                ]}
+                    </AuthWrap>
+            }
+            toolbar={
+                <div className="flex flex-wrap items-center gap-3">
+                    <Tabs value={actionType} onValueChange={updateAction}>
+                        <TabsList className="w-full overflow-x-auto sm:w-auto">
+                            {actionOptions.map((item) => (
+                                <TabsTrigger key={item.value} value={item.value}>
+                                    {item.label}
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
+                    </Tabs>
+                    <div className="flex w-full items-center gap-2 sm:w-auto">
+                        <div className="relative min-w-0 flex-1 sm:w-64">
+                            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                value={searchInput}
+                                placeholder="Search user or IP"
+                                className="pl-9"
+                                onChange={(event) => {
+                                    const value = event.target.value;
+                                    setSearchInput(value);
+                                    if (!value) {
+                                        setSearchKeyword("");
+                                    }
+                                }}
+                                onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                        submitSearch();
+                                    }
+                                }}
+                            />
+                        </div>
+                        <Button type="button" variant="outline" onClick={submitSearch}>
+                            Search
+                        </Button>
+                        {searchKeyword ? (
+                            <Button type="button" variant="ghost" onClick={clearSearch}>
+                                Clear
+                            </Button>
+                        ) : null}
+                    </div>
+                </div>
+            }
+        >
+            <DataTableShell>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="w-20">ID</TableHead>
+                                <TableHead className="w-36">User</TableHead>
+                                <TableHead className="w-36">Action</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead className="w-28">Status</TableHead>
+                                <TableHead className="w-36">IP Address</TableHead>
+                                <TableHead className="w-28">Duration</TableHead>
+                                <TableHead className="w-44">Created At</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {rows.length > 0 ? (
+                                rows.map((record) => (
+                                    <TableRow key={record.id}>
+                                        <TableCell className="font-medium">{record.id}</TableCell>
+                                        <TableCell>{record.username || "Anonymous User"}</TableCell>
+                                        <TableCell>
+                                            <ActionBadge action={record.action} />
+                                        </TableCell>
+                                        <TableCell className="max-w-80 truncate">
+                                            {record.description || "-"}
+                                        </TableCell>
+                                        <TableCell>
+                                            <StatusBadge status={record.status} />
+                                        </TableCell>
+                                        <TableCell>{record.ipAddress || "-"}</TableCell>
+                                        <TableCell>{formatDuration(record.durationMs)}</TableCell>
+                                        <TableCell className="whitespace-nowrap">
+                                            {record.createdAt}
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="h-40 text-center">
+                                        {isFetching ? "Loading logs..." : "No logs found."}
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+            </DataTableShell>
+            <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                total={total}
+                disabled={isFetching}
+                onPageChange={setCurrentPage}
             />
-        </div>
+        </PageCard>
     );
 }
 
-const actionColorMap: Record<string, string> = {
-    HTTP_GET: "default",
-    HTTP_POST: "processing",
-    HTTP_PUT: "warning",
-    HTTP_DELETE: "error",
-    AUTH_LOGIN: "success",
+const ActionBadge = ({ action }: { action: string }) => {
+    const variant = action === "AUTH_LOGIN" ? "default" : "secondary";
+    return <Badge variant={variant}>{action}</Badge>;
 };
-const columns: ProColumns<Log.Item>[] = [
-    {
-        title: "ID",
-        dataIndex: "id",
-        width: 80,
-        search: false,
-    },
-    {
-        title: "User",
-        dataIndex: "username",
-        width: 120,
-        render: (_, record) => record.username || "Anonymous User",
-    },
-    {
-        title: "Action",
-        dataIndex: "action",
-        width: 150,
-        search: false,
-        render: (_, record) => {
-            const action = record.action;
-            const color = actionColorMap[action];
-            return (
-                <Tag color={color} variant="outlined">
-                    {action}
-                </Tag>
-            );
-        },
-    },
-    {
-        title: "Description",
-        dataIndex: "description",
-        ellipsis: true,
-    },
-    {
-        title: "Status",
-        dataIndex: "status",
-        width: 100,
-        search: false,
-        render: (_, record) => {
-            const status = record.status;
-            const color = status === "SUCCESS" ? "success" : "error";
-            return (
-                <Tag color={color} variant="solid">
-                    {status}
-                </Tag>
-            );
-        },
-    },
-    {
-        title: "IP Address",
-        dataIndex: "ipAddress",
-        width: 120,
-        render: (_, record) => record.ipAddress || "-",
-    },
-    {
-        title: "Duration",
-        dataIndex: "durationMs",
-        width: 80,
-        search: false,
-        render: (_, record) => {
-            if (!record.durationMs) return "-";
-            return `${record.durationMs}ms`;
-        },
-    },
-    {
-        title: "Created At",
-        dataIndex: "createdAt",
-        valueType: "dateTime",
-        width: 160,
-        ellipsis: true,
-        className: "whitespace-nowrap",
-        search: false,
-    },
-];
+
+const StatusBadge = ({ status }: { status: string }) => {
+    const isSuccess = status === "SUCCESS";
+    return <Badge variant={isSuccess ? "default" : "destructive"}>{status}</Badge>;
+};
+
+const formatDuration = (durationMs?: number) => {
+    if (!durationMs) return "-";
+    return `${durationMs}ms`;
+};

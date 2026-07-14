@@ -353,8 +353,8 @@ impl TaskRepository {
         row_to_task_run_item(row)
     }
 
-    pub async fn cleanup_old_task_runs(&self, retention_days: i64) -> Result<u64, ServiceError> {
-        let cutoff = Utc::now() - Duration::days(retention_days.max(1));
+    pub async fn cleanup_old_task_runs(&self) -> Result<u64, ServiceError> {
+        let cutoff = Utc::now() - Duration::days(rustzen_config::RETENTION_DAYS as i64);
         let result = sqlx::query("DELETE FROM system_task_runs WHERE created_at < ?")
             .bind(cutoff)
             .execute(&self.pool)
@@ -480,4 +480,51 @@ fn task_status_from_str(raw: &str) -> Result<TaskRunStatus, ServiceError> {
 fn map_db_error(err: sqlx::Error) -> ServiceError {
     tracing::error!("Task database error: {:?}", err);
     ServiceError::DatabaseQueryFailed
+}
+
+#[cfg(test)]
+mod retention_tests {
+    use chrono::{Duration, Utc};
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    use super::TaskRepository;
+
+    #[tokio::test]
+    async fn cleanup_keeps_task_runs_inside_thirty_day_window() {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("connect");
+        crate::infra::db::run_migrations(&pool).await.expect("migrate");
+        sqlx::query(
+            "INSERT INTO system_tasks
+             (task_key, name, schedule_type, schedule_json)
+             VALUES ('retention-test', 'Retention test', 'cron', '0 0 0 * * * *')",
+        )
+        .execute(&pool)
+        .await
+        .expect("task");
+        for created_at in [Utc::now() - Duration::days(31), Utc::now() - Duration::days(29)] {
+            sqlx::query(
+                "INSERT INTO system_task_runs
+                 (task_key, trigger_type, status, started_at, created_at, updated_at)
+                 VALUES ('retention-test', 'manual', 'success', ?, ?, ?)",
+            )
+            .bind(created_at)
+            .bind(created_at)
+            .bind(created_at)
+            .execute(&pool)
+            .await
+            .expect("task run");
+        }
+        let repo = TaskRepository::new(pool.clone());
+
+        assert_eq!(repo.cleanup_old_task_runs().await.expect("cleanup"), 1);
+        let remaining: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM system_task_runs")
+            .fetch_one(&pool)
+            .await
+            .expect("remaining");
+        assert_eq!(remaining, 1);
+    }
 }

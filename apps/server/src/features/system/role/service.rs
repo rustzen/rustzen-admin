@@ -8,7 +8,7 @@ use crate::common::{
     pagination::{Pagination, PaginationQuery},
     query::parse_optional_i16_filter,
 };
-use rustzen_core::capability::{SYSTEM_WILDCARD, is_deploy_capability_code};
+use rustzen_auth::capability::{SYSTEM_WILDCARD, is_deploy_capability_code};
 
 use sqlx::SqlitePool;
 

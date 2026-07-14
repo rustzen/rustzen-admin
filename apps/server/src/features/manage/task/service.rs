@@ -2,8 +2,9 @@ use std::{str::FromStr, sync::Arc, time::Duration};
 
 use chrono::{DateTime, FixedOffset, Utc};
 use croner::Cron;
+use rustzen_storage::{SqliteMaintenancePlan, run_sqlite_maintenance};
 use tokio::sync::{Mutex, RwLock};
-use tokio::time::sleep;
+use tokio::time::{sleep, timeout};
 
 use crate::{
     common::{
@@ -57,9 +58,10 @@ struct TaskSpec {
 enum TaskKind {
     CleanupOperationLogs,
     CleanupTaskRuns,
+    SqliteMaintenance,
 }
 
-const TASK_SPECS: [TaskSpec; 2] = [
+const TASK_SPECS: [TaskSpec; 3] = [
     TaskSpec {
         task_key: "cleanup-operation-logs-retention",
         name: "Cleanup Operation Logs",
@@ -73,6 +75,13 @@ const TASK_SPECS: [TaskSpec; 2] = [
         description: "Delete scheduled task run records older than the configured retention days.",
         expression: "0 30 1 * * * *",
         kind: TaskKind::CleanupTaskRuns,
+    },
+    TaskSpec {
+        task_key: "sqlite-storage-maintenance",
+        name: "SQLite Storage Maintenance",
+        description: "Checkpoint WAL, optimize SQLite planner statistics, and reclaim reusable pages.",
+        expression: "0 0 2 * * * *",
+        kind: TaskKind::SqliteMaintenance,
     },
 ];
 
@@ -276,6 +285,7 @@ impl TaskService {
         let task_name = task.name.to_string();
         let executor = task.executor.clone();
         let run_id = run.id;
+        let timeout_duration = task_run_timeout_duration(CONFIG.task_run_timeout_seconds);
 
         tokio::spawn(async move {
             let ctx = TaskExecutionContext {
@@ -284,7 +294,13 @@ impl TaskService {
                 trigger_type,
                 scheduled_for,
             };
-            let result = executor.execute(ctx).await;
+            let result = match timeout(timeout_duration, executor.execute(ctx)).await {
+                Ok(result) => result,
+                Err(_) => Err(ServiceError::InvalidOperation(format!(
+                    "Task exceeded timeout of {} seconds",
+                    timeout_duration.as_secs()
+                ))),
+            };
             let finished_at = Utc::now();
             let (status, message) = match result {
                 Ok(()) => (TaskRunStatus::Success, None),
@@ -361,6 +377,10 @@ fn parse_timezone_offset_seconds(value: &str) -> Option<i32> {
     Some(sign * ((hours * 3600) + (minutes * 60)))
 }
 
+fn task_run_timeout_duration(timeout_secs: u64) -> Duration {
+    Duration::from_secs(timeout_secs.max(1))
+}
+
 impl TaskCatalog {
     fn new(repo: Arc<TaskRepository>, pool: sqlx::SqlitePool) -> Self {
         let tasks = TASK_SPECS
@@ -387,7 +407,92 @@ impl TaskKind {
         match self {
             TaskKind::CleanupOperationLogs => Arc::new(CleanupOperationLogsExecutor { pool }),
             TaskKind::CleanupTaskRuns => Arc::new(CleanupTaskRunsExecutor { repo }),
+            TaskKind::SqliteMaintenance => Arc::new(SqliteMaintenanceExecutor { pool }),
         }
+    }
+}
+
+struct CleanupOperationLogsExecutor {
+    pool: sqlx::SqlitePool,
+}
+
+#[async_trait::async_trait]
+impl TaskExecutor for CleanupOperationLogsExecutor {
+    async fn execute(&self, ctx: TaskExecutionContext) -> Result<(), ServiceError> {
+        tracing::info!(
+            task_key = %ctx.task_key,
+            task_name = %ctx.task_name,
+            trigger_type = ?ctx.trigger_type,
+            scheduled_for = ?ctx.scheduled_for,
+            "Cleaning operation logs"
+        );
+        let deleted = LogService::cleanup_old_logs(&self.pool).await?;
+        tracing::info!(deleted, "Operation log cleanup completed");
+        Ok(())
+    }
+}
+
+struct CleanupTaskRunsExecutor {
+    repo: Arc<TaskRepository>,
+}
+
+#[async_trait::async_trait]
+impl TaskExecutor for CleanupTaskRunsExecutor {
+    async fn execute(&self, ctx: TaskExecutionContext) -> Result<(), ServiceError> {
+        tracing::info!(
+            task_key = %ctx.task_key,
+            task_name = %ctx.task_name,
+            trigger_type = ?ctx.trigger_type,
+            scheduled_for = ?ctx.scheduled_for,
+            "Cleaning task runs"
+        );
+        let deleted = self.repo.cleanup_old_task_runs().await?;
+        tracing::info!(deleted, "Task run cleanup completed");
+        Ok(())
+    }
+}
+
+struct SqliteMaintenanceExecutor {
+    pool: sqlx::SqlitePool,
+}
+
+#[async_trait::async_trait]
+impl TaskExecutor for SqliteMaintenanceExecutor {
+    async fn execute(&self, ctx: TaskExecutionContext) -> Result<(), ServiceError> {
+        tracing::info!(
+            task_key = %ctx.task_key,
+            task_name = %ctx.task_name,
+            trigger_type = ?ctx.trigger_type,
+            scheduled_for = ?ctx.scheduled_for,
+            "Running SQLite storage maintenance"
+        );
+
+        let report = run_sqlite_maintenance(&self.pool, SqliteMaintenancePlan::reclaim())
+            .await
+            .map_err(|err| {
+                tracing::error!(%err, "SQLite storage maintenance failed");
+                ServiceError::DatabaseQueryFailed
+            })?;
+        if let Some(checkpoint) = report.checkpoint {
+            tracing::info!(
+                busy = checkpoint.busy,
+                log_frames = checkpoint.log_frames,
+                checkpointed_frames = checkpoint.checkpointed_frames,
+                "SQLite WAL checkpoint completed"
+            );
+        }
+        tracing::info!(
+            before_pages = report.before.page_count,
+            before_freelist = report.before.freelist_count,
+            before_freelist_bytes = report.before.freelist_bytes,
+            after_pages = report.after.page_count,
+            after_freelist = report.after.freelist_count,
+            after_freelist_bytes = report.after.freelist_bytes,
+            optimized = report.optimized,
+            vacuumed = report.vacuumed,
+            "SQLite storage maintenance completed"
+        );
+        Ok(())
     }
 }
 
@@ -409,45 +514,10 @@ mod tests {
 
         assert!(err.to_string().contains("Invalid RUSTZEN_TIMEZONE"));
     }
-}
 
-struct CleanupOperationLogsExecutor {
-    pool: sqlx::SqlitePool,
-}
-
-#[async_trait::async_trait]
-impl TaskExecutor for CleanupOperationLogsExecutor {
-    async fn execute(&self, ctx: TaskExecutionContext) -> Result<(), ServiceError> {
-        tracing::info!(
-            task_key = %ctx.task_key,
-            task_name = %ctx.task_name,
-            trigger_type = ?ctx.trigger_type,
-            scheduled_for = ?ctx.scheduled_for,
-            "Cleaning operation logs"
-        );
-        let deleted =
-            LogService::cleanup_old_logs(&self.pool, CONFIG.log_retention_days as i64).await?;
-        tracing::info!(deleted, "Operation log cleanup completed");
-        Ok(())
-    }
-}
-
-struct CleanupTaskRunsExecutor {
-    repo: Arc<TaskRepository>,
-}
-
-#[async_trait::async_trait]
-impl TaskExecutor for CleanupTaskRunsExecutor {
-    async fn execute(&self, ctx: TaskExecutionContext) -> Result<(), ServiceError> {
-        tracing::info!(
-            task_key = %ctx.task_key,
-            task_name = %ctx.task_name,
-            trigger_type = ?ctx.trigger_type,
-            scheduled_for = ?ctx.scheduled_for,
-            "Cleaning task runs"
-        );
-        let deleted = self.repo.cleanup_old_task_runs(CONFIG.task_run_retention_days).await?;
-        tracing::info!(deleted, "Task run cleanup completed");
-        Ok(())
+    #[test]
+    fn task_run_timeout_duration_has_one_second_floor() {
+        assert_eq!(task_run_timeout_duration(0), Duration::from_secs(1));
+        assert_eq!(task_run_timeout_duration(30), Duration::from_secs(30));
     }
 }

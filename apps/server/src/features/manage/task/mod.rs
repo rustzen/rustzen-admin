@@ -8,7 +8,7 @@ use axum::{
     routing::{get, post},
 };
 use handler::{list_task_runs, list_tasks, run_task};
-use rustzen_core::{
+use rustzen_auth::{
     capability::manage_task,
     permission::{PermissionsCheck, RouterExt},
 };

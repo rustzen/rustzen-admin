@@ -4,6 +4,7 @@ use rustzen_storage::{
         DatabaseConnectionOptions, SqlitePool, connect_sqlite_with_options, database_url_from_path,
     },
 };
+use std::path::Path;
 use std::time::Duration;
 use tracing;
 
@@ -76,6 +77,17 @@ pub async fn create_pool(config: DatabaseConfig) -> Result<SqlitePool, rustzen_s
 pub async fn create_default_pool() -> Result<SqlitePool, rustzen_storage::CoreError> {
     let config = DatabaseConfig::default();
     create_pool(config).await
+}
+
+pub async fn create_pool_for_path(path: &Path) -> Result<SqlitePool, rustzen_storage::CoreError> {
+    create_pool(DatabaseConfig {
+        url: database_url_from_path(path),
+        max_connections: CONFIG.db_max_conn,
+        min_connections: CONFIG.db_min_conn,
+        connect_timeout: Duration::from_secs(CONFIG.db_conn_timeout),
+        idle_timeout: db_idle_timeout(CONFIG.db_idle_timeout),
+    })
+    .await
 }
 
 pub use rustzen_storage::sqlite::test_connection;

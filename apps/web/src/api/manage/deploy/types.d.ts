@@ -1,5 +1,5 @@
 declare namespace Deploy {
-    type Component = "server" | "web";
+    type Component = "release";
 
     interface Item {
         id: number;
@@ -32,15 +32,10 @@ declare namespace Deploy {
     }
 
     interface UploadForm {
-        component: Component;
         version: string;
         arch?: string;
         notes?: string;
         file: File;
-    }
-
-    interface DeployRequest {
-        deployedBy?: string | null;
     }
 
     interface ExpireRequest {

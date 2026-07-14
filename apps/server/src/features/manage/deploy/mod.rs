@@ -12,7 +12,7 @@ use handler::{
     cleanup_expired, delete_version, deploy_version, expire_version, get_deployment,
     list_deployments, upload_deployment,
 };
-use rustzen_core::{
+use rustzen_auth::{
     capability::manage_deploy,
     permission::{PermissionsCheck, RouterExt},
 };

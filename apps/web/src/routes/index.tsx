@@ -1,20 +1,35 @@
 import {
-    CheckCircleOutlined,
-    ClockCircleOutlined,
-    ExclamationCircleOutlined,
-    UserAddOutlined,
-    TeamOutlined,
-    UserOutlined,
-} from "@ant-design/icons";
-import { Column, Line } from "@ant-design/plots";
+    ActivityIcon,
+    ClockIcon,
+    DownloadIcon,
+    HardDriveIcon,
+    ServerIcon,
+    ShieldAlertIcon,
+    UserCheckIcon,
+    UserPlusIcon,
+    UsersIcon,
+} from "lucide-react";
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Line,
+    LineChart,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from "recharts";
+
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Card, Progress, Statistic } from "antd";
 
 import { dashboardAPI } from "@/api";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calculatePercent, convertUnit } from "@/util";
-
-const DASHBOARD_CHART_HEIGHT = 220;
 
 export const Route = createFileRoute("/")({
     component: DashboardPage,
@@ -22,67 +37,130 @@ export const Route = createFileRoute("/")({
 
 function DashboardPage() {
     return (
-        <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_minmax(0,1fr)] gap-4 overflow-hidden">
-            <StatsCard />
-
-            <div className="grid min-h-0 grid-cols-2 gap-4">
-                <HealthCard />
-                <MetricsCard />
+        <div className="flex h-full min-h-0 flex-col gap-4 overflow-auto p-1">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+                    <p className="text-sm text-muted-foreground">
+                        Operational overview for users, runtime health, and activity trends.
+                    </p>
+                </div>
+                <Button>
+                    <DownloadIcon data-icon="inline-start" />
+                    Download
+                </Button>
             </div>
 
-            <UserActivityTrendCard />
+            <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col gap-4">
+                <div className="w-full overflow-x-auto pb-1">
+                    <TabsList>
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                        <TabsTrigger value="reports" disabled>
+                            Reports
+                        </TabsTrigger>
+                        <TabsTrigger value="notifications" disabled>
+                            Notifications
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
+
+                <TabsContent value="overview" className="mt-0 flex flex-col gap-4">
+                    <ModuleHealthCards />
+                    <StatsCards />
+                    <div className="grid gap-4 lg:grid-cols-7">
+                        <ActivityTrendCard />
+                        <HealthCard />
+                    </div>
+                    <MetricsCard />
+                </TabsContent>
+
+                <TabsContent value="analytics" className="mt-0">
+                    <div className="grid gap-4 lg:grid-cols-2">
+                        <HealthCard />
+                        <MetricsCard />
+                    </div>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
 
-const StatsCard = () => {
+const ModuleHealthCards = () => {
+    const { data = [] } = useQuery({
+        queryKey: ["dashboard", "modules"],
+        queryFn: dashboardAPI.modules,
+        refetchInterval: 15_000,
+    });
+    return (
+        <div className="grid gap-3 sm:grid-cols-3">
+            {(["monitor", "insights", "reports"] as const).map((module) => {
+                const health = data.find((item) => item.module === module);
+                return (
+                    <Card key={module} className="gap-3 py-4">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="capitalize">{module}</CardTitle>
+                            <Badge variant={health?.available ? "default" : "destructive"}>
+                                {health?.available ? "Available" : "Unavailable"}
+                            </Badge>
+                        </CardHeader>
+                        <CardContent className="text-sm text-muted-foreground">
+                            Release {health?.releaseVersion ?? "-"}
+                        </CardContent>
+                    </Card>
+                );
+            })}
+        </div>
+    );
+};
+
+const StatsCards = () => {
     const { data: stats } = useQuery({
         queryKey: ["dashboard", "stats"],
         queryFn: dashboardAPI.stats,
     });
-    return (
-        <div className="grid grid-cols-2 gap-4 xl:grid-cols-5">
-            <Card>
-                <Statistic
-                    title="Total users"
-                    value={stats?.totalUsers}
-                    prefix={<UserOutlined />}
-                    valueStyle={{ color: "#3f8600" }}
-                />
-            </Card>
-            <Card>
-                <Statistic
-                    title="Active users"
-                    value={stats?.activeUsers}
-                    prefix={<TeamOutlined />}
-                    valueStyle={{ color: "#1890ff" }}
-                />
-            </Card>
-            <Card>
-                <Statistic
-                    title="Today logins"
-                    value={stats?.todayLogins}
-                    prefix={<ClockCircleOutlined />}
-                    valueStyle={{ color: "#722ed1" }}
-                />
-            </Card>
 
-            <Card>
-                <Statistic
-                    title="Pending users"
-                    value={stats?.pendingUsers}
-                    prefix={<UserAddOutlined />}
-                    valueStyle={{ color: "#d48806" }}
-                />
-            </Card>
-            <Card>
-                <Statistic
-                    title="System uptime"
-                    value={stats?.systemUptime}
-                    prefix={<CheckCircleOutlined />}
-                    valueStyle={{ color: "#52c41a" }}
-                />
-            </Card>
+    const cards = [
+        {
+            title: "Total Users",
+            value: stats?.totalUsers ?? 0,
+            description: "All registered accounts",
+            icon: UsersIcon,
+        },
+        {
+            title: "Active Users",
+            value: stats?.activeUsers ?? 0,
+            description: "Accounts currently enabled",
+            icon: UserCheckIcon,
+        },
+        {
+            title: "Today Logins",
+            value: stats?.todayLogins ?? 0,
+            description: "Successful sessions today",
+            icon: ClockIcon,
+        },
+        {
+            title: "Pending Users",
+            value: stats?.pendingUsers ?? 0,
+            description: "Waiting for approval",
+            icon: UserPlusIcon,
+        },
+    ];
+
+    return (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {cards.map((item) => (
+                <Card key={item.title}>
+                    <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+                        <CardTitle className="text-sm font-medium">{item.title}</CardTitle>
+                        <item.icon className="text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{item.value}</div>
+                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                    </CardContent>
+                </Card>
+            ))}
         </div>
     );
 };
@@ -97,49 +175,39 @@ const HealthCard = () => {
     const diskUsage = calculatePercent(health?.diskUsed, health?.diskTotal);
 
     return (
-        <Card
-            title="System health status"
-            extra={<ExclamationCircleOutlined />}
-            rootClassName="flex min-h-0 flex-col"
-            classNames={{
-                body: "flex-1 overflow-hidden",
-            }}
-        >
-            <div className="flex flex-col gap-5">
-                <div>
-                    <div className="mb-2 flex justify-between">
-                        <span>Memory usage</span>
-                        <span>
-                            {convertUnit(health?.memoryUsed)} / {convertUnit(health?.memoryTotal)}
-                        </span>
+        <Card className="lg:col-span-3">
+            <CardHeader>
+                <div className="flex items-center justify-between gap-3">
+                    <div>
+                        <CardTitle>System Health</CardTitle>
+                        <CardDescription>Runtime pressure across memory, CPU, and disk.</CardDescription>
                     </div>
-                    <Progress
-                        percent={memoryUsage}
-                        status={memoryUsage > 80 ? "exception" : "normal"}
-                    />
+                    <ShieldAlertIcon className="text-muted-foreground" />
                 </div>
-                <div>
-                    <div className="mb-2 flex justify-between">
-                        <span>CPU usage</span>
-                        <span>
-                            {cpuUsage.toFixed(1)}% / {health?.cpuTotal ?? 0}
-                        </span>
-                    </div>
-                    <Progress percent={cpuUsage} status={cpuUsage > 80 ? "exception" : "normal"} />
-                </div>
-                <div>
-                    <div className="mb-2 flex justify-between">
-                        <span>Disk usage</span>
-                        <span>
-                            {convertUnit(health?.diskUsed)} / {convertUnit(health?.diskTotal)}
-                        </span>
-                    </div>
-                    <Progress
-                        percent={diskUsage}
-                        status={diskUsage > 90 ? "exception" : "normal"}
-                    />
-                </div>
-            </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-5">
+                <ProgressRow
+                    icon={ServerIcon}
+                    label="Memory usage"
+                    value={memoryUsage}
+                    detail={`${convertUnit(health?.memoryUsed)} / ${convertUnit(health?.memoryTotal)}`}
+                    warning={memoryUsage > 80}
+                />
+                <ProgressRow
+                    icon={ActivityIcon}
+                    label="CPU usage"
+                    value={cpuUsage}
+                    detail={`${cpuUsage.toFixed(1)}% / ${health?.cpuTotal ?? 0}`}
+                    warning={cpuUsage > 80}
+                />
+                <ProgressRow
+                    icon={HardDriveIcon}
+                    label="Disk usage"
+                    value={diskUsage}
+                    detail={`${convertUnit(health?.diskUsed)} / ${convertUnit(health?.diskTotal)}`}
+                    warning={diskUsage > 90}
+                />
+            </CardContent>
         </Card>
     );
 };
@@ -149,39 +217,23 @@ const MetricsCard = () => {
         queryKey: ["dashboard", "metrics"],
         queryFn: dashboardAPI.metrics,
     });
+
     return (
-        <Card
-            title="7 days performance metrics"
-            rootClassName="flex min-h-0 flex-col"
-            classNames={{
-                body: "flex-1 place-content-center",
-            }}
-        >
-            <div className="grid grid-cols-3 gap-4">
-                <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
-                        {metrics?.avgResponseTime}ms
-                    </div>
-                    <div className="text-gray-500">Average response time</div>
-                </div>
-                <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
-                        {metrics?.errorRate?.toFixed(1)}%
-                    </div>
-                    <div className="text-gray-500">Error rate</div>
-                </div>
-                <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">
-                        {metrics?.totalRequests} times
-                    </div>
-                    <div className="text-gray-500">Total requests</div>
-                </div>
-            </div>
+        <Card>
+            <CardHeader>
+                <CardTitle>Performance Metrics</CardTitle>
+                <CardDescription>Seven-day request performance summary.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-3">
+                <MetricBlock label="Average response" value={`${metrics?.avgResponseTime ?? 0}ms`} />
+                <MetricBlock label="Error rate" value={`${(metrics?.errorRate ?? 0).toFixed(1)}%`} />
+                <MetricBlock label="Total requests" value={`${metrics?.totalRequests ?? 0}`} />
+            </CardContent>
         </Card>
     );
 };
 
-const UserActivityTrendCard = () => {
+const ActivityTrendCard = () => {
     const { data } = useQuery({
         queryKey: ["dashboard", "trends"],
         queryFn: dashboardAPI.trends,
@@ -190,52 +242,76 @@ const UserActivityTrendCard = () => {
     const hourlyActive = normalizeTrendItems(data?.hourlyActive);
 
     return (
-        <div className="grid min-h-0 grid-cols-2 gap-4">
-            <Card
-                title="30 days user login trend"
-                rootClassName="flex min-h-0 flex-col"
-                classNames={{
-                    body: "min-h-0 flex-1 overflow-hidden",
-                }}
-            >
-                <Line
-                    data={dailyLogins}
-                    xField="date"
-                    yField="count"
-                    height={DASHBOARD_CHART_HEIGHT}
-                    axis={{
-                        y: {
-                            labelFormatter: (v: number) => Math.round(v),
-                        },
-                    }}
-                />
-            </Card>
-            <Card
-                title="24 hours active users"
-                rootClassName="flex min-h-0 flex-col"
-                classNames={{
-                    body: "min-h-0 flex-1 overflow-hidden",
-                }}
-            >
-                <Column
-                    data={hourlyActive}
-                    xField="date"
-                    yField="count"
-                    height={DASHBOARD_CHART_HEIGHT}
-                    axis={{
-                        y: {
-                            labelFormatter: (v: number) => Math.round(v),
-                        },
-                    }}
-                    style={{
-                        radiusTopLeft: 10,
-                        radiusTopRight: 10,
-                    }}
-                />
-            </Card>
-        </div>
+        <Card className="lg:col-span-4">
+            <CardHeader>
+                <CardTitle>Overview</CardTitle>
+                <CardDescription>User login trend and active-user pulse.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 xl:grid-cols-2">
+                <div className="h-60 min-w-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={dailyLogins}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="date" tickLine={false} axisLine={false} />
+                            <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                            <Tooltip />
+                            <Line type="monotone" dataKey="count" stroke="var(--chart-1)" strokeWidth={2} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+                <div className="h-60 min-w-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={hourlyActive}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="date" tickLine={false} axisLine={false} />
+                            <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                            <Tooltip />
+                            <Bar dataKey="count" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </CardContent>
+        </Card>
     );
 };
+
+const ProgressRow = ({
+    icon: Icon,
+    label,
+    value,
+    detail,
+    warning,
+}: {
+    icon: typeof ServerIcon;
+    label: string;
+    value: number;
+    detail: string;
+    warning: boolean;
+}) => (
+    <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3 text-sm">
+            <div className="flex items-center gap-2 font-medium">
+                <Icon className="text-muted-foreground" />
+                <span>{label}</span>
+            </div>
+            <span className="text-muted-foreground">{detail}</span>
+        </div>
+        <div className="h-2 rounded-full bg-secondary">
+            <div
+                className="h-2 rounded-full bg-primary transition-all data-[warning=true]:bg-destructive"
+                data-warning={warning}
+                style={{ width: `${value}%` }}
+            />
+        </div>
+    </div>
+);
+
+const MetricBlock = ({ label, value }: { label: string; value: string }) => (
+    <div className="rounded-lg border bg-card p-4">
+        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-sm text-muted-foreground">{label}</div>
+    </div>
+);
 
 const normalizeTrendItems = (items?: Dashboard.TrendItem[]) => {
     return (items ?? [])

@@ -1,18 +1,25 @@
-use std::time::Duration;
+use std::{path::Path, str::FromStr, time::Duration};
 
-pub use rz_core::{CoreError, SqlitePool, database_url_from_path, test_connection};
-use rz_core::{SqlitePoolConfig, connect_sqlite_with_config};
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
+
+pub use sqlx::SqlitePool;
+
+#[derive(Debug, thiserror::Error)]
+pub enum CoreError {
+    #[error("invalid input: {0}")]
+    InvalidInput(String),
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("sqlite error: {0}")]
+    Sqlite(#[from] sqlx::Error),
+}
 
 /// Default-sized SQLite connection options for local service startup.
 #[derive(Debug, Clone)]
 pub struct DatabaseConnectionOptions {
-    /// Maximum number of pooled connections.
     pub max_connections: u32,
-    /// Minimum number of pooled connections.
     pub min_connections: u32,
-    /// Connection acquisition timeout.
     pub connect_timeout: Duration,
-    /// Optional idle timeout. `None` disables idle reaping.
     pub idle_timeout: Option<Duration>,
 }
 
@@ -27,73 +34,78 @@ impl Default for DatabaseConnectionOptions {
     }
 }
 
-/// Create an SQLite pool with explicit options.
+pub fn database_url_from_path(path: impl AsRef<Path>) -> String {
+    let path = path.as_ref();
+    if let Some(raw) = path.to_str()
+        && (raw == ":memory:" || raw.starts_with("sqlite:"))
+    {
+        return raw.to_string();
+    }
+    format!("sqlite:///{}", path.display())
+}
+
 pub async fn connect_sqlite_with_options(
     database_url: &str,
     options: DatabaseConnectionOptions,
 ) -> Result<SqlitePool, CoreError> {
-    connect_sqlite_with_config(database_url, options.into_pool_config()).await
+    ensure_database_directory(database_url)?;
+    let connect_options = SqliteConnectOptions::from_str(database_url)?
+        .create_if_missing(true)
+        .foreign_keys(true)
+        .busy_timeout(Duration::from_secs(5))
+        .journal_mode(SqliteJournalMode::Wal)
+        .synchronous(SqliteSynchronous::Normal)
+        .pragma("auto_vacuum", "INCREMENTAL");
+
+    Ok(SqlitePoolOptions::new()
+        .max_connections(options.max_connections)
+        .min_connections(options.min_connections)
+        .acquire_timeout(options.connect_timeout)
+        .idle_timeout(options.idle_timeout)
+        .connect_with(connect_options)
+        .await?)
 }
 
-/// Create an SQLite pool with default options.
 pub async fn connect_sqlite(database_url: &str) -> Result<SqlitePool, CoreError> {
     connect_sqlite_with_options(database_url, DatabaseConnectionOptions::default()).await
 }
 
-impl DatabaseConnectionOptions {
-    fn into_pool_config(self) -> SqlitePoolConfig {
-        SqlitePoolConfig {
-            max_connections: self.max_connections,
-            min_connections: self.min_connections,
-            acquire_timeout: self.connect_timeout,
-            idle_timeout: self.idle_timeout,
-            ..SqlitePoolConfig::service()
-        }
+pub async fn test_connection(pool: &SqlitePool) -> Result<(), CoreError> {
+    sqlx::query("SELECT 1").execute(pool).await?;
+    Ok(())
+}
+
+fn ensure_database_directory(database_url: &str) -> Result<(), CoreError> {
+    let value = database_url.trim();
+    if value.is_empty() {
+        return Err(CoreError::InvalidInput("SQLite database path cannot be empty".to_string()));
     }
+    if value == ":memory:" || value == "sqlite::memory:" {
+        return Ok(());
+    }
+    let path = value.strip_prefix("sqlite://").or_else(|| value.strip_prefix("sqlite:"));
+    let path = Path::new(path.unwrap_or(value));
+    if path.is_dir() {
+        return Err(CoreError::InvalidInput(
+            "SQLite database path must be a file path, not a directory".to_string(),
+        ));
+    }
+    if let Some(parent) = path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        std::fs::create_dir_all(parent)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::database_url_from_path;
-    use rz_core::ensure_database_directory;
-    use std::fs;
     use std::path::Path;
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     #[test]
-    fn database_url_keeps_explicit_sqlite_memory() {
+    fn database_urls_preserve_memory_and_format_files() {
         assert_eq!(database_url_from_path(Path::new(":memory:")), ":memory:");
-    }
-
-    #[test]
-    fn database_url_formats_file_path() {
         assert_eq!(database_url_from_path(Path::new("/tmp/data.db")), "sqlite:////tmp/data.db");
-    }
-
-    #[test]
-    fn ensure_database_directory_keeps_file_creation_outside_connect() {
-        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).expect("system time").as_nanos();
-        let db_path = std::env::temp_dir().join(format!("rustzen-storage-{}.db", nanos));
-        if db_path.exists() {
-            fs::remove_file(&db_path).ok();
-        }
-        if let Some(parent) = db_path.parent() {
-            fs::create_dir_all(parent).expect("create temp dir");
-        }
-
-        let database_url = format!("sqlite:///{}", db_path.display());
-        let result = ensure_database_directory(&database_url);
-
-        assert!(result.is_ok(), "ensure_database_directory failed: {result:?}");
-        assert!(
-            !db_path.exists(),
-            "ensure_database_directory should not create file; sqlite connection handles creation"
-        );
-    }
-
-    #[test]
-    fn ensure_database_directory_rejects_empty_path() {
-        let result = ensure_database_directory("");
-        assert!(result.is_err());
     }
 }

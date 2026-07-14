@@ -1,17 +1,17 @@
 use std::{
     fs,
-    io::{Cursor, Read},
+    future::Future,
     path::{Path, PathBuf},
+    process::Stdio,
     sync::Arc,
     time::Duration,
 };
 
 use axum::extract::Multipart;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio::process::Command;
-use zip::ZipArchive;
 
 use crate::{
     common::{
@@ -19,8 +19,8 @@ use crate::{
         pagination::{Pagination, PaginationQuery},
     },
     features::manage::deploy::types::{
-        DeployComponent, DeployVersionRequest, DeploymentItem, DeploymentPayload,
-        ExpireVersionRequest, ListDeploymentsQuery,
+        DeployComponent, DeploymentItem, DeploymentPayload, ExpireVersionRequest,
+        ListDeploymentsQuery,
     },
     infra::config::CONFIG,
 };
@@ -29,25 +29,34 @@ use super::repo::DeployRepository;
 
 pub const DEPLOY_FILE_MAX_SIZE: usize = 64 * 1024 * 1024;
 const DEPLOY_BODY_LIMIT: usize = DEPLOY_FILE_MAX_SIZE + 1024 * 1024;
-const SERVER_BINARY_NAME: &str = "rustzen-admin";
-const SERVER_SYSTEMD_UNIT: &str = "rustzen-admin.service";
-const SERVER_RESTART_DELAY: Duration = Duration::from_millis(300);
-const WEB_MARKER_FILE: &str = "dist/__rustzen_admin_marker__.json";
-const SERVER_MARKER_PREFIX: &[u8] = b"RUSTZEN_ADMIN_MARKER\ncomponent=server\n";
-const SIGNED_MARKER_BEGIN: &[u8] = b"\nRUSTZEN_ADMIN_SIGNED_MARKER_BEGIN\n";
-const SIGNED_MARKER_END: &[u8] = b"\nRUSTZEN_ADMIN_SIGNED_MARKER_END\n";
-const DEPLOY_SIGNATURE_SCHEMA_VERSION: u8 = 1;
-const DEPLOY_SIGNATURE_PAYLOAD_VERSION: &str = "rustzen-admin-deploy-v1";
+const RELEASE_MARKER_PREFIX: &[u8] = b"RUSTZEN_RELEASE_MARKER\nartifact=rz\n";
+const SIGNED_MARKER_BEGIN: &[u8] = b"\nRUSTZEN_RELEASE_SIGNED_MARKER_BEGIN\n";
+const SIGNED_MARKER_END: &[u8] = b"\nRUSTZEN_RELEASE_SIGNED_MARKER_END\n";
+const SIGNATURE_PAYLOAD_VERSION: &str = "rustzen-release-v1";
+const SYSTEMD_UNITS: &[&str] =
+    &["rz-monitor.service", "rz-insights.service", "rz-reports.service", "rz-admin.service"];
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct DeploySignatureMarker {
+struct ReleaseSignatureMarker {
     schema_version: u8,
     component: String,
     version: String,
     arch: String,
     content_sha256: String,
     signature: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateJournal {
+    release_id: i64,
+    backup_dir: PathBuf,
+    link: PathBuf,
+    old_target: Option<PathBuf>,
+    stage: String,
+    #[serde(default)]
+    restarted_units: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -76,7 +85,6 @@ impl DeployService {
     }
 
     pub async fn upload(&self, mut multipart: Multipart) -> Result<DeploymentItem, ServiceError> {
-        let mut component = None;
         let mut version = None;
         let mut arch = None;
         let mut notes = None;
@@ -90,12 +98,16 @@ impl DeployService {
             let Some(name) = field.name().map(str::to_string) else {
                 continue;
             };
-
             match name.as_str() {
                 "component" => {
-                    component = Some(parse_component(field.text().await.map_err(|_| {
+                    let value = field.text().await.map_err(|_| {
                         ServiceError::InvalidOperation("Invalid component field".to_string())
-                    })?)?);
+                    })?;
+                    if value != "release" {
+                        return Err(ServiceError::InvalidOperation(
+                            "Only complete release artifacts are accepted".to_string(),
+                        ));
+                    }
                 }
                 "version" => {
                     version = Some(validate_version(field.text().await.map_err(|_| {
@@ -107,71 +119,69 @@ impl DeployService {
                         ServiceError::InvalidOperation("Invalid arch field".to_string())
                     })?);
                 }
-                "notes" => {
-                    notes = normalize_optional(field.text().await.unwrap_or_default());
-                }
+                "notes" => notes = normalize_optional(field.text().await.unwrap_or_default()),
                 "file" => {
-                    let data = field.bytes().await.map_err(|_| {
-                        ServiceError::InvalidOperation("Failed to read uploaded file".to_string())
-                    })?;
-                    file_data = Some(data.to_vec());
+                    file_data = Some(
+                        field
+                            .bytes()
+                            .await
+                            .map_err(|_| {
+                                ServiceError::InvalidOperation(
+                                    "Failed to read uploaded release".to_string(),
+                                )
+                            })?
+                            .to_vec(),
+                    );
                 }
                 _ => {}
             }
         }
 
-        let component = component
-            .ok_or_else(|| ServiceError::InvalidOperation("component is required".into()))?;
         let version =
             version.ok_or_else(|| ServiceError::InvalidOperation("version is required".into()))?;
-        let file_data =
+        let data =
             file_data.ok_or_else(|| ServiceError::InvalidOperation("file is required".into()))?;
-        validate_upload_size(&file_data)?;
-
-        let arch = match component {
-            DeployComponent::Server => {
-                let arch = resolve_server_arch(arch.as_deref(), &file_data)?;
-                validate_server_file(&file_data, &version, &arch)?;
-                arch
-            }
-            DeployComponent::Web => {
-                validate_web_file(&file_data, &version)?;
-                "x86_64".to_string()
-            }
-        };
-
-        if self.repo.version_exists(&component, &version, &arch).await? {
+        validate_upload_size(&data)?;
+        let detected_arch = detect_elf_arch(&data)?;
+        if let Some(requested_arch) = arch
+            && requested_arch != detected_arch
+        {
             return Err(ServiceError::InvalidOperation(
-                "Deploy version has already been uploaded for this component and arch; use a new version.".to_string(),
+                "Uploaded release architecture does not match arch field".to_string(),
             ));
         }
-
-        let file_hash = sha256_hex(&file_data);
-        let file_path = save_version_file(&component, &version, &arch, &file_data).await?;
-
+        validate_release(&data, &version, &detected_arch)?;
+        let component = DeployComponent::Release;
+        if self.repo.version_exists(&component, &version, &detected_arch).await? {
+            return Err(ServiceError::InvalidOperation(
+                "Release version has already been uploaded for this architecture".to_string(),
+            ));
+        }
+        let file_hash = sha256_hex(&data);
+        let file_path = save_release(&version, &detected_arch, &data).await?;
         match self
             .repo
             .insert(&DeploymentPayload {
                 component,
                 version,
-                arch,
+                arch: detected_arch,
                 file_path: file_path.to_string_lossy().to_string(),
-                file_size: file_data.len() as i64,
+                file_size: i64::try_from(data.len()).unwrap_or(i64::MAX),
                 file_hash,
                 notes,
             })
             .await
         {
             Ok(item) => Ok(item),
-            Err(err) => {
-                if let Err(remove_err) = remove_deploy_file_path(&file_path) {
-                    tracing::warn!(
-                        "Failed to remove deploy file after database insert error file={}: {}",
-                        file_path.display(),
-                        remove_err
+            Err(error) => {
+                if let Err(cleanup_error) = fs::remove_file(&file_path) {
+                    tracing::error!(
+                        %cleanup_error,
+                        path = %file_path.display(),
+                        "Failed to remove unregistered release artifact"
                     );
                 }
-                Err(err)
+                Err(error)
             }
         }
     }
@@ -180,20 +190,32 @@ impl DeployService {
         self.repo.find_by_id(id).await
     }
 
-    pub async fn deploy(
-        &self,
-        id: i64,
-        request: DeployVersionRequest,
-    ) -> Result<bool, ServiceError> {
+    pub async fn deploy(&self, id: i64, deployed_by: String) -> Result<bool, ServiceError> {
         let version = self.repo.find_by_id(id).await?;
         ensure_version_is_deployable(&version)?;
-        validate_stored_file(&version)?;
-
-        match version.component {
-            DeployComponent::Server => self.deploy_server(&version, &request).await?,
-            DeployComponent::Web => self.deploy_web(&version, &request).await?,
-        }
-
+        validate_stored_release(&version)?;
+        let executable = std::env::current_exe().map_err(|error| {
+            ServiceError::InvalidOperation(format!("Cannot locate rz executable: {error}"))
+        })?;
+        Command::new("systemd-run")
+            .arg(format!("--unit=rz-update-{id}"))
+            .args(["--collect", "--no-block"])
+            .args([
+                "--property=Restart=on-failure",
+                "--property=RestartSec=2s",
+                "--property=StartLimitIntervalSec=60s",
+                "--property=StartLimitBurst=3",
+            ])
+            .arg(format!("--setenv=RUSTZEN_UPDATE_DEPLOYED_BY={deployed_by}"))
+            .arg(executable)
+            .args(["update", "worker", &id.to_string()])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .map_err(|error| {
+                ServiceError::InvalidOperation(format!("Failed to start update worker: {error}"))
+            })?;
         Ok(true)
     }
 
@@ -209,1177 +231,700 @@ impl DeployService {
         let version = self.repo.find_by_id(id).await?;
         if version.is_current {
             return Err(ServiceError::InvalidOperation(
-                "Cannot delete the current deploy version".to_string(),
+                "Cannot delete the current release".to_string(),
             ));
         }
         let deleted = self.repo.delete_by_id(id).await?;
-        if let Err(err) = remove_deploy_file(&deleted) {
-            tracing::warn!(
-                "Deploy version id={} was deleted from database but file cleanup failed file={}: {}",
-                deleted.id,
-                deleted.file_path,
-                err
-            );
+        if let Err(error) = fs::remove_file(&deleted.file_path)
+            && error.kind() != std::io::ErrorKind::NotFound
+        {
+            tracing::warn!(%error, path = %deleted.file_path, "Release file cleanup failed");
         }
         Ok(deleted)
     }
 
     pub async fn cleanup_expired(
         &self,
-        component: Option<DeployComponent>,
+        _component: Option<DeployComponent>,
     ) -> Result<usize, ServiceError> {
-        let versions = self.repo.expired_non_current(component.as_ref()).await?;
+        let versions = self.repo.expired_non_current(Some(&DeployComponent::Release)).await?;
         let mut deleted = 0;
-
         for version in versions {
             let deleted_version = self.repo.delete_by_id(version.id).await?;
-            if let Err(err) = remove_deploy_file(&deleted_version) {
-                tracing::warn!(
-                    "Deploy version id={} was expired in database but file cleanup failed file={}: {}",
-                    deleted_version.id,
-                    deleted_version.file_path,
-                    err
-                );
+            if let Err(error) = fs::remove_file(&deleted_version.file_path)
+                && error.kind() != std::io::ErrorKind::NotFound
+            {
+                tracing::warn!(%error, path = %deleted_version.file_path, "Release cleanup failed");
             }
             deleted += 1;
         }
-
         Ok(deleted)
     }
 
-    async fn deploy_server(
-        &self,
-        version: &DeploymentItem,
-        request: &DeployVersionRequest,
-    ) -> Result<(), ServiceError> {
-        let target_bin = runtime_root_dir().join("bin").join(SERVER_BINARY_NAME);
-        fs::create_dir_all(parent_dir(&target_bin)?).map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to create bin directory: {err}"))
-        })?;
+    pub async fn run_update_worker(id: i64) -> Result<(), Box<dyn std::error::Error>> {
+        recover_interrupted_update(id).await?;
+        let pool = crate::infra::db::create_default_pool().await?;
+        crate::infra::db::run_migrations(&pool).await?;
+        let service = Self::new(pool.clone());
+        let version = service.find_by_id(id).await?;
+        ensure_version_is_deployable(&version)?;
+        validate_stored_release(&version)?;
+        drop(service);
+        pool.close().await;
 
-        if let Some(current) = self.repo.find_current(&version.component, &version.arch).await?
-            && current.id == version.id
-            && fs::read_link(&target_bin)
-                .map(|target| target == Path::new(&version.file_path))
-                .unwrap_or(false)
-        {
-            return Ok(());
+        let backup_dir = match backup_databases(&version.version).await {
+            Ok(path) => path,
+            Err(error) => return Err(error),
+        };
+        let link = CONFIG.runtime_root_dir().join("bin/rz");
+        let old_target = fs::read_link(&link).ok();
+        let mut journal = UpdateJournal {
+            release_id: id,
+            backup_dir: backup_dir.clone(),
+            link: link.clone(),
+            old_target: old_target.clone(),
+            stage: "backedUp".to_string(),
+            restarted_units: Vec::new(),
+        };
+        write_update_journal(&journal)?;
+        if let Err(error) = swap_symlink(&link, Path::new(&version.file_path)) {
+            remove_update_journal()?;
+            return Err(error.into());
         }
+        journal.stage = "switched".to_string();
+        write_update_journal(&journal)?;
 
-        prepare_server_restart().await?;
-
-        let old_target =
-            swap_symlink(&target_bin, Path::new(&version.file_path)).map_err(|err| {
-                ServiceError::InvalidOperation(format!("Failed to switch server binary: {err}"))
-            })?;
-
-        if let Err(err) = self
-            .repo
-            .set_current(
-                &version.component,
-                &version.arch,
-                version.id,
-                request.deployed_by.as_deref(),
-            )
-            .await
-        {
-            if let Err(restore_err) = restore_symlink(&target_bin, old_target.as_deref()) {
-                tracing::error!("Failed to restore server symlink: {}", restore_err);
-            } else if let Err(restart_err) = restart_server().await {
-                tracing::error!(
-                    "Failed to restart server after restoring previous symlink: {}",
-                    restart_err
-                );
-            }
-            return Err(err);
+        let update_result = async {
+            roll_services(&mut journal, &update_journal_path()).await?;
+            journal.stage = "committing".to_string();
+            write_update_journal(&journal)?;
+            let pool = crate::infra::db::create_default_pool().await?;
+            crate::infra::db::run_migrations(&pool).await?;
+            let service = Self::new(pool.clone());
+            service
+                .repo
+                .set_current(
+                    &DeployComponent::Release,
+                    &version.arch,
+                    version.id,
+                    std::env::var("RUSTZEN_UPDATE_DEPLOYED_BY").ok().as_deref(),
+                )
+                .await?;
+            pool.close().await;
+            Ok::<(), Box<dyn std::error::Error>>(())
         }
+        .await;
 
-        schedule_server_restart();
-
-        Ok(())
-    }
-
-    async fn deploy_web(
-        &self,
-        version: &DeploymentItem,
-        request: &DeployVersionRequest,
-    ) -> Result<(), ServiceError> {
-        if let Some(current) = self.repo.find_current(&version.component, &version.arch).await?
-            && current.id == version.id
-        {
-            return Ok(());
-        }
-
-        let web_root = runtime_root_dir().join("web");
-        let tmp_dir = web_root.join(format!(".deploy-{}", version.id));
-        if tmp_dir.exists() {
-            fs::remove_dir_all(&tmp_dir).map_err(|err| {
-                ServiceError::InvalidOperation(format!("Failed to clear temp web directory: {err}"))
-            })?;
-        }
-        fs::create_dir_all(&tmp_dir).map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to create temp web directory: {err}"))
-        })?;
-
-        let extract_result = extract_zip_to_dir(Path::new(&version.file_path), &tmp_dir);
-        if let Err(err) = extract_result {
-            let _ = fs::remove_dir_all(&tmp_dir);
-            return Err(err);
-        }
-
-        let extracted_dist = tmp_dir.join("dist");
-        if !extracted_dist.join("index.html").is_file() {
-            let _ = fs::remove_dir_all(&tmp_dir);
-            return Err(ServiceError::InvalidOperation(
-                "web package must contain dist/index.html".to_string(),
-            ));
-        }
-
-        fs::create_dir_all(&web_root).map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to create web directory: {err}"))
-        })?;
-        let dist_dir = web_root.join("dist");
-        let new_dist = web_root.join("dist.new");
-        let prev_dist = web_root.join("dist.prev");
-        remove_path_if_exists(&new_dist)?;
-        fs::rename(&extracted_dist, &new_dist).map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to prepare new web dist: {err}"))
-        })?;
-        remove_path_if_exists(&prev_dist)?;
-        if dist_dir.exists() {
-            fs::rename(&dist_dir, &prev_dist).map_err(|err| {
-                ServiceError::InvalidOperation(format!(
-                    "Failed to archive previous web dist: {err}"
+        if let Err(error) = update_result {
+            let rollback_result = rollback_update(&journal).await;
+            return match rollback_result {
+                Ok(()) => {
+                    remove_update_journal()?;
+                    tracing::error!(%error, "Release update failed and was rolled back");
+                    Ok(())
+                }
+                Err(rollback_error) => Err(std::io::Error::other(format!(
+                    "release update failed: {error}; rollback failed: {rollback_error}"
                 ))
-            })?;
+                .into()),
+            };
         }
-        fs::rename(&new_dist, &dist_dir).map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to activate web dist: {err}"))
-        })?;
-        let _ = fs::remove_dir_all(&tmp_dir);
-
-        if let Err(err) = self
-            .repo
-            .set_current(
-                &version.component,
-                &version.arch,
-                version.id,
-                request.deployed_by.as_deref(),
-            )
-            .await
-        {
-            if let Err(restore_err) = restore_web_dist(&dist_dir, &prev_dist) {
-                tracing::error!(
-                    "Failed to rollback web dist after database error: {}",
-                    restore_err
-                );
-            }
-            return Err(err);
-        }
-
-        let _ = remove_path_if_exists(&prev_dist);
+        remove_update_journal()?;
         Ok(())
     }
 }
 
-async fn save_version_file(
-    component: &DeployComponent,
-    version: &str,
-    arch: &str,
-    file_data: &[u8],
-) -> Result<PathBuf, ServiceError> {
-    let path = version_file_path(component, version, arch)?;
-    if path.exists() {
-        return Err(ServiceError::InvalidOperation(format!(
-            "Deploy file already exists: {}",
-            path.display()
-        )));
-    }
-    fs::create_dir_all(parent_dir(&path)?).map_err(|err| {
-        ServiceError::InvalidOperation(format!("Failed to create version directory: {err}"))
-    })?;
-    tokio::fs::write(&path, file_data).await.map_err(|err| {
-        ServiceError::InvalidOperation(format!("Failed to save deploy file: {err}"))
-    })?;
-
-    if matches!(component, DeployComponent::Server) {
-        set_executable(&path)?;
-    }
-
-    Ok(path)
-}
-
-fn version_file_path(
-    component: &DeployComponent,
-    version: &str,
-    arch: &str,
-) -> Result<PathBuf, ServiceError> {
-    let root = runtime_root_dir();
-    match component {
-        DeployComponent::Server => {
-            Ok(root.join("bin").join(format!("{SERVER_BINARY_NAME}-{version}-{arch}")))
-        }
-        DeployComponent::Web => Ok(root.join("web").join(format!("web-{version}.zip"))),
-    }
-}
-
-fn validate_stored_file(version: &DeploymentItem) -> Result<(), ServiceError> {
-    let data = fs::read(&version.file_path).map_err(|err| {
-        ServiceError::InvalidOperation(format!("Failed to read deploy file: {err}"))
-    })?;
-    if data.len() as i64 != version.file_size {
-        return Err(ServiceError::InvalidOperation(
-            "Deploy file size does not match database record".to_string(),
-        ));
-    }
-    let actual_hash = sha256_hex(&data);
-    if actual_hash != version.file_hash {
-        return Err(ServiceError::InvalidOperation(
-            "Deploy file hash does not match database record".to_string(),
-        ));
-    }
-
-    match version.component {
-        DeployComponent::Server => validate_server_file(&data, &version.version, &version.arch),
-        DeployComponent::Web => validate_web_file(&data, &version.version),
-    }
-}
-
-fn validate_upload_size(file_data: &[u8]) -> Result<(), ServiceError> {
-    if file_data.is_empty() {
-        return Err(ServiceError::InvalidOperation("file is required".to_string()));
-    }
-    if file_data.len() > DEPLOY_FILE_MAX_SIZE {
-        return Err(ServiceError::InvalidOperation(format!(
-            "file must be smaller than {} MB",
-            DEPLOY_FILE_MAX_SIZE / 1024 / 1024
-        )));
-    }
-    Ok(())
-}
-
-fn validate_server_file(
-    file_data: &[u8],
-    expected_version: &str,
-    expected_arch: &str,
-) -> Result<(), ServiceError> {
-    validate_server_file_with_signature_policy(
-        file_data,
-        expected_version,
-        expected_arch,
-        CONFIG.deploy_signature_required,
-        CONFIG.deploy_verify_key.as_deref(),
-    )
-}
-
-fn validate_server_file_with_signature_policy(
-    file_data: &[u8],
-    expected_version: &str,
-    expected_arch: &str,
-    signature_required: bool,
-    verify_key: Option<&str>,
-) -> Result<(), ServiceError> {
-    if is_zip(file_data) {
-        return Err(ServiceError::InvalidOperation(
-            "server component does not accept zip files".to_string(),
-        ));
-    }
-    if !(is_elf(file_data) || is_macho_or_fat(file_data)) {
-        return Err(ServiceError::InvalidOperation(
-            "server file must be an executable binary".to_string(),
-        ));
-    }
-    if signature_required {
-        validate_server_signed_marker(file_data, expected_version, expected_arch, verify_key)?;
-    } else if !file_data
-        .windows(SERVER_MARKER_PREFIX.len())
-        .any(|window| window == SERVER_MARKER_PREFIX)
-        && split_server_signed_marker(file_data).is_err()
-    {
-        return Err(ServiceError::InvalidOperation("server file marker check failed".to_string()));
-    }
-    if let Some(detected_arch) = detect_binary_arch(file_data)?
-        && detected_arch != expected_arch
-    {
-        return Err(ServiceError::InvalidOperation(format!(
-            "server file arch mismatch: detected {detected_arch}, expected {expected_arch}"
-        )));
-    }
-    Ok(())
-}
-
-fn validate_web_file(file_data: &[u8], expected_version: &str) -> Result<(), ServiceError> {
-    const MAX_FILES: usize = 5000;
-    const MAX_SINGLE_UNCOMPRESSED: u64 = 5 * 1024 * 1024;
-    const MAX_TOTAL_UNCOMPRESSED: u64 = 50 * 1024 * 1024;
-
-    if !is_zip(file_data) {
-        return Err(ServiceError::InvalidOperation(
-            "web component only accepts zip files".to_string(),
-        ));
-    }
-
-    let mut archive = ZipArchive::new(Cursor::new(file_data))
-        .map_err(|_| ServiceError::InvalidOperation("web zip cannot be parsed".to_string()))?;
-    let file_count = archive.len();
-    if file_count == 0 || file_count > MAX_FILES {
-        return Err(ServiceError::InvalidOperation(format!(
-            "web zip file count is invalid: {file_count}"
-        )));
-    }
-
-    let mut has_index = false;
-    let mut has_asset = false;
-    let mut marker_content = None;
-    let mut total_uncompressed = 0_u64;
-    let mut content_entries = Vec::new();
-
-    for index in 0..file_count {
-        let mut file = archive
-            .by_index(index)
-            .map_err(|_| ServiceError::InvalidOperation("web zip read failed".to_string()))?;
-        let Some(enclosed_name) = file.enclosed_name().map(|path| path.to_path_buf()) else {
-            return Err(ServiceError::InvalidOperation(
-                "web zip contains invalid paths".to_string(),
-            ));
-        };
-        let Some(name) = zip_path_name(&enclosed_name) else {
-            return Err(ServiceError::InvalidOperation(
-                "web zip contains invalid paths".to_string(),
-            ));
-        };
-
-        if name == "dist/index.html" {
-            has_index = true;
-        }
-        if name.starts_with("dist/assets/") && (name.ends_with(".js") || name.ends_with(".css")) {
-            has_asset = true;
-        }
-        if name == WEB_MARKER_FILE {
-            marker_content = Some(read_web_marker(&mut file)?);
-        }
-
-        let size = file.size();
-        if size > MAX_SINGLE_UNCOMPRESSED {
-            return Err(ServiceError::InvalidOperation(format!(
-                "web zip file is too large after unzip: {name}"
-            )));
-        }
-        total_uncompressed = total_uncompressed.saturating_add(size);
-        if total_uncompressed > MAX_TOTAL_UNCOMPRESSED {
-            return Err(ServiceError::InvalidOperation(
-                "web zip total uncompressed size is too large".to_string(),
-            ));
-        }
-
-        if name != WEB_MARKER_FILE && file.is_file() {
-            let content_hash = zip_file_content_hash(&mut file)?;
-            content_entries.push((name, size, content_hash));
-        }
-    }
-
-    if !has_index {
-        return Err(ServiceError::InvalidOperation(
-            "web zip must contain dist/index.html".to_string(),
-        ));
-    }
-    if !has_asset {
-        return Err(ServiceError::InvalidOperation(
-            "web zip must contain dist/assets/*.js or *.css".to_string(),
-        ));
-    }
-    let Some(marker_content) = marker_content else {
-        return Err(ServiceError::InvalidOperation(format!(
-            "web zip must contain {WEB_MARKER_FILE}"
-        )));
+async fn recover_interrupted_update(id: i64) -> Result<(), Box<dyn std::error::Error>> {
+    let Some(journal) = read_update_journal()? else {
+        return Ok(());
     };
-
-    let content_hash = web_content_hash(content_entries);
-    validate_web_marker_content_with_signature_policy(
-        &marker_content,
-        expected_version,
-        CONFIG.deploy_signature_required,
-        CONFIG.deploy_verify_key.as_deref(),
-        &content_hash,
-    )?;
-
-    Ok(())
-}
-
-fn read_web_marker<R: Read>(reader: &mut R) -> Result<String, ServiceError> {
-    let mut content = String::new();
-    reader
-        .read_to_string(&mut content)
-        .map_err(|_| ServiceError::InvalidOperation("web marker cannot be read".to_string()))?;
-    Ok(content)
-}
-
-fn validate_web_marker_content_with_signature_policy(
-    content: &str,
-    expected_version: &str,
-    signature_required: bool,
-    verify_key: Option<&str>,
-    content_hash: &str,
-) -> Result<(), ServiceError> {
-    if signature_required {
-        let marker: DeploySignatureMarker = serde_json::from_str(content).map_err(|_| {
-            ServiceError::InvalidOperation("web signature marker is not valid JSON".to_string())
-        })?;
-        return validate_signed_marker(
-            &marker,
-            "web",
-            expected_version,
-            "universal",
-            content_hash,
-            verify_key,
-        );
-    }
-
-    let marker: serde_json::Value = serde_json::from_str(&content)
-        .map_err(|_| ServiceError::InvalidOperation("web marker is not valid JSON".to_string()))?;
-
-    if marker.get("schemaVersion").and_then(|value| value.as_u64())
-        == Some(DEPLOY_SIGNATURE_SCHEMA_VERSION as u64)
-    {
-        if marker.get("component").and_then(|value| value.as_str()) == Some("web") {
-            return Ok(());
-        }
-        return Err(ServiceError::InvalidOperation(
-            "web signature marker component must be web".to_string(),
-        ));
-    }
-
-    if marker.get("component").and_then(|value| value.as_str()) != Some("web") {
-        return Err(ServiceError::InvalidOperation("web marker component must be web".to_string()));
-    }
-    if marker.get("build_id").and_then(|value| value.as_str()) != Some("manual") {
-        return Err(ServiceError::InvalidOperation(
-            "web marker build_id must be manual".to_string(),
-        ));
-    }
-    Ok(())
-}
-
-fn zip_file_content_hash<R: Read>(reader: &mut R) -> Result<String, ServiceError> {
-    let mut hasher = Sha256::new();
-    let mut buffer = [0_u8; 8192];
-    loop {
-        let read = reader
-            .read(&mut buffer)
-            .map_err(|_| ServiceError::InvalidOperation("web zip read failed".to_string()))?;
-        if read == 0 {
-            break;
-        }
-        hasher.update(&buffer[..read]);
-    }
-    Ok(finalize_sha256_hex(hasher))
-}
-
-fn web_content_hash(mut entries: Vec<(String, u64, String)>) -> String {
-    entries.sort_by(|left, right| left.0.cmp(&right.0));
-    let mut hasher = Sha256::new();
-    for (name, size, content_hash) in entries {
-        hasher.update(name.as_bytes());
-        hasher.update([0]);
-        hasher.update(size.to_le_bytes());
-        hasher.update(content_hash.as_bytes());
-        hasher.update([0]);
-    }
-    finalize_sha256_hex(hasher)
-}
-
-fn validate_server_signed_marker(
-    file_data: &[u8],
-    expected_version: &str,
-    expected_arch: &str,
-    verify_key: Option<&str>,
-) -> Result<(), ServiceError> {
-    let (content, marker) = split_server_signed_marker(file_data)?;
-    let marker: DeploySignatureMarker = serde_json::from_slice(marker).map_err(|_| {
-        ServiceError::InvalidOperation("server signature marker is not valid JSON".to_string())
-    })?;
-    let content_hash = sha256_hex(content);
-    validate_signed_marker(
-        &marker,
-        "server",
-        expected_version,
-        expected_arch,
-        &content_hash,
-        verify_key,
-    )
-}
-
-fn split_server_signed_marker(file_data: &[u8]) -> Result<(&[u8], &[u8]), ServiceError> {
-    let marker_start = find_last_subslice(file_data, SIGNED_MARKER_BEGIN).ok_or_else(|| {
-        ServiceError::InvalidOperation("server signature marker is required".to_string())
-    })?;
-    let marker_content_start = marker_start + SIGNED_MARKER_BEGIN.len();
-    let marker_end = find_subslice(&file_data[marker_content_start..], SIGNED_MARKER_END)
-        .map(|offset| marker_content_start + offset)
-        .ok_or_else(|| {
-            ServiceError::InvalidOperation("server signature marker is incomplete".to_string())
-        })?;
-    Ok((&file_data[..marker_start], &file_data[marker_content_start..marker_end]))
-}
-
-fn validate_signed_marker(
-    marker: &DeploySignatureMarker,
-    expected_component: &str,
-    expected_version: &str,
-    expected_arch: &str,
-    expected_content_hash: &str,
-    verify_key: Option<&str>,
-) -> Result<(), ServiceError> {
-    if marker.schema_version != DEPLOY_SIGNATURE_SCHEMA_VERSION {
-        return Err(ServiceError::InvalidOperation(
-            "deploy signature marker schema version is invalid".to_string(),
-        ));
-    }
-    if marker.component != expected_component {
-        return Err(ServiceError::InvalidOperation(format!(
-            "deploy signature component mismatch: expected {expected_component}"
-        )));
-    }
-    if marker.version != expected_version {
-        return Err(ServiceError::InvalidOperation(format!(
-            "deploy signature version mismatch: expected {expected_version}"
-        )));
-    }
-    if marker.arch != expected_arch {
-        return Err(ServiceError::InvalidOperation(format!(
-            "deploy signature arch mismatch: expected {expected_arch}"
-        )));
-    }
-    if marker.content_sha256 != expected_content_hash {
-        return Err(ServiceError::InvalidOperation(
-            "deploy signature content hash mismatch".to_string(),
-        ));
-    }
-
-    let verify_key =
-        verify_key.and_then(|value| normalize_optional(value.to_string())).ok_or_else(|| {
-            ServiceError::InvalidOperation(
-                "deploy signature verification key is required".to_string(),
-            )
-        })?;
-    let verifying_key = parse_verify_key(&verify_key)?;
-    let signature = parse_signature(&marker.signature)?;
-    let payload = deploy_signature_payload(
-        expected_component,
-        expected_version,
-        expected_arch,
-        expected_content_hash,
-    );
-    verifying_key.verify(payload.as_bytes(), &signature).map_err(|_| {
-        ServiceError::InvalidOperation("deploy signature verification failed".to_string())
-    })
-}
-
-fn deploy_signature_payload(
-    component: &str,
-    version: &str,
-    arch: &str,
-    content_hash: &str,
-) -> String {
-    format!(
-        "{DEPLOY_SIGNATURE_PAYLOAD_VERSION}\ncomponent={component}\nversion={version}\narch={arch}\ncontent_sha256={content_hash}\n"
-    )
-}
-
-fn parse_verify_key(value: &str) -> Result<VerifyingKey, ServiceError> {
-    let bytes = decode_hex(value).map_err(|err| {
-        ServiceError::InvalidOperation(format!(
-            "deploy signature verification key is invalid: {err}"
+    if journal.release_id != id {
+        return Err(std::io::Error::other(format!(
+            "unfinished release {} must be recovered before release {id}",
+            journal.release_id
         ))
-    })?;
-    let key_bytes: [u8; 32] = bytes.try_into().map_err(|_| {
-        ServiceError::InvalidOperation(
-            "deploy signature verification key must be 32 bytes hex".to_string(),
-        )
-    })?;
-    VerifyingKey::from_bytes(&key_bytes).map_err(|_| {
-        ServiceError::InvalidOperation("deploy signature verification key is invalid".to_string())
-    })
-}
-
-fn parse_signature(value: &str) -> Result<Signature, ServiceError> {
-    let bytes = decode_hex(value).map_err(|err| {
-        ServiceError::InvalidOperation(format!("deploy signature is invalid: {err}"))
-    })?;
-    Signature::from_slice(&bytes).map_err(|_| {
-        ServiceError::InvalidOperation("deploy signature must be 64 bytes hex".to_string())
-    })
-}
-
-fn decode_hex(value: &str) -> Result<Vec<u8>, String> {
-    let value = value.trim();
-    if !value.len().is_multiple_of(2) {
-        return Err("hex length must be even".to_string());
+        .into());
     }
-    let mut bytes = Vec::with_capacity(value.len() / 2);
-    for chunk in value.as_bytes().chunks_exact(2) {
-        let high = hex_value(chunk[0])?;
-        let low = hex_value(chunk[1])?;
-        bytes.push((high << 4) | low);
-    }
-    Ok(bytes)
-}
-
-fn hex_value(byte: u8) -> Result<u8, String> {
-    match byte {
-        b'0'..=b'9' => Ok(byte - b'0'),
-        b'a'..=b'f' => Ok(byte - b'a' + 10),
-        b'A'..=b'F' => Ok(byte - b'A' + 10),
-        _ => Err("contains non-hex characters".to_string()),
-    }
-}
-
-fn find_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    haystack.windows(needle.len()).position(|window| window == needle)
-}
-
-fn find_last_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    haystack.windows(needle.len()).rposition(|window| window == needle)
-}
-
-fn extract_zip_to_dir(zip_path: &Path, output_dir: &Path) -> Result<(), ServiceError> {
-    let file = fs::File::open(zip_path)
-        .map_err(|err| ServiceError::InvalidOperation(format!("Failed to open web zip: {err}")))?;
-    let mut archive = ZipArchive::new(file)
-        .map_err(|_| ServiceError::InvalidOperation("web zip cannot be parsed".to_string()))?;
-
-    for index in 0..archive.len() {
-        let mut file = archive
-            .by_index(index)
-            .map_err(|_| ServiceError::InvalidOperation("web zip read failed".to_string()))?;
-        let Some(enclosed_name) = file.enclosed_name().map(|path| path.to_path_buf()) else {
-            return Err(ServiceError::InvalidOperation(
-                "web zip contains invalid paths".to_string(),
-            ));
-        };
-        let output_path = output_dir.join(enclosed_name);
-        if file.is_dir() {
-            fs::create_dir_all(&output_path).map_err(|err| {
-                ServiceError::InvalidOperation(format!("Failed to create web directory: {err}"))
-            })?;
-            continue;
-        }
-        if let Some(parent) = output_path.parent() {
-            fs::create_dir_all(parent).map_err(|err| {
-                ServiceError::InvalidOperation(format!("Failed to create web directory: {err}"))
-            })?;
-        }
-        let mut output = fs::File::create(&output_path).map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to create web file: {err}"))
-        })?;
-        std::io::copy(&mut file, &mut output).map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to extract web file: {err}"))
-        })?;
-    }
-
+    rollback_update(&journal).await?;
+    remove_update_journal()?;
     Ok(())
 }
 
-fn parse_component(value: String) -> Result<DeployComponent, ServiceError> {
-    match value.trim() {
-        "server" => Ok(DeployComponent::Server),
-        "web" => Ok(DeployComponent::Web),
-        _ => Err(ServiceError::InvalidOperation("component must be server or web".to_string())),
+fn update_journal_path() -> PathBuf {
+    CONFIG.data_dir().join("update-state.json")
+}
+
+fn read_update_journal() -> Result<Option<UpdateJournal>, Box<dyn std::error::Error>> {
+    read_update_journal_at(&update_journal_path())
+}
+
+fn read_update_journal_at(
+    path: &Path,
+) -> Result<Option<UpdateJournal>, Box<dyn std::error::Error>> {
+    match fs::read(path) {
+        Ok(data) => Ok(Some(serde_json::from_slice(&data)?)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error.into()),
     }
+}
+
+fn write_update_journal(journal: &UpdateJournal) -> Result<(), Box<dyn std::error::Error>> {
+    write_update_journal_at(&update_journal_path(), journal)
+}
+
+fn write_update_journal_at(
+    path: &Path,
+    journal: &UpdateJournal,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let parent = path.parent().ok_or_else(|| std::io::Error::other("invalid update state path"))?;
+    fs::create_dir_all(parent)?;
+    let temporary = path.with_extension("json.new");
+    fs::write(&temporary, serde_json::to_vec_pretty(journal)?)?;
+    fs::rename(temporary, path)?;
+    Ok(())
+}
+
+fn remove_update_journal() -> Result<(), std::io::Error> {
+    let path = update_journal_path();
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+fn validate_upload_size(data: &[u8]) -> Result<(), ServiceError> {
+    if data.is_empty() || data.len() > DEPLOY_FILE_MAX_SIZE {
+        return Err(ServiceError::InvalidOperation(format!(
+            "Release must be between 1 byte and {DEPLOY_FILE_MAX_SIZE} bytes"
+        )));
+    }
+    Ok(())
 }
 
 fn validate_version(value: String) -> Result<String, ServiceError> {
-    let value = non_empty(value, "version")?;
-    if value.len() > 64 {
-        return Err(ServiceError::InvalidOperation(
-            "version must be at most 64 characters".to_string(),
-        ));
-    }
-    if value.chars().all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-')) {
-        Ok(value)
-    } else {
-        Err(ServiceError::InvalidOperation(
-            "version can only contain letters, numbers, dot, underscore, and dash".to_string(),
-        ))
-    }
-}
-
-fn normalize_arch(value: &str) -> Result<String, ServiceError> {
-    match value.trim().to_ascii_lowercase().as_str() {
-        "x86_64" | "amd64" => Ok("x86_64".to_string()),
-        "aarch64" | "arm64" => Ok("aarch64".to_string()),
-        _ => Err(ServiceError::InvalidOperation("arch must be x86_64 or aarch64".to_string())),
-    }
-}
-
-fn resolve_server_arch(value: Option<&str>, file_data: &[u8]) -> Result<String, ServiceError> {
-    if let Some(value) = value {
-        return normalize_arch(value);
-    }
-
-    detect_binary_arch(file_data)?.ok_or_else(|| {
-        ServiceError::InvalidOperation(
-            "server file arch cannot be detected; expected x86_64 or aarch64 binary".to_string(),
-        )
-    })
-}
-
-fn ensure_version_is_deployable(version: &DeploymentItem) -> Result<(), ServiceError> {
-    if version.is_expired {
-        return Err(ServiceError::InvalidOperation("Cannot deploy an expired version".to_string()));
-    }
-    Ok(())
-}
-
-fn detect_binary_arch(file_data: &[u8]) -> Result<Option<String>, ServiceError> {
-    if is_elf(file_data) {
-        return detect_elf_arch(file_data);
-    }
-    if is_macho_or_fat(file_data) {
-        return detect_macho_arch(file_data);
-    }
-    Ok(None)
-}
-
-fn detect_elf_arch(file_data: &[u8]) -> Result<Option<String>, ServiceError> {
-    if file_data.len() < 20 {
-        return Ok(None);
-    }
-
-    let is_little_endian = file_data[5] == 1;
-    let machine = if is_little_endian {
-        u16::from_le_bytes([file_data[18], file_data[19]])
-    } else {
-        u16::from_be_bytes([file_data[18], file_data[19]])
-    };
-
-    match machine {
-        62 => Ok(Some("x86_64".to_string())),
-        183 => Ok(Some("aarch64".to_string())),
-        _ => Ok(None),
-    }
-}
-
-fn detect_macho_arch(file_data: &[u8]) -> Result<Option<String>, ServiceError> {
-    if file_data.len() < 8 {
-        return Ok(None);
-    }
-
-    let magic_be = u32::from_be_bytes([file_data[0], file_data[1], file_data[2], file_data[3]]);
-    let magic_le = u32::from_le_bytes([file_data[0], file_data[1], file_data[2], file_data[3]]);
-    if magic_be == 0xCAFEBABE || magic_le == 0xBEBAFECA {
-        return Ok(None);
-    }
-
-    let little_endian = matches!(magic_le, 0xFEEDFACE | 0xFEEDFACF);
-    let cputype = if little_endian {
-        u32::from_le_bytes([file_data[4], file_data[5], file_data[6], file_data[7]])
-    } else {
-        u32::from_be_bytes([file_data[4], file_data[5], file_data[6], file_data[7]])
-    };
-
-    const CPU_TYPE_X86_64: u32 = 0x01000007;
-    const CPU_TYPE_ARM64: u32 = 0x0100000C;
-    match cputype {
-        CPU_TYPE_X86_64 => Ok(Some("x86_64".to_string())),
-        CPU_TYPE_ARM64 => Ok(Some("aarch64".to_string())),
-        _ => Ok(None),
-    }
-}
-
-fn swap_symlink(target_link: &Path, new_target: &Path) -> std::io::Result<Option<PathBuf>> {
-    let old_target = if target_link.exists() { fs::read_link(target_link).ok() } else { None };
-    if target_link.exists() && old_target.is_none() {
-        fs::remove_file(target_link)?;
-    }
-    let parent = parent_dir(target_link)
-        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidInput, err.to_string()))?;
-    let tmp_link = parent.join(format!(
-        ".{}.tmp",
-        target_link.file_name().and_then(|name| name.to_str()).unwrap_or("rustzen-admin")
-    ));
-    if tmp_link.exists() {
-        let _ = fs::remove_file(&tmp_link);
-    }
-    std::os::unix::fs::symlink(new_target, &tmp_link)?;
-    fs::rename(&tmp_link, target_link)?;
-    Ok(old_target)
-}
-
-fn restore_symlink(target_link: &Path, old_target: Option<&Path>) -> std::io::Result<()> {
-    if target_link.exists() {
-        let _ = fs::remove_file(target_link);
-    }
-    let Some(old_target) = old_target else {
-        return Ok(());
-    };
-    let parent = target_link
-        .parent()
-        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "missing parent"))?;
-    let tmp_link = parent.join(format!(
-        ".{}.tmp",
-        target_link.file_name().and_then(|name| name.to_str()).unwrap_or("rustzen-admin")
-    ));
-    if tmp_link.exists() {
-        let _ = fs::remove_file(&tmp_link);
-    }
-    std::os::unix::fs::symlink(old_target, &tmp_link)?;
-    fs::rename(&tmp_link, target_link)?;
-    Ok(())
-}
-
-fn restore_web_dist(dist_dir: &Path, prev_dist: &Path) -> Result<(), ServiceError> {
-    if !prev_dist.exists() {
-        remove_path_if_exists(dist_dir)?;
-        return Ok(());
-    }
-
-    let failed_dist = dist_dir.with_file_name("dist.failed");
-    remove_path_if_exists(&failed_dist)?;
-    if dist_dir.exists() {
-        fs::rename(dist_dir, &failed_dist).map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to archive failed web dist: {err}"))
-        })?;
-    }
-
-    if let Err(err) = fs::rename(prev_dist, dist_dir) {
-        if failed_dist.exists()
-            && let Err(restore_err) = fs::rename(&failed_dist, dist_dir)
-        {
-            tracing::error!("Failed to restore failed web dist: {}", restore_err);
-        }
-        return Err(ServiceError::InvalidOperation(format!(
-            "Failed to restore previous web dist: {err}"
-        )));
-    }
-
-    let _ = remove_path_if_exists(&failed_dist);
-    Ok(())
-}
-
-async fn restart_server() -> Result<(), ServiceError> {
-    let status = Command::new("systemctl")
-        .arg("--no-block")
-        .arg("restart")
-        .arg(SERVER_SYSTEMD_UNIT)
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .await
-        .map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to trigger server restart: {err}"))
-        })?;
-
-    if !status.success() {
-        return Err(ServiceError::InvalidOperation(
-            "Failed to trigger server restart: systemctl restart was not accepted".to_string(),
-        ));
-    }
-
-    Ok(())
-}
-
-fn schedule_server_restart() {
-    tokio::spawn(async {
-        tokio::time::sleep(SERVER_RESTART_DELAY).await;
-        if let Err(err) = restart_server().await {
-            tracing::error!("Failed to trigger server restart after deploy response: {}", err);
-        }
-    });
-}
-
-async fn prepare_server_restart() -> Result<(), ServiceError> {
-    let status = Command::new("systemctl")
-        .arg("daemon-reload")
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .await
-        .map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to prepare server restart: {err}"))
-        })?;
-
-    if !status.success() {
-        return Err(ServiceError::InvalidOperation(
-            "Failed to prepare server restart: systemctl daemon-reload failed".to_string(),
-        ));
-    }
-
-    Ok(())
-}
-
-fn set_executable(path: &Path) -> Result<(), ServiceError> {
-    #[cfg(unix)]
+    let value = value.trim();
+    if value.is_empty()
+        || value.len() > 64
+        || !value
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric() || ".-_".contains(character))
     {
-        use std::os::unix::fs::PermissionsExt;
-        let mut permissions = fs::metadata(path)
-            .map_err(|err| {
-                ServiceError::InvalidOperation(format!("Failed to read file metadata: {err}"))
-            })?
-            .permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(path, permissions).map_err(|err| {
-            ServiceError::InvalidOperation(format!("Failed to set file permissions: {err}"))
-        })?;
+        return Err(ServiceError::InvalidOperation("Invalid release version".to_string()));
     }
-    Ok(())
-}
-
-fn runtime_root_dir() -> PathBuf {
-    resolve_runtime_path(&CONFIG.runtime_root_dir())
-}
-
-fn resolve_runtime_path(path: &Path) -> PathBuf {
-    if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        std::env::current_dir().map(|cwd| cwd.join(path)).unwrap_or_else(|_| path.to_path_buf())
-    }
-}
-
-fn parent_dir(path: &Path) -> Result<&Path, ServiceError> {
-    path.parent().ok_or_else(|| {
-        ServiceError::InvalidOperation(format!("Path has no parent: {}", path.display()))
-    })
-}
-
-fn remove_path_if_exists(path: &Path) -> Result<(), ServiceError> {
-    if !path.exists() {
-        return Ok(());
-    }
-    let metadata = fs::symlink_metadata(path).map_err(|err| {
-        ServiceError::InvalidOperation(format!("Failed to read path metadata: {err}"))
-    })?;
-    if metadata.is_dir() { fs::remove_dir_all(path) } else { fs::remove_file(path) }
-        .map_err(|err| ServiceError::InvalidOperation(format!("Failed to remove path: {err}")))
-}
-
-fn is_zip(bytes: &[u8]) -> bool {
-    bytes.len() >= 2 && bytes[0] == b'P' && bytes[1] == b'K'
-}
-
-fn is_elf(bytes: &[u8]) -> bool {
-    bytes.len() >= 4 && bytes[0] == 0x7F && bytes[1] == b'E' && bytes[2] == b'L' && bytes[3] == b'F'
-}
-
-fn is_macho_or_fat(bytes: &[u8]) -> bool {
-    if bytes.len() < 4 {
-        return false;
-    }
-    let be = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
-    let le = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
-    matches!(be, 0xFEEDFACE | 0xFEEDFACF | 0xCAFEBABE | 0xBEBAFECA)
-        || matches!(le, 0xFEEDFACE | 0xFEEDFACF | 0xCAFEBABE | 0xBEBAFECA)
-}
-
-fn zip_path_name(path: &Path) -> Option<String> {
-    let mut parts = Vec::new();
-    for component in path.components() {
-        let std::path::Component::Normal(part) = component else {
-            return None;
-        };
-        parts.push(part.to_str()?.to_string());
-    }
-    Some(parts.join("/"))
-}
-
-fn sha256_hex(data: &[u8]) -> String {
-    let digest = Sha256::digest(data);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect::<String>()
-}
-
-fn finalize_sha256_hex(hasher: Sha256) -> String {
-    hasher.finalize().iter().map(|byte| format!("{byte:02x}")).collect::<String>()
-}
-
-fn non_empty(value: String, field: &str) -> Result<String, ServiceError> {
-    let value = value.trim().to_string();
-    if value.is_empty() {
-        return Err(ServiceError::InvalidOperation(format!("{field} is required")));
-    }
-    Ok(value)
+    Ok(value.to_string())
 }
 
 fn normalize_optional(value: String) -> Option<String> {
-    let value = value.trim().to_string();
-    if value.is_empty() { None } else { Some(value) }
+    let value = value.trim();
+    (!value.is_empty()).then(|| value.to_string())
 }
 
-fn remove_deploy_file(version: &DeploymentItem) -> Result<(), ServiceError> {
-    remove_deploy_file_path(Path::new(&version.file_path))
-}
-
-fn remove_deploy_file_path(path: &Path) -> Result<(), ServiceError> {
-    if !path.exists() {
-        return Ok(());
+fn detect_elf_arch(data: &[u8]) -> Result<String, ServiceError> {
+    if data.len() < 20 || &data[..4] != b"\x7fELF" {
+        return Err(ServiceError::InvalidOperation(
+            "Release must be an ELF executable".to_string(),
+        ));
     }
-    fs::remove_file(path).map_err(|err| {
-        ServiceError::InvalidOperation(format!("Failed to remove deploy version file: {err}"))
+    match u16::from_le_bytes([data[18], data[19]]) {
+        62 => Ok("x86_64".to_string()),
+        183 => Ok("aarch64".to_string()),
+        _ => Err(ServiceError::InvalidOperation("Unsupported release architecture".to_string())),
+    }
+}
+
+fn validate_release(data: &[u8], version: &str, arch: &str) -> Result<(), ServiceError> {
+    if !data.windows(RELEASE_MARKER_PREFIX.len()).any(|window| window == RELEASE_MARKER_PREFIX) {
+        return Err(ServiceError::InvalidOperation(
+            "Release marker is missing from rz".to_string(),
+        ));
+    }
+    if CONFIG.deploy_signature_required {
+        validate_signature(data, version, arch)?;
+    }
+    Ok(())
+}
+
+fn validate_signature(data: &[u8], version: &str, arch: &str) -> Result<(), ServiceError> {
+    let begin = find_last(data, SIGNED_MARKER_BEGIN).ok_or_else(|| {
+        ServiceError::InvalidOperation("Signed release marker is required".to_string())
+    })?;
+    let marker_start = begin + SIGNED_MARKER_BEGIN.len();
+    let marker_end = data[marker_start..]
+        .windows(SIGNED_MARKER_END.len())
+        .position(|window| window == SIGNED_MARKER_END)
+        .map(|offset| marker_start + offset)
+        .ok_or_else(|| {
+            ServiceError::InvalidOperation("Signed release marker is invalid".to_string())
+        })?;
+    if marker_end + SIGNED_MARKER_END.len() != data.len() {
+        return Err(ServiceError::InvalidOperation(
+            "Signed release marker must terminate the artifact".to_string(),
+        ));
+    }
+    let marker: ReleaseSignatureMarker = serde_json::from_slice(&data[marker_start..marker_end])
+        .map_err(|_| {
+            ServiceError::InvalidOperation("Signed release marker is invalid".to_string())
+        })?;
+    let content_hash = sha256_hex(&data[..begin]);
+    if marker.schema_version != 1
+        || marker.component != "release"
+        || marker.version != version
+        || marker.arch != arch
+        || marker.content_sha256 != content_hash
+    {
+        return Err(ServiceError::InvalidOperation(
+            "Signed release metadata does not match the upload".to_string(),
+        ));
+    }
+    let key_hex = CONFIG.deploy_verify_key.as_deref().ok_or_else(|| {
+        ServiceError::InvalidOperation("Release verify key is not configured".to_string())
+    })?;
+    let key_bytes: [u8; 32] =
+        hex::decode(key_hex).ok().and_then(|bytes| bytes.try_into().ok()).ok_or_else(|| {
+            ServiceError::InvalidOperation("Release verify key is invalid".to_string())
+        })?;
+    let signature =
+        Signature::from_slice(&hex::decode(&marker.signature).map_err(|_| {
+            ServiceError::InvalidOperation("Release signature is invalid".to_string())
+        })?)
+        .map_err(|_| ServiceError::InvalidOperation("Release signature is invalid".to_string()))?;
+    let payload = format!(
+        "{SIGNATURE_PAYLOAD_VERSION}\ncomponent=release\nversion={version}\narch={arch}\ncontent_sha256={content_hash}\n"
+    );
+    VerifyingKey::from_bytes(&key_bytes)
+        .map_err(|_| ServiceError::InvalidOperation("Release verify key is invalid".to_string()))?
+        .verify(payload.as_bytes(), &signature)
+        .map_err(|_| {
+            ServiceError::InvalidOperation("Release signature verification failed".to_string())
+        })
+}
+
+fn find_last(data: &[u8], needle: &[u8]) -> Option<usize> {
+    data.windows(needle.len()).rposition(|window| window == needle)
+}
+
+fn sha256_hex(data: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(data))
+}
+
+async fn save_release(version: &str, arch: &str, data: &[u8]) -> Result<PathBuf, ServiceError> {
+    let path = CONFIG.runtime_root_dir().join("bin").join(format!("rz-{version}-{arch}"));
+    if path.exists() {
+        return Err(ServiceError::InvalidOperation("Release file already exists".to_string()));
+    }
+    fs::create_dir_all(
+        path.parent().ok_or_else(|| {
+            ServiceError::InvalidOperation("Release path has no parent".to_string())
+        })?,
+    )
+    .map_err(|error| {
+        ServiceError::InvalidOperation(format!("Cannot create bin directory: {error}"))
+    })?;
+    tokio::fs::write(&path, data)
+        .await
+        .map_err(|error| ServiceError::InvalidOperation(format!("Cannot save release: {error}")))?;
+    set_executable(&path)?;
+    Ok(path)
+}
+
+#[cfg(unix)]
+fn set_executable(path: &Path) -> Result<(), ServiceError> {
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(path, fs::Permissions::from_mode(0o755)).map_err(|error| {
+        ServiceError::InvalidOperation(format!("Cannot set release mode: {error}"))
     })
+}
+
+#[cfg(not(unix))]
+fn set_executable(_path: &Path) -> Result<(), ServiceError> {
+    Ok(())
+}
+
+fn validate_stored_release(version: &DeploymentItem) -> Result<(), ServiceError> {
+    let data = fs::read(&version.file_path)
+        .map_err(|error| ServiceError::InvalidOperation(format!("Cannot read release: {error}")))?;
+    if sha256_hex(&data) != version.file_hash {
+        return Err(ServiceError::InvalidOperation("Stored release hash mismatch".to_string()));
+    }
+    validate_release(&data, &version.version, &version.arch)
+}
+
+fn ensure_version_is_deployable(version: &DeploymentItem) -> Result<(), ServiceError> {
+    if version.is_expired || version.deleted_at.is_some() {
+        return Err(ServiceError::InvalidOperation(
+            "Expired or deleted releases cannot be applied".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+fn service_probes() -> [(&'static str, String); 4] {
+    [
+        ("rz-monitor.service", format!("{}/health", CONFIG.monitor_base_url())),
+        ("rz-insights.service", format!("{}/health", CONFIG.insights_base_url())),
+        ("rz-reports.service", format!("{}/health", CONFIG.reports_base_url())),
+        ("rz-admin.service", format!("http://127.0.0.1:{}/api/summary", CONFIG.app_port)),
+    ]
+}
+
+async fn roll_services(
+    journal: &mut UpdateJournal,
+    journal_path: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    roll_services_with(journal, journal_path, |unit, url| async move {
+        restart_and_verify(&unit, &url).await
+    })
+    .await
+}
+
+async fn roll_services_with<F, Fut>(
+    journal: &mut UpdateJournal,
+    journal_path: &Path,
+    mut restart: F,
+) -> Result<(), Box<dyn std::error::Error>>
+where
+    F: FnMut(String, String) -> Fut,
+    Fut: Future<Output = Result<(), Box<dyn std::error::Error>>>,
+{
+    for (unit, url) in service_probes() {
+        journal.stage = format!("restarting:{unit}");
+        if !journal.restarted_units.iter().any(|value| value == unit) {
+            journal.restarted_units.push(unit.to_string());
+        }
+        write_update_journal_at(journal_path, journal)?;
+        restart(unit.to_string(), url).await?;
+    }
+    Ok(())
+}
+
+async fn restart_and_verify(unit: &str, url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    systemctl("stop", &[unit]).await?;
+    systemctl("start", &[unit]).await?;
+    wait_for_health(url).await
+}
+
+async fn rollback_update(journal: &UpdateJournal) -> Result<(), Box<dyn std::error::Error>> {
+    let units = journal.restarted_units.iter().map(String::as_str).collect::<Vec<_>>();
+    if !units.is_empty() {
+        systemctl("stop", &units).await?;
+    }
+    restore_symlink(&journal.link, journal.old_target.as_deref())?;
+    restore_databases_for_units(&journal.backup_dir, &units)?;
+    for (unit, url) in service_probes() {
+        if units.contains(&unit) {
+            systemctl("start", &[unit]).await?;
+            wait_for_health(&url).await?;
+        }
+    }
+    Ok(())
+}
+
+async fn systemctl(action: &str, units: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
+    if !matches!(action, "start" | "stop") || units.iter().any(|unit| !SYSTEMD_UNITS.contains(unit))
+    {
+        return Err(std::io::Error::other("invalid fixed service operation").into());
+    }
+    let status = Command::new("systemctl").arg(action).args(units).status().await?;
+    if !status.success() {
+        return Err(std::io::Error::other(format!("systemctl {action} failed")).into());
+    }
+    Ok(())
+}
+
+async fn wait_for_health(url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let client = reqwest::Client::builder().timeout(Duration::from_secs(2)).build()?;
+    for _ in 0..20 {
+        if client.get(url).send().await.is_ok_and(|response| response.status().is_success()) {
+            return Ok(());
+        }
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    }
+    Err(std::io::Error::other(format!("health gate failed: {url}")).into())
+}
+
+async fn backup_databases(version: &str) -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let backup_dir = CONFIG.data_dir().join("backups").join(format!(
+        "{}-{}",
+        version,
+        chrono::Utc::now().timestamp()
+    ));
+    fs::create_dir_all(&backup_dir)?;
+    for path in database_paths() {
+        if !path.is_file() {
+            continue;
+        }
+        let file_name = path.file_name().ok_or_else(|| std::io::Error::other("invalid db path"))?;
+        let destination = backup_dir.join(file_name);
+        backup_database_online(&path, &destination).await?;
+    }
+    Ok(backup_dir)
+}
+
+async fn backup_database_online(
+    source: &Path,
+    destination: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let pool = crate::infra::db::create_pool_for_path(source).await?;
+    sqlx::query("VACUUM INTO ?")
+        .bind(destination.to_string_lossy().as_ref())
+        .execute(&pool)
+        .await?;
+    pool.close().await;
+    Ok(())
+}
+
+#[cfg(test)]
+fn backup_database_paths(
+    paths: &[PathBuf],
+    backup_dir: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    for path in paths {
+        for suffix in ["", "-wal", "-shm"] {
+            let source = PathBuf::from(format!("{}{suffix}", path.display()));
+            if source.is_file() {
+                let file_name =
+                    source.file_name().ok_or_else(|| std::io::Error::other("invalid db path"))?;
+                fs::copy(&source, backup_dir.join(file_name))?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn restore_databases_for_units(
+    backup_dir: &Path,
+    units: &[&str],
+) -> Result<(), Box<dyn std::error::Error>> {
+    let all_paths = database_paths();
+    let paths = SYSTEMD_UNITS
+        .iter()
+        .zip(all_paths.iter())
+        .filter_map(|(unit, path)| units.contains(unit).then_some(path.clone()))
+        .collect::<Vec<_>>();
+    restore_database_paths(&paths, backup_dir)
+}
+
+fn restore_database_paths(
+    paths: &[PathBuf],
+    backup_dir: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    for path in paths {
+        for suffix in ["", "-wal", "-shm"] {
+            let destination = PathBuf::from(format!("{}{suffix}", path.display()));
+            if destination.exists() {
+                fs::remove_file(&destination)?;
+            }
+            let file_name =
+                destination.file_name().ok_or_else(|| std::io::Error::other("invalid db path"))?;
+            let source = backup_dir.join(file_name);
+            if source.is_file() {
+                fs::copy(source, destination)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn database_paths() -> [PathBuf; 4] {
+    [
+        CONFIG.monitor_database_path(),
+        CONFIG.insights_database_path(),
+        CONFIG.reports_database_path(),
+        CONFIG.sqlite_database_path(),
+    ]
+}
+
+#[cfg(unix)]
+fn swap_symlink(link: &Path, target: &Path) -> Result<(), std::io::Error> {
+    use std::os::unix::fs::symlink;
+    let temporary = link.with_extension("new");
+    if temporary.exists() {
+        fs::remove_file(&temporary)?;
+    }
+    symlink(target, &temporary)?;
+    fs::rename(temporary, link)
+}
+
+#[cfg(unix)]
+fn restore_symlink(link: &Path, old_target: Option<&Path>) -> Result<(), std::io::Error> {
+    if let Some(target) = old_target {
+        swap_symlink(link, target)
+    } else if link.exists() {
+        fs::remove_file(link)
+    } else {
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use chrono::Utc;
-    use ed25519_dalek::{Signer, SigningKey};
+    use std::{
+        fs,
+        path::PathBuf,
+        sync::{Arc, Mutex},
+    };
 
-    use super::*;
+    use super::{
+        RELEASE_MARKER_PREFIX, SYSTEMD_UNITS, UpdateJournal, backup_database_online,
+        backup_database_paths, detect_elf_arch, read_update_journal_at, restore_database_paths,
+        roll_services_with, validate_upload_size, validate_version, write_update_journal_at,
+    };
 
     #[test]
-    fn ensure_version_is_deployable_rejects_expired_versions() {
-        let version = deployment_item(true);
-
-        let err = ensure_version_is_deployable(&version).expect_err("expired version is invalid");
-
-        assert!(matches!(err, ServiceError::InvalidOperation(_)));
+    fn validates_complete_release_identity_and_architecture() {
+        let mut elf = vec![0_u8; 64];
+        elf[..4].copy_from_slice(b"\x7fELF");
+        elf[18..20].copy_from_slice(&62_u16.to_le_bytes());
+        elf.extend_from_slice(RELEASE_MARKER_PREFIX);
+        assert_eq!(detect_elf_arch(&elf).expect("arch"), "x86_64");
+        assert!(validate_upload_size(&elf).is_ok());
+        assert_eq!(validate_version("1.2.3".to_string()).expect("version"), "1.2.3");
     }
 
     #[test]
-    fn ensure_version_is_deployable_accepts_active_versions() {
-        let version = deployment_item(false);
-
-        assert!(ensure_version_is_deployable(&version).is_ok());
+    fn rejects_module_style_or_invalid_release_inputs() {
+        assert!(detect_elf_arch(b"zip").is_err());
+        assert!(validate_upload_size(&[]).is_err());
+        assert!(validate_version("../module".to_string()).is_err());
     }
 
     #[test]
-    fn server_arch_is_detected_when_upload_omits_arch() {
-        let file_data = sample_elf_x86_64_with_legacy_marker();
+    fn update_journal_round_trips_interrupted_state() {
+        let root = std::env::temp_dir().join(format!("rz-update-{}", uuid::Uuid::new_v4()));
+        let path = root.join("data/update-state.json");
+        let journal = UpdateJournal {
+            release_id: 7,
+            backup_dir: root.join("backup"),
+            link: root.join("bin/rz"),
+            old_target: Some(root.join("bin/rz-old")),
+            stage: "switched".to_string(),
+            restarted_units: Vec::new(),
+        };
 
-        let arch = resolve_server_arch(None, &file_data).expect("server arch is detected");
-
-        assert_eq!(arch, "x86_64");
+        write_update_journal_at(&path, &journal).expect("write journal");
+        let restored = read_update_journal_at(&path).expect("read journal").expect("journal");
+        assert_eq!(restored.release_id, journal.release_id);
+        assert_eq!(restored.backup_dir, journal.backup_dir);
+        assert_eq!(restored.old_target, journal.old_target);
+        assert_eq!(restored.stage, "switched");
+        assert!(restored.restarted_units.is_empty());
+        fs::remove_dir_all(root).expect("remove journal root");
     }
 
-    #[test]
-    fn signed_server_marker_is_required_when_signature_check_is_enabled() {
-        let signing_key = SigningKey::from_bytes(&[7; 32]);
-        let verify_key = hex_encode(signing_key.verifying_key().as_bytes());
-        let mut file_data = sample_elf_x86_64();
-        append_signed_server_marker(&mut file_data, "v0.4.0", "x86_64", &signing_key);
+    #[tokio::test]
+    async fn every_service_health_failure_stops_the_roll_sequence() {
+        for (failed_index, failed_unit) in SYSTEMD_UNITS.iter().enumerate() {
+            let root =
+                std::env::temp_dir().join(format!("rz-health-gate-{}", uuid::Uuid::new_v4()));
+            let journal_path = root.join("update-state.json");
+            let mut journal = UpdateJournal {
+                release_id: 9,
+                backup_dir: root.join("backup"),
+                link: root.join("bin/rz"),
+                old_target: Some(root.join("bin/rz-old")),
+                stage: "switched".to_string(),
+                restarted_units: Vec::new(),
+            };
+            let attempts = Arc::new(Mutex::new(Vec::new()));
+            let recorded_attempts = Arc::clone(&attempts);
+            let failed_unit = failed_unit.to_string();
 
-        validate_server_file_with_signature_policy(
-            &file_data,
-            "v0.4.0",
-            "x86_64",
-            true,
-            Some(&verify_key),
-        )
-        .expect("signed server marker is valid");
+            let result = roll_services_with(&mut journal, &journal_path, move |unit, _url| {
+                let attempts = Arc::clone(&recorded_attempts);
+                let failed_unit = failed_unit.clone();
+                async move {
+                    attempts.lock().expect("attempt lock").push(unit.clone());
+                    if unit == failed_unit {
+                        Err(std::io::Error::other("injected health failure").into())
+                    } else {
+                        Ok(())
+                    }
+                }
+            })
+            .await;
 
-        let unsigned = sample_elf_x86_64_with_legacy_marker();
-        let err = validate_server_file_with_signature_policy(
-            &unsigned,
-            "v0.4.0",
-            "x86_64",
-            true,
-            Some(&verify_key),
-        )
-        .expect_err("legacy marker is rejected when signatures are required");
-
-        assert!(err.to_string().contains("signature"));
-    }
-
-    #[test]
-    fn signed_web_marker_is_required_when_signature_check_is_enabled() {
-        let signing_key = SigningKey::from_bytes(&[9; 32]);
-        let verify_key = hex_encode(signing_key.verifying_key().as_bytes());
-        let content_hash = "aa".repeat(32);
-        let marker = signed_marker_json("web", "v0.4.0", "universal", &content_hash, &signing_key);
-
-        validate_web_marker_content_with_signature_policy(
-            &marker,
-            "v0.4.0",
-            true,
-            Some(&verify_key),
-            &content_hash,
-        )
-        .expect("signed web marker is valid");
-
-        let legacy_marker = r#"{"component":"web","build_id":"manual"}"#;
-        let err = validate_web_marker_content_with_signature_policy(
-            legacy_marker,
-            "v0.4.0",
-            true,
-            Some(&verify_key),
-            &content_hash,
-        )
-        .expect_err("legacy marker is rejected when signatures are required");
-
-        assert!(err.to_string().contains("signature"));
-    }
-
-    fn deployment_item(is_expired: bool) -> DeploymentItem {
-        let now = Utc::now();
-        DeploymentItem {
-            id: 1,
-            component: DeployComponent::Server,
-            version: "v0.4.0".to_string(),
-            arch: "x86_64".to_string(),
-            file_path: "/tmp/rustzen-admin".to_string(),
-            file_size: 1,
-            file_hash: "hash".to_string(),
-            is_current: false,
-            is_deployed: false,
-            is_expired,
-            deployed_at: None,
-            expired_at: None,
-            deleted_at: None,
-            deployed_by: None,
-            notes: None,
-            created_at: now,
-            updated_at: now,
+            assert!(result.is_err());
+            assert_eq!(
+                *attempts.lock().expect("attempt lock"),
+                SYSTEMD_UNITS[..=failed_index]
+                    .iter()
+                    .map(|unit| unit.to_string())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(journal.restarted_units.len(), failed_index + 1);
+            let saved = read_update_journal_at(&journal_path)
+                .expect("read journal")
+                .expect("saved journal");
+            assert_eq!(saved.restarted_units, journal.restarted_units);
+            fs::remove_dir_all(root).expect("remove health gate root");
         }
     }
 
-    fn sample_elf_x86_64() -> Vec<u8> {
-        let mut bytes = vec![0_u8; 64];
-        bytes[0] = 0x7f;
-        bytes[1] = b'E';
-        bytes[2] = b'L';
-        bytes[3] = b'F';
-        bytes[4] = 2;
-        bytes[5] = 1;
-        bytes[18] = 62;
-        bytes
+    #[test]
+    fn four_database_backup_and_restore_are_independent() {
+        let root = std::env::temp_dir().join(format!("rz-backup-{}", uuid::Uuid::new_v4()));
+        let data = root.join("data");
+        let backup = root.join("backup");
+        fs::create_dir_all(&data).expect("data dir");
+        fs::create_dir_all(&backup).expect("backup dir");
+        let paths = ["admin", "monitor", "insights", "reports"]
+            .map(|name| data.join(format!("{name}.db")))
+            .to_vec();
+        for path in &paths {
+            let name = path.file_stem().and_then(|value| value.to_str()).expect("name");
+            fs::write(path, format!("{name}-database")).expect("database");
+            fs::write(PathBuf::from(format!("{}-wal", path.display())), format!("{name}-wal"))
+                .expect("wal");
+        }
+
+        backup_database_paths(&paths, &backup).expect("backup");
+        for path in &paths {
+            fs::write(path, "corrupt").expect("corrupt");
+            let wal = PathBuf::from(format!("{}-wal", path.display()));
+            if wal.exists() {
+                fs::remove_file(wal).expect("remove wal");
+            }
+        }
+        restore_database_paths(&paths, &backup).expect("restore");
+
+        for path in &paths {
+            let name = path.file_stem().and_then(|value| value.to_str()).expect("name");
+            assert_eq!(fs::read_to_string(path).expect("database"), format!("{name}-database"));
+            assert_eq!(
+                fs::read_to_string(PathBuf::from(format!("{}-wal", path.display()))).expect("wal"),
+                format!("{name}-wal")
+            );
+        }
+        fs::remove_dir_all(root).expect("remove backup root");
     }
 
-    fn sample_elf_x86_64_with_legacy_marker() -> Vec<u8> {
-        let mut bytes = sample_elf_x86_64();
-        bytes.extend_from_slice(b"RUSTZEN_ADMIN_MARKER\ncomponent=server\nbuild_id=v0.4.0\n");
-        bytes
-    }
+    #[tokio::test]
+    async fn online_sqlite_backup_is_a_readable_consistent_database() {
+        let root = std::env::temp_dir().join(format!("rz-online-backup-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&root).expect("backup root");
+        let source = root.join("source.db");
+        let destination = root.join("backup.db");
+        let pool = crate::infra::db::create_pool_for_path(&source).await.expect("source pool");
+        sqlx::query("CREATE TABLE values_table (value TEXT NOT NULL)")
+            .execute(&pool)
+            .await
+            .expect("create table");
+        sqlx::query("INSERT INTO values_table (value) VALUES ('before')")
+            .execute(&pool)
+            .await
+            .expect("insert value");
 
-    fn append_signed_server_marker(
-        file_data: &mut Vec<u8>,
-        version: &str,
-        arch: &str,
-        signing_key: &SigningKey,
-    ) {
-        let content_hash = sha256_hex(file_data);
-        let marker = signed_marker_json("server", version, arch, &content_hash, signing_key);
-        file_data.extend_from_slice(SIGNED_MARKER_BEGIN);
-        file_data.extend_from_slice(marker.as_bytes());
-        file_data.extend_from_slice(SIGNED_MARKER_END);
-    }
-
-    fn signed_marker_json(
-        component: &str,
-        version: &str,
-        arch: &str,
-        content_hash: &str,
-        signing_key: &SigningKey,
-    ) -> String {
-        let payload = deploy_signature_payload(component, version, arch, content_hash);
-        let signature = signing_key.sign(payload.as_bytes());
-        format!(
-            r#"{{"schemaVersion":1,"component":"{component}","version":"{version}","arch":"{arch}","contentSha256":"{content_hash}","signature":"{}"}}"#,
-            hex_encode(&signature.to_bytes())
-        )
-    }
-
-    fn hex_encode(bytes: &[u8]) -> String {
-        bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+        backup_database_online(&source, &destination).await.expect("online backup");
+        let backup =
+            crate::infra::db::create_pool_for_path(&destination).await.expect("backup pool");
+        let value: String = sqlx::query_scalar("SELECT value FROM values_table")
+            .fetch_one(&backup)
+            .await
+            .expect("backup value");
+        assert_eq!(value, "before");
+        backup.close().await;
+        pool.close().await;
+        fs::remove_dir_all(root).expect("remove backup root");
     }
 }

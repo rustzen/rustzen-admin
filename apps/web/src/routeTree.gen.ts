@@ -9,8 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as MonitorRouteImport } from './routes/monitor'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as InsightsRouteImport } from './routes/insights'
 import { Route as R404RouteImport } from './routes/404'
 import { Route as R403RouteImport } from './routes/403'
 import { Route as IndexRouteImport } from './routes/index'
@@ -23,14 +26,29 @@ import { Route as ManageLogRouteImport } from './routes/manage/log'
 import { Route as ManageDictRouteImport } from './routes/manage/dict'
 import { Route as ManageDeployRouteImport } from './routes/manage/deploy'
 
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MonitorRoute = MonitorRouteImport.update({
+  id: '/monitor',
+  path: '/monitor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsightsRoute = InsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
   getParentRoute: () => rootRouteImport,
 } as any)
 const R404Route = R404RouteImport.update({
@@ -93,8 +111,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/403': typeof R403Route
   '/404': typeof R404Route
+  '/insights': typeof InsightsRoute
   '/login': typeof LoginRoute
+  '/monitor': typeof MonitorRoute
   '/profile': typeof ProfileRoute
+  '/reports': typeof ReportsRoute
   '/manage/deploy': typeof ManageDeployRoute
   '/manage/dict': typeof ManageDictRoute
   '/manage/log': typeof ManageLogRoute
@@ -108,8 +129,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/403': typeof R403Route
   '/404': typeof R404Route
+  '/insights': typeof InsightsRoute
   '/login': typeof LoginRoute
+  '/monitor': typeof MonitorRoute
   '/profile': typeof ProfileRoute
+  '/reports': typeof ReportsRoute
   '/manage/deploy': typeof ManageDeployRoute
   '/manage/dict': typeof ManageDictRoute
   '/manage/log': typeof ManageLogRoute
@@ -124,8 +148,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/403': typeof R403Route
   '/404': typeof R404Route
+  '/insights': typeof InsightsRoute
   '/login': typeof LoginRoute
+  '/monitor': typeof MonitorRoute
   '/profile': typeof ProfileRoute
+  '/reports': typeof ReportsRoute
   '/manage/deploy': typeof ManageDeployRoute
   '/manage/dict': typeof ManageDictRoute
   '/manage/log': typeof ManageLogRoute
@@ -141,8 +168,11 @@ export interface FileRouteTypes {
     | '/'
     | '/403'
     | '/404'
+    | '/insights'
     | '/login'
+    | '/monitor'
     | '/profile'
+    | '/reports'
     | '/manage/deploy'
     | '/manage/dict'
     | '/manage/log'
@@ -156,8 +186,11 @@ export interface FileRouteTypes {
     | '/'
     | '/403'
     | '/404'
+    | '/insights'
     | '/login'
+    | '/monitor'
     | '/profile'
+    | '/reports'
     | '/manage/deploy'
     | '/manage/dict'
     | '/manage/log'
@@ -171,8 +204,11 @@ export interface FileRouteTypes {
     | '/'
     | '/403'
     | '/404'
+    | '/insights'
     | '/login'
+    | '/monitor'
     | '/profile'
+    | '/reports'
     | '/manage/deploy'
     | '/manage/dict'
     | '/manage/log'
@@ -187,8 +223,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   R403Route: typeof R403Route
   R404Route: typeof R404Route
+  InsightsRoute: typeof InsightsRoute
   LoginRoute: typeof LoginRoute
+  MonitorRoute: typeof MonitorRoute
   ProfileRoute: typeof ProfileRoute
+  ReportsRoute: typeof ReportsRoute
   ManageDeployRoute: typeof ManageDeployRoute
   ManageDictRoute: typeof ManageDictRoute
   ManageLogRoute: typeof ManageLogRoute
@@ -201,6 +240,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -208,11 +254,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/monitor': {
+      id: '/monitor'
+      path: '/monitor'
+      fullPath: '/monitor'
+      preLoaderRoute: typeof MonitorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insights': {
+      id: '/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof InsightsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/404': {
@@ -299,8 +359,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   R403Route: R403Route,
   R404Route: R404Route,
+  InsightsRoute: InsightsRoute,
   LoginRoute: LoginRoute,
+  MonitorRoute: MonitorRoute,
   ProfileRoute: ProfileRoute,
+  ReportsRoute: ReportsRoute,
   ManageDeployRoute: ManageDeployRoute,
   ManageDictRoute: ManageDictRoute,
   ManageLogRoute: ManageLogRoute,

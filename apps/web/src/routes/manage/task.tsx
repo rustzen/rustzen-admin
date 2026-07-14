@@ -1,213 +1,233 @@
-import { HistoryOutlined, PlayCircleOutlined } from "@ant-design/icons";
-import { ModalForm, ProTable, type ActionType, type ProColumns } from "@ant-design/pro-components";
-import { createFileRoute } from "@tanstack/react-router";
-import { Space, Tag } from "antd";
-import React, { useRef, useState } from "react";
+import { HistoryIcon, PlayCircleIcon } from "lucide-react";
+import { useState } from "react";
 
-import { appMessage, appModal, manageAPI } from "@/api";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+
+import { appMessage, manageAPI } from "@/api";
+import { ConfirmDialog } from "@/components/app/confirm-dialog";
+import { DataTableShell } from "@/components/app/data-table-shell";
+import { PageCard } from "@/components/app/page-card";
+import { TablePagination } from "@/components/app/table-pagination";
 import { AuthWrap } from "@/components/base-auth";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-    TABLE_ACTION_SPACE_SIZE,
-    TableActionButton,
-} from "@/components/base-button";
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 
 export const Route = createFileRoute("/manage/task")({
     component: TaskPage,
 });
 
-const taskStatusMeta: Record<Task.RunStatus, { label: string; color: string }> = {
-    running: { label: "Running", color: "processing" },
-    success: { label: "Success", color: "success" },
-    failed: { label: "Failed", color: "error" },
-    skipped: { label: "Skipped", color: "default" },
+const RUN_PAGE_SIZE = 10;
+
+const taskStatusMeta: Record<
+    Task.RunStatus | "never",
+    { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
+    running: { label: "Running", variant: "default" },
+    success: { label: "Success", variant: "secondary" },
+    failed: { label: "Failed", variant: "destructive" },
+    skipped: { label: "Skipped", variant: "outline" },
+    never: { label: "Never Run", variant: "outline" },
 };
 
 function TaskPage() {
-    const actionRef = useRef<ActionType>(null);
+    const { data, isFetching, refetch } = useQuery({
+        queryKey: ["manage", "task"],
+        queryFn: manageAPI.task.list,
+    });
+    const rows = data?.data ?? [];
 
     return (
-        <ProTable<Task.Item>
-            rowKey="taskKey"
-            search={false}
-            pagination={false}
-            scroll={{ y: "calc(100vh - 287px)" }}
-            headerTitle="Scheduled Tasks"
-            columns={taskColumns}
-            request={manageAPI.task.list}
-            actionRef={actionRef}
+        <PageCard title="Scheduled Tasks" description="Review scheduler status and manually run maintenance jobs.">
+            <DataTableShell>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="min-w-48">Name</TableHead>
+                                <TableHead className="min-w-64">Description</TableHead>
+                                <TableHead className="min-w-36">Cron</TableHead>
+                                <TableHead className="min-w-28">Status</TableHead>
+                                <TableHead className="min-w-44">Next Run</TableHead>
+                                <TableHead className="min-w-44">Last Finished</TableHead>
+                                <TableHead className="min-w-56">Last Error</TableHead>
+                                <TableHead className="w-28 text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {rows.length > 0 ? (
+                                rows.map((record) => (
+                                    <TableRow key={record.taskKey}>
+                                        <TableCell className="font-medium">{record.name}</TableCell>
+                                        <TableCell className="max-w-72 truncate">
+                                            {record.description || "-"}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline">{record.schedule.expression}</Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <TaskStatusBadge
+                                                status={record.running ? "running" : record.lastStatus}
+                                            />
+                                        </TableCell>
+                                        <TableCell>{formatDateTime(record.nextRunAt)}</TableCell>
+                                        <TableCell>{formatDateTime(record.lastFinishedAt)}</TableCell>
+                                        <TableCell className="max-w-64 truncate text-muted-foreground">
+                                            {record.lastErrorMessage || "-"}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex justify-end gap-2">
+                                                <TaskRunLogDialog
+                                                    taskKey={record.taskKey}
+                                                    taskName={record.name}
+                                                />
+                                                <AuthWrap code="manage:task:run">
+                                                    <RunTaskDialog record={record} onSuccess={() => void refetch()} />
+                                                </AuthWrap>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="h-40 text-center">
+                                        {isFetching ? "Loading tasks..." : "No scheduled tasks found."}
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+            </DataTableShell>
+        </PageCard>
+    );
+}
+
+function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: string }) {
+    const [open, setOpen] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const { data, isFetching } = useQuery({
+        queryKey: ["manage", "task", taskKey, "runs", currentPage],
+        queryFn: () => manageAPI.task.runs(taskKey, { current: currentPage, pageSize: RUN_PAGE_SIZE }),
+        enabled: open,
+    });
+    const rows = data?.data ?? [];
+    const total = data?.total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / RUN_PAGE_SIZE));
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button type="button" variant="ghost" className="size-8 p-0" aria-label="Task logs">
+                    <HistoryIcon />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-5xl">
+                <DialogHeader>
+                    <DialogTitle>Task Logs - {taskName}</DialogTitle>
+                    <DialogDescription>Recent scheduler runs for this task.</DialogDescription>
+                </DialogHeader>
+                <div className="max-h-120 overflow-auto rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="min-w-28">Trigger</TableHead>
+                                <TableHead className="min-w-28">Status</TableHead>
+                                <TableHead className="min-w-44">Scheduled For</TableHead>
+                                <TableHead className="min-w-44">Started At</TableHead>
+                                <TableHead className="min-w-44">Finished At</TableHead>
+                                <TableHead className="min-w-56">Error</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {rows.length > 0 ? (
+                                rows.map((record) => (
+                                    <TableRow key={record.id}>
+                                        <TableCell>
+                                            {record.triggerType === "manual" ? "Manual" : "Scheduled"}
+                                        </TableCell>
+                                        <TableCell>
+                                            <TaskStatusBadge status={record.status} />
+                                        </TableCell>
+                                        <TableCell>{formatDateTime(record.scheduledFor)}</TableCell>
+                                        <TableCell>{formatDateTime(record.startedAt)}</TableCell>
+                                        <TableCell>{formatDateTime(record.finishedAt)}</TableCell>
+                                        <TableCell className="max-w-72 truncate">
+                                            {record.errorMessage || "-"}
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-32 text-center">
+                                        {isFetching ? "Loading task logs..." : "No task runs found."}
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+                <DialogFooter>
+                    <TablePagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        total={total}
+                        disabled={isFetching}
+                        onPageChange={setCurrentPage}
+                    />
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function RunTaskDialog({ record, onSuccess }: { record: Task.Item; onSuccess: () => void }) {
+    const submit = async () => {
+        await manageAPI.task.run(record.taskKey);
+        appMessage.success("Task execution submitted");
+        onSuccess();
+    };
+
+    return (
+        <ConfirmDialog
+            trigger={
+                <Button
+                    type="button"
+                    variant="ghost"
+                    className="size-8 p-0"
+                    disabled={record.running}
+                    aria-label={record.running ? "Executing" : "Execute task"}
+                >
+                    <PlayCircleIcon />
+                </Button>
+            }
+            title={`Execute ${record.name}?`}
+            description={record.description || "Submit this task immediately."}
+            confirmLabel="Execute"
+            disabled={record.running}
+            onConfirm={submit}
         />
     );
 }
 
-const taskColumns: ProColumns<Task.Item>[] = [
-    {
-        title: "Name",
-        dataIndex: "name",
-        width: 190,
-        ellipsis: true,
-    },
-    {
-        title: "Description",
-        dataIndex: "description",
-        ellipsis: true,
-        render: (_: React.ReactNode, record: Task.Item) => record.description || "-",
-    },
-    {
-        title: "Cron",
-        dataIndex: "schedule",
-        width: 150,
-        render: (_: React.ReactNode, record: Task.Item) => (
-            <Tag color="blue">{record.schedule.expression}</Tag>
-        ),
-    },
-    {
-        title: "Status",
-        dataIndex: "lastStatus",
-        width: 110,
-        render: (_: React.ReactNode, record: Task.Item) =>
-            renderTaskStatus(record.running ? "running" : record.lastStatus),
-    },
-    {
-        title: "Next Run",
-        dataIndex: "nextRunAt",
-        width: 180,
-        render: (_: React.ReactNode, record: Task.Item) => formatDateTime(record.nextRunAt),
-    },
-    {
-        title: "Last Finished",
-        dataIndex: "lastFinishedAt",
-        width: 180,
-        render: (_: React.ReactNode, record: Task.Item) => formatDateTime(record.lastFinishedAt),
-    },
-    {
-        title: "Last Error",
-        dataIndex: "lastErrorMessage",
-        ellipsis: true,
-        render: (_: React.ReactNode, record: Task.Item) =>
-            record.lastErrorMessage ? (
-                <span className="text-red-500" title={record.lastErrorMessage}>
-                    {record.lastErrorMessage}
-                </span>
-            ) : (
-                "-"
-            ),
-    },
-    {
-        title: "Actions",
-        key: "actions",
-        width: 68,
-        fixed: "right",
-        render: (
-            _dom: React.ReactNode,
-            record: Task.Item,
-            _index,
-            action?: ActionType,
-        ) => (
-            <Space size={TABLE_ACTION_SPACE_SIZE}>
-                <TaskRunLogModal taskKey={record.taskKey} taskName={record.name} />
-                <AuthWrap code="manage:task:run">
-                    <TableActionButton
-                        color="blue"
-                        label={record.running ? "Executing" : "Execute"}
-                        icon={<PlayCircleOutlined />}
-                        disabled={record.running}
-                        onClick={() => {
-                            appModal.confirm({
-                                title: `Execute ${record.name}?`,
-                                content: record.description || "Submit this task immediately.",
-                                okText: "Execute",
-                                cancelText: "Cancel",
-                                onOk: async () => {
-                                    await manageAPI.task.run(record.taskKey);
-                                    appMessage.success("Task execution submitted");
-                                    void action?.reload();
-                                },
-                            });
-                        }}
-                    />
-                </AuthWrap>
-            </Space>
-        ),
-    },
-];
-
-const runColumns: ProColumns<Task.RunItem>[] = [
-    {
-        title: "Trigger",
-        dataIndex: "triggerType",
-        width: 120,
-        render: (_: React.ReactNode, record: Task.RunItem) =>
-            record.triggerType === "manual" ? "Manual" : "Scheduled",
-    },
-    {
-        title: "Status",
-        dataIndex: "status",
-        width: 120,
-        render: (_: React.ReactNode, record: Task.RunItem) => renderTaskStatus(record.status),
-    },
-    {
-        title: "Scheduled For",
-        dataIndex: "scheduledFor",
-        width: 180,
-        render: (_: React.ReactNode, record: Task.RunItem) =>
-            formatDateTime(record.scheduledFor),
-    },
-    {
-        title: "Started At",
-        dataIndex: "startedAt",
-        width: 180,
-        render: (_: React.ReactNode, record: Task.RunItem) => formatDateTime(record.startedAt),
-    },
-    {
-        title: "Finished At",
-        dataIndex: "finishedAt",
-        width: 180,
-        render: (_: React.ReactNode, record: Task.RunItem) =>
-            formatDateTime(record.finishedAt),
-    },
-    {
-        title: "Error",
-        dataIndex: "errorMessage",
-        ellipsis: true,
-        render: (_: React.ReactNode, record: Task.RunItem) => record.errorMessage || "-",
-    },
-];
-
-function TaskRunLogModal({ taskKey, taskName }: { taskKey: string; taskName: string }) {
-    const [open, setOpen] = useState(false);
-
-    return (
-        <ModalForm<Record<string, never>>
-            trigger={<TableActionButton color="default" label="Logs" icon={<HistoryOutlined />} />}
-            submitter={false}
-            title={`Task Logs - ${taskName}`}
-            modalProps={{
-                width: 1120,
-                destroyOnHidden: true,
-                maskClosable: false,
-            }}
-            onOpenChange={setOpen}
-        >
-            {open ? (
-                <ProTable<Task.RunItem>
-                    rowKey="id"
-                    search={false}
-                    options={false}
-                    scroll={{ x: 1000, y: 480 }}
-                    columns={runColumns}
-                    request={(params: Task.RunQuery) => manageAPI.task.runs(taskKey, params)}
-                />
-            ) : null}
-        </ModalForm>
-    );
-}
-
-function renderTaskStatus(status?: Task.RunStatus | null) {
-    if (!status) {
-        return <Tag color="default">Never Run</Tag>;
-    }
-    const meta = taskStatusMeta[status];
-    return <Tag color={meta.color}>{meta.label}</Tag>;
+function TaskStatusBadge({ status }: { status?: Task.RunStatus | null }) {
+    const meta = taskStatusMeta[status ?? "never"];
+    return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 
 function formatDateTime(value?: string | null) {

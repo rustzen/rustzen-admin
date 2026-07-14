@@ -1,17 +1,160 @@
 //! Shared capability constants used by auth and permission checks.
 
-pub use rz_core::role_policy::{
-    ADMIN_ROLE_CODE as BUILTIN_ADMIN_ROLE_CODE, OWNER_ROLE_CODE as BUILTIN_OWNER_ROLE_CODE,
-    RolePolicy, SYSTEM_WILDCARD, VIEWER_ROLE_CODE as BUILTIN_VIEWER_ROLE_CODE,
-};
+pub const SYSTEM_WILDCARD: &str = "*";
+pub const BUILTIN_OWNER_ROLE_CODE: &str = "owner";
+pub const BUILTIN_ADMIN_ROLE_CODE: &str = "admin";
+pub const BUILTIN_VIEWER_ROLE_CODE: &str = "viewer";
+
+const DEPLOY_CAPABILITY_PREFIX: &str = "manage:deploy:";
+const DEPLOY_VIEW_CAPABILITY: &str = "manage:deploy:list";
+const VIEW_ACTIONS: &[&str] = &["list", "view", "options"];
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
+pub struct RolePolicy;
+
+impl RolePolicy {
+    pub fn role_allows_capability(self, role_code: &str, capability_code: &str) -> bool {
+        match role_code {
+            BUILTIN_OWNER_ROLE_CODE => capability_code == SYSTEM_WILDCARD,
+            BUILTIN_ADMIN_ROLE_CODE => self.is_assignable_leaf_capability(capability_code),
+            BUILTIN_VIEWER_ROLE_CODE => {
+                self.is_assignable_leaf_capability(capability_code)
+                    && self.is_view_capability(capability_code)
+            }
+            _ => false,
+        }
+    }
+
+    pub fn is_assignable_leaf_capability(self, capability_code: &str) -> bool {
+        capability_code != SYSTEM_WILDCARD
+            && !capability_code.ends_with(":*")
+            && !self.is_deploy_operation_capability(capability_code)
+    }
+
+    pub fn is_view_capability(self, capability_code: &str) -> bool {
+        capability_code.rsplit(':').next().is_some_and(|action| VIEW_ACTIONS.contains(&action))
+    }
+
+    pub fn is_deploy_capability(self, capability_code: &str) -> bool {
+        capability_code == format!("{DEPLOY_CAPABILITY_PREFIX}*")
+            || capability_code.starts_with(DEPLOY_CAPABILITY_PREFIX)
+    }
+
+    pub fn is_deploy_operation_capability(self, capability_code: &str) -> bool {
+        self.is_deploy_capability(capability_code) && capability_code != DEPLOY_VIEW_CAPABILITY
+    }
+}
 
 pub fn is_deploy_capability_code(code: &str) -> bool {
-    RolePolicy::default().is_deploy_capability(code)
+    RolePolicy.is_deploy_capability(code)
+}
+
+#[cfg(test)]
+mod role_policy_tests {
+    use crate::{auth::CurrentUser, permission::PermissionsCheck};
+
+    use super::{
+        BUILTIN_ADMIN_ROLE_CODE, BUILTIN_OWNER_ROLE_CODE, BUILTIN_VIEWER_ROLE_CODE, RolePolicy,
+        SYSTEM_WILDCARD,
+    };
+
+    #[test]
+    fn built_in_roles_keep_expected_capability_boundaries() {
+        let policy = RolePolicy;
+        assert!(policy.role_allows_capability(BUILTIN_OWNER_ROLE_CODE, SYSTEM_WILDCARD));
+        assert!(policy.role_allows_capability(BUILTIN_ADMIN_ROLE_CODE, "system:user:create"));
+        assert!(!policy.role_allows_capability(BUILTIN_ADMIN_ROLE_CODE, "manage:deploy:run"));
+        assert!(policy.role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, "system:user:list"));
+        assert!(!policy.role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, "system:user:create"));
+        for module in ["monitor", "insights", "reports"] {
+            assert!(
+                policy.role_allows_capability(BUILTIN_ADMIN_ROLE_CODE, &format!("{module}:view"))
+            );
+            assert!(
+                policy.role_allows_capability(BUILTIN_ADMIN_ROLE_CODE, &format!("{module}:manage"))
+            );
+            assert!(
+                policy.role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, &format!("{module}:view"))
+            );
+            assert!(
+                !policy
+                    .role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, &format!("{module}:manage"))
+            );
+        }
+    }
+
+    #[test]
+    fn worker_route_capability_matrix_covers_owner_admin_and_viewer() {
+        let routes = [
+            ("GET /monitor/nodes", "monitor:view", true),
+            ("GET /monitor/nodes/{node_id}", "monitor:view", true),
+            ("GET /insights/projects", "insights:view", true),
+            ("POST /insights/projects", "insights:manage", false),
+            ("GET /insights/overview", "insights:view", true),
+            ("GET /reports/templates", "reports:view", true),
+            ("POST /reports/templates", "reports:manage", false),
+            ("GET /reports/jobs", "reports:view", true),
+            ("POST /reports/jobs", "reports:manage", false),
+            ("GET /reports/jobs/{job_id}", "reports:view", true),
+            ("GET /reports/jobs/{job_id}/download", "reports:view", true),
+        ];
+        let policy = RolePolicy;
+        let owner = CurrentUser::new(1, "owner", [SYSTEM_WILDCARD.to_string()], true);
+        let admin = CurrentUser::new(
+            2,
+            "admin",
+            routes
+                .iter()
+                .map(|(_, capability, _)| *capability)
+                .filter(|capability| {
+                    policy.role_allows_capability(BUILTIN_ADMIN_ROLE_CODE, capability)
+                })
+                .map(str::to_string),
+            false,
+        );
+        let viewer = CurrentUser::new(
+            3,
+            "viewer",
+            routes
+                .iter()
+                .map(|(_, capability, _)| *capability)
+                .filter(|capability| {
+                    policy.role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, capability)
+                })
+                .map(str::to_string),
+            false,
+        );
+
+        for (route, capability, viewer_allowed) in routes {
+            let check = PermissionsCheck::Require(capability);
+            assert!(check.check(&owner), "owner must access {route}");
+            assert!(check.check(&admin), "admin must access {route}");
+            assert_eq!(check.check(&viewer), viewer_allowed, "viewer mismatch for {route}");
+        }
+    }
 }
 
 /// Dashboard capability boundary.
 pub mod dashboard {
     pub const VIEW: &str = "dashboard:view";
+}
+
+/// Monitor capability boundaries.
+pub mod monitor {
+    pub const VIEW: &str = "monitor:view";
+    pub const MANAGE: &str = "monitor:manage";
+}
+
+/// Insights capability boundaries.
+pub mod insights {
+    pub const VIEW: &str = "insights:view";
+    pub const MANAGE: &str = "insights:manage";
+}
+
+/// Reports capability boundaries.
+pub mod reports {
+    pub const VIEW: &str = "reports:view";
+    pub const MANAGE: &str = "reports:manage";
 }
 
 /// User management capability boundaries.

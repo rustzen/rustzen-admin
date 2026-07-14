@@ -15,7 +15,7 @@ export const deployAPI = {
     },
     upload: (data: Deploy.UploadForm) => {
         const formData = new FormData();
-        formData.append("component", data.component);
+        formData.append("component", "release");
         formData.append("version", data.version);
         if (data.arch) {
             formData.append("arch", data.arch);
@@ -31,11 +31,10 @@ export const deployAPI = {
             url: `/api/manage/deploy/${id}`,
         });
     },
-    deploy: (id: number, data: Deploy.DeployRequest) => {
-        return apiRequest<boolean, Deploy.DeployRequest>({
+    deploy: (id: number) => {
+        return apiRequest<boolean>({
             url: `/api/manage/deploy/${id}/deploy`,
             method: "POST",
-            params: data,
         });
     },
     expire: (id: number, data: Deploy.ExpireRequest) => {

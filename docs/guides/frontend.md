@@ -1,5 +1,9 @@
 # Frontend Guide
 
+The frontend uses Bun 1.3.14. Vite is pinned to 8.1.3 because Vite 8.1.4 is
+not type-compatible with the current stable Vite+ 0.2.4 `defineConfig` plugin
+composition; keep the pin until that local lint gate passes on a newer pair.
+
 Rules for frontend work under `apps/web/`.
 
 ## Routes
@@ -28,6 +32,7 @@ Rules for frontend work under `apps/web/`.
 - Keep page-local tables, forms, and action handlers in the route file until reuse is real.
 - Keep layout-only concerns in `apps/web/src/components/base-layout/`.
 - Use existing design-system primitives before adding wrappers.
+- Use lowercase kebab-case for component file and directory names. Use PascalCase only for exported React components and types.
 - Prefer plain function components. Use `forwardRef`, `memo`, `useCallback`, or similar React wrappers only when a real caller needs the ref identity or memoized identity.
 - Do not add small calculation helpers or generic abstractions for values that are clearer as local constants or fixed props.
 - Use root `justfile` as the command source of truth.
@@ -54,10 +59,10 @@ Rules for frontend work under `apps/web/`.
 
 ## Package Manager
 
-- `apps/web` uses pnpm; keep `apps/web/pnpm-lock.yaml` as the frontend lockfile.
-- Keep pnpm build-script approvals in `apps/web/pnpm-workspace.yaml`.
+- `apps/web` uses Bun 1.3.14; keep `apps/web/bun.lock` as the only frontend lockfile.
+- Keep the Bun version pinned in `apps/web/package.json`.
 - `vite-plus` is the frontend build tool used in package.json scripts (aliases: `vp`).
-- Use `pnpm dev`, `pnpm build`, and `pnpm exec ...` for frontend commands.
+- Use `bun run dev`, `bun run build`, and `bun run vp ...` for frontend commands.
 
 ## Prohibited
 

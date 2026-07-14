@@ -92,6 +92,20 @@ pub enum ServiceError {
 #[derive(Debug)]
 pub struct AppError((StatusCode, i32, String));
 
+impl AppError {
+    pub(crate) fn worker_unavailable(worker: &str) -> Self {
+        app_error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            40001,
+            format!("{worker} worker is temporarily unavailable."),
+        )
+    }
+
+    pub(crate) fn upstream(status: StatusCode, message: impl Into<String>) -> Self {
+        app_error(status, 40002, message)
+    }
+}
+
 fn app_error(status: StatusCode, code: i32, message: impl Into<String>) -> AppError {
     AppError((status, code, message.into()))
 }

@@ -110,7 +110,7 @@ function DictPage() {
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
-                                                            className="size-8 p-0"
+                                                            size="icon-sm"
                                                             aria-label="Edit dictionary"
                                                         >
                                                             <EditIcon />
@@ -275,8 +275,8 @@ const DeleteDictDialog = ({ record, onSuccess }: { record: Dict.Item; onSuccess?
             trigger={
                 <Button
                     type="button"
-                    variant="ghost"
-                    className="size-8 p-0 text-destructive"
+                    variant="ghost-destructive"
+                    size="icon-sm"
                     aria-label="Delete dictionary"
                 >
                     <TrashIcon />

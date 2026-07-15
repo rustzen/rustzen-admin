@@ -58,7 +58,7 @@ function InsightsPage() {
                 </AuthWrap>
             }
         >
-            <div className="mb-5 flex max-w-sm flex-col gap-2">
+            <div className="flex max-w-sm flex-col gap-2">
                 <Label>Project</Label>
                 <Select value={projectId} onValueChange={setProjectId}>
                     <SelectTrigger>
@@ -90,10 +90,10 @@ function InsightsPage() {
                     />
                 </div>
             ) : (
-                <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-dashed text-center text-muted-foreground">
-                    <BarChart3Icon className="mb-3 size-8" />
+                <div className="flex min-h-64 flex-col items-center justify-center gap-1 rounded-lg border border-dashed text-center text-muted-foreground">
+                    <BarChart3Icon className="mb-2 size-8" />
                     <p>Create a project to start collecting Insights events.</p>
-                    <p className="mt-1 text-xs">No analytics compatibility endpoint is enabled.</p>
+                    <p className="text-xs">No analytics compatibility endpoint is enabled.</p>
                 </div>
             )}
         </PageCard>

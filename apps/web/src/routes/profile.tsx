@@ -97,7 +97,7 @@ function EditProfileDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="ghost" className="size-9 p-0" aria-label="Edit profile">
+                <Button variant="ghost" size="icon" aria-label="Edit profile">
                     <EditIcon />
                 </Button>
             </DialogTrigger>
@@ -191,7 +191,7 @@ function ChangePasswordDialog() {
             }}
         >
             <DialogTrigger asChild>
-                <Button variant="ghost" className="size-9 p-0" aria-label="Change password">
+                <Button variant="ghost" size="icon" aria-label="Change password">
                     <LockIcon />
                 </Button>
             </DialogTrigger>

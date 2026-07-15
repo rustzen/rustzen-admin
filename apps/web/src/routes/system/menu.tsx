@@ -151,7 +151,7 @@ function MenuActions({ record, onSuccess }: { record: Menu.Item; onSuccess: () =
         <div className="flex justify-end gap-2">
             <AuthWrap code="system:menu:update">
                 <MenuDialog mode="edit" initialValues={record} onSuccess={onSuccess}>
-                    <Button type="button" variant="ghost" className="size-8 p-0" aria-label="Edit menu">
+                    <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit menu">
                         <EditIcon />
                     </Button>
                 </MenuDialog>
@@ -358,8 +358,8 @@ function DisableMenuDialog({ record, onSuccess }: { record: Menu.Item; onSuccess
             trigger={
                 <Button
                     type="button"
-                    variant="ghost"
-                    className="size-8 p-0 text-destructive"
+                    variant="ghost-destructive"
+                    size="icon-sm"
                     aria-label="Disable menu"
                 >
                     <StopCircleIcon />

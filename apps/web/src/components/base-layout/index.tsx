@@ -1,6 +1,6 @@
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
-import { LogOutIcon, MoonIcon, SunIcon, UserIcon } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { LogOutIcon, UserIcon } from "lucide-react";
+import { useMemo, type ReactNode } from "react";
 
 import { appMessage, authAPI } from "@/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,6 +15,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { ThemeSwitch } from "@/components/theme-provider";
 import {
     Sidebar,
     SidebarContent,
@@ -275,34 +276,6 @@ const UserMenuContent = ({
         </DropdownMenuItem>
     </DropdownMenuContent>
 );
-
-const ThemeSwitch = () => {
-    const [theme, setTheme] = useState<"light" | "dark">(() => {
-        if (typeof window === "undefined") {
-            return "light";
-        }
-        return localStorage.getItem("rustzen-admin-theme") === "dark" ? "dark" : "light";
-    });
-
-    useEffect(() => {
-        document.documentElement.classList.toggle("dark", theme === "dark");
-        localStorage.setItem("rustzen-admin-theme", theme);
-    }, [theme]);
-
-    const nextTheme = theme === "dark" ? "light" : "dark";
-
-    return (
-        <Button
-            type="button"
-            variant="ghost"
-            className="size-9 p-0"
-            aria-label={`Switch to ${nextTheme} theme`}
-            onClick={() => setTheme(nextTheme)}
-        >
-            {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-        </Button>
-    );
-};
 
 const UserAvatar = ({
     userInfo,

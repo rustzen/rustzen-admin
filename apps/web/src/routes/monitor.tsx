@@ -31,7 +31,7 @@ function MonitorPage() {
             title="Monitor"
             description="Latest heartbeat and resource snapshot from each registered node."
         >
-            <div className="mb-4 grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
                 <Metric label="Registered nodes" value={data.length} icon={<ServerIcon />} />
                 <Metric
                     label="Online nodes"

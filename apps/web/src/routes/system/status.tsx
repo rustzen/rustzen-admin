@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { systemAPI } from "@/api";
+import { PageHeader } from "@/components/app/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -32,17 +33,15 @@ function SystemStatusPage() {
 
     return (
         <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">System Status</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Storage and local resource telemetry refreshed every 30 seconds.
-                    </p>
-                </div>
-                <div className="shrink-0 text-sm text-muted-foreground">
+            <PageHeader
+                title="System Status"
+                description="Storage and local resource telemetry refreshed every 30 seconds."
+                actions={
+                    <span className="text-sm text-muted-foreground">
                     Collected at: {data?.collectedAt ? formatDateTime(data.collectedAt) : "-"}
-                </div>
-            </div>
+                    </span>
+                }
+            />
 
             {data ? (
                 <>

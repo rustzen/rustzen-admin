@@ -151,7 +151,7 @@ function DeployActions({ record, onSuccess }: { record: Deploy.Item; onSuccess: 
                     <Button
                         type="button"
                         variant="ghost"
-                        className="size-8 p-0"
+                        size="icon-sm"
                         disabled={record.isCurrent || record.isExpired}
                         aria-label="Expire version"
                     >
@@ -300,7 +300,7 @@ function DeployVersionDialog({
                 <Button
                     type="button"
                     variant="ghost"
-                    className="size-8 p-0"
+                    size="icon-sm"
                     disabled={record.isExpired}
                     aria-label="Deploy version"
                 >
@@ -407,8 +407,8 @@ function DeleteVersionDialog({
             trigger={
                 <Button
                     type="button"
-                    variant="ghost"
-                    className="size-8 p-0 text-destructive"
+                    variant="ghost-destructive"
+                    size="icon-sm"
                     disabled={record.isCurrent}
                     aria-label="Delete version"
                 >

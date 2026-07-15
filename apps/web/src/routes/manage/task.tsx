@@ -133,7 +133,7 @@ function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: st
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button type="button" variant="ghost" className="size-8 p-0" aria-label="Task logs">
+                <Button type="button" variant="ghost" size="icon-sm" aria-label="Task logs">
                     <HistoryIcon />
                 </Button>
             </DialogTrigger>
@@ -209,7 +209,7 @@ function RunTaskDialog({ record, onSuccess }: { record: Task.Item; onSuccess: ()
                 <Button
                     type="button"
                     variant="ghost"
-                    className="size-8 p-0"
+                    size="icon-sm"
                     disabled={record.running}
                     aria-label={record.running ? "Executing" : "Execute task"}
                 >

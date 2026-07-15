@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use crate::{
     common::error::AppError,
-    features::worker_proxy::{request_bytes, request_json},
+    features::process_proxy::{request_bytes, request_json},
     infra::config::CONFIG,
 };
 

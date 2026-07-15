@@ -1,7 +1,9 @@
 use reqwest::Method;
 use rustzen_auth::capability::monitor;
 
-use crate::{common::error::AppError, features::worker_proxy::request_json, infra::config::CONFIG};
+use crate::{
+    common::error::AppError, features::process_proxy::request_json, infra::config::CONFIG,
+};
 
 use super::types::MonitorPayload;
 

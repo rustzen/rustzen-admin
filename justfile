@@ -53,8 +53,6 @@ build-web:
 build-config:
     mkdir -p target/rz/config target/rz/systemd
     cp .env.example target/rz/config/rz.env
-    perl -pi -e 's#^RUSTZEN_RUNTIME_ROOT=.*#RUSTZEN_RUNTIME_ROOT=.#' target/rz/config/rz.env
-    perl -pi -e 's#^RUSTZEN_DEPLOY_SIGNATURE_REQUIRED=.*#RUSTZEN_DEPLOY_SIGNATURE_REQUIRED=true#' target/rz/config/rz.env
     VERIFY_KEY=$(bun scripts/deploy-sign.mjs public-key) && perl -pi -e "s#^RUSTZEN_DEPLOY_VERIFY_KEY=.*#RUSTZEN_DEPLOY_VERIFY_KEY=$VERIFY_KEY#" target/rz/config/rz.env
     cp deploy/rz-admin.service deploy/rz-monitor.service deploy/rz-insights.service deploy/rz-reports.service target/rz/systemd/
     cp deploy/setup-layout.sh target/rz/setup-layout.sh

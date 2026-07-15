@@ -61,19 +61,6 @@ pub fn require_capability(headers: &HeaderMap, required: &str) -> Result<(), (St
     Ok(())
 }
 
-pub fn sign_ipc_payload(label: &str, payload: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let mut mac = HmacSha256::new_from_slice(CONFIG.ipc_token.as_bytes())?;
-    mac.update(format!("{IPC_CONTRACT_VERSION}\n{label}\n{payload}").as_bytes());
-    Ok(hex::encode(mac.finalize().into_bytes()))
-}
-
-pub fn verify_ipc_payload(label: &str, payload: &str, provided: &str) -> Result<(), ()> {
-    let provided = hex::decode(provided).map_err(|_| ())?;
-    let mut mac = HmacSha256::new_from_slice(CONFIG.ipc_token.as_bytes()).map_err(|_| ())?;
-    mac.update(format!("{IPC_CONTRACT_VERSION}\n{label}\n{payload}").as_bytes());
-    mac.verify_slice(&provided).map_err(|_| ())
-}
-
 fn verify_ipc_request(request: &Request) -> Result<(), ()> {
     let headers = request.headers();
     if header_value(headers, &IPC_VERSION_HEADER) != Some(IPC_CONTRACT_VERSION) {
@@ -138,10 +125,7 @@ mod tests {
         http::{HeaderMap, Request},
     };
 
-    use super::{
-        IPC_CAPABILITY_HEADER, require_capability, sign_ipc_payload, sign_ipc_request,
-        verify_ipc_payload, verify_ipc_request,
-    };
+    use super::{IPC_CAPABILITY_HEADER, require_capability, sign_ipc_request, verify_ipc_request};
 
     #[test]
     fn signed_context_is_bound_to_method_path_and_capability() {
@@ -173,18 +157,5 @@ mod tests {
         headers.insert(&IPC_CAPABILITY_HEADER, "insights:view".parse().expect("header"));
         assert!(require_capability(&headers, "insights:view").is_ok());
         assert!(require_capability(&headers, "reports:view").is_err());
-    }
-
-    #[test]
-    fn signed_payload_rejects_mutation() {
-        let signature = sign_ipc_payload("monitor-agent-update", "version=1\nsha256=abc")
-            .expect("sign payload");
-        assert!(
-            verify_ipc_payload("monitor-agent-update", "version=1\nsha256=abc", &signature).is_ok()
-        );
-        assert!(
-            verify_ipc_payload("monitor-agent-update", "version=2\nsha256=abc", &signature)
-                .is_err()
-        );
     }
 }

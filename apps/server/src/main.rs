@@ -2,13 +2,13 @@ mod common;
 mod features;
 mod infra;
 mod middleware;
-mod workers;
+mod processes;
 
 use crate::features::manage::deploy::service::DeployService;
 use crate::infra::app::run_server;
 use crate::infra::config::CONFIG;
 use crate::infra::logger::init_logging;
-use crate::workers::{insights, monitor, reports};
+use crate::processes::{insights, monitor, reports};
 
 #[used]
 #[unsafe(no_mangle)]
@@ -38,7 +38,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Command::Admin => run_server().await,
             Command::MonitorController => monitor::run_controller().await,
             Command::MonitorAgent => monitor::run_agent().await,
-            Command::MonitorAgentVerify => Ok(()),
             Command::InsightsWorker => insights::run_worker().await,
             Command::ReportsWorker => reports::run_worker().await,
             Command::UpdateWorker(id) => DeployService::run_update_worker(id).await,
@@ -53,7 +52,6 @@ enum Command {
     Admin,
     MonitorController,
     MonitorAgent,
-    MonitorAgentVerify,
     InsightsWorker,
     ReportsWorker,
     UpdateWorker(i64),
@@ -68,11 +66,6 @@ impl Command {
                 Ok(Self::MonitorController)
             }
             [module, mode] if module == "monitor" && mode == "agent" => Ok(Self::MonitorAgent),
-            [module, mode, action]
-                if module == "monitor" && mode == "agent" && action == "verify" =>
-            {
-                Ok(Self::MonitorAgentVerify)
-            }
             [module, mode] if module == "insights" && mode == "worker" => Ok(Self::InsightsWorker),
             [module, mode] if module == "reports" && mode == "worker" => Ok(Self::ReportsWorker),
             [module, mode, id] if module == "update" && mode == "worker" => id
@@ -123,10 +116,6 @@ mod tests {
         assert_eq!(
             Command::parse(["monitor".to_string(), "agent".to_string()]).ok(),
             Some(Command::MonitorAgent)
-        );
-        assert_eq!(
-            Command::parse(["monitor".to_string(), "agent".to_string(), "verify".to_string()]).ok(),
-            Some(Command::MonitorAgentVerify)
         );
         assert_eq!(
             Command::parse(["insights".to_string(), "worker".to_string()]).ok(),

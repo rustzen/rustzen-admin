@@ -19,7 +19,7 @@ use uuid::Uuid;
 
 use crate::{
     infra::config::CONFIG,
-    workers::common::{health, map_worker_error, require_capability, require_ipc},
+    processes::common::{health, map_worker_error, require_capability, require_ipc},
 };
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/reports");

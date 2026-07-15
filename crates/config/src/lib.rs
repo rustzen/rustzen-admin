@@ -42,6 +42,9 @@ const DEFAULT_JWT_EXPIRATION: i64 = 7200;
 /// Development-only fallback JWT secret.
 const DEFAULT_DEV_JWT_SECRET: &str = "rustzen-dev-jwt-secret-change-in-production";
 
+/// Placeholder used by generated production configuration.
+const RELEASE_SECRET_PLACEHOLDER: &str = "replace-me";
+
 /// Release-package placeholder JWT secret.
 const RELEASE_JWT_SECRET_PLACEHOLDER: &str = "rustzen-admin-release-{version}";
 
@@ -113,15 +116,6 @@ pub struct Config {
     #[serde(default = "default_deploy_signature_required")]
     pub deploy_signature_required: bool,
     pub deploy_verify_key: Option<String>,
-    pub monitor_agent_release_url: Option<String>,
-    pub monitor_agent_release_sha256: Option<String>,
-    pub monitor_agent_release_version: Option<String>,
-    pub monitor_agent_release_os: Option<String>,
-    pub monitor_agent_release_arch: Option<String>,
-    pub monitor_agent_release_size_bytes: Option<u64>,
-    pub monitor_agent_rollout_stage: Option<String>,
-    pub monitor_agent_canary_ids: Option<String>,
-    pub monitor_agent_batch_percent: Option<u8>,
 }
 
 /// Global process configuration loaded from `RUSTZEN_*` env.
@@ -130,7 +124,7 @@ pub static CONFIG: Lazy<Config> = Lazy::new(|| {
         .merge(Env::prefixed("RUSTZEN_"))
         .extract()
         .expect("Failed to load configuration");
-    ensure_production_jwt_secret(&config);
+    ensure_production_config(&config);
     config
 });
 
@@ -284,17 +278,18 @@ fn default_runtime_root() -> String {
     DEFAULT_RUNTIME_ROOT.to_string()
 }
 
-fn ensure_production_jwt_secret(config: &Config) {
+fn ensure_production_config(config: &Config) {
     let env = std::env::var("RUSTZEN_ENV").unwrap_or_else(|_| "development".to_string());
     let env = env.to_ascii_lowercase();
     let is_production = env == "production" || env == "prod";
     let is_release_layout = config.runtime_root.trim() == ".";
     let uses_dev_default = config.jwt_secret == DEFAULT_DEV_JWT_SECRET;
-    let uses_placeholder = config.jwt_secret == "replace-me"
+    let uses_placeholder = config.jwt_secret == RELEASE_SECRET_PLACEHOLDER
         || config.jwt_secret == RELEASE_JWT_SECRET_PLACEHOLDER
         || config.jwt_secret.starts_with(RELEASE_JWT_SECRET_PREFIX);
     let is_empty = config.jwt_secret.trim().is_empty();
     let uses_dev_ipc_token = config.ipc_token == DEFAULT_IPC_TOKEN;
+    let uses_ipc_placeholder = config.ipc_token == RELEASE_SECRET_PLACEHOLDER;
     let ipc_token_is_empty = config.ipc_token.trim().is_empty();
 
     assert!(
@@ -303,14 +298,35 @@ fn ensure_production_jwt_secret(config: &Config) {
         "RUSTZEN_JWT_SECRET must be explicitly set for release/production and cannot use default or placeholder values"
     );
     assert!(
-        !((is_production || is_release_layout) && (uses_dev_ipc_token || ipc_token_is_empty)),
+        !((is_production || is_release_layout)
+            && (uses_dev_ipc_token || uses_ipc_placeholder || ipc_token_is_empty)),
         "RUSTZEN_IPC_TOKEN must be explicitly set for release/production and cannot use the development default"
     );
+    assert!(
+        !((is_production || is_release_layout) && !config.deploy_signature_required),
+        "RUSTZEN_DEPLOY_SIGNATURE_REQUIRED must be enabled for release/production"
+    );
+    assert!(
+        !((is_production || is_release_layout)
+            && !is_valid_deploy_verify_key(config.deploy_verify_key.as_deref())),
+        "RUSTZEN_DEPLOY_VERIFY_KEY must be a 32-byte hex public key for release/production"
+    );
+}
+
+fn is_valid_deploy_verify_key(value: Option<&str>) -> bool {
+    value.is_some_and(|value| {
+        let value = value.trim();
+        value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+    })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Config, default_runtime_root, ensure_production_jwt_secret};
+    use super::{
+        Config, DEFAULT_DEV_JWT_SECRET, DEFAULT_IPC_TOKEN, default_runtime_root,
+        ensure_production_config,
+    };
+    use figment::Figment;
     use rustzen_runtime::resolve_path_with_runtime_root;
     use std::env;
     use std::path::PathBuf;
@@ -341,21 +357,32 @@ mod tests {
             task_run_timeout_seconds: 1800,
             deploy_signature_required: false,
             deploy_verify_key: None,
-            monitor_agent_release_url: None,
-            monitor_agent_release_sha256: None,
-            monitor_agent_release_version: None,
-            monitor_agent_release_os: None,
-            monitor_agent_release_arch: None,
-            monitor_agent_release_size_bytes: None,
-            monitor_agent_rollout_stage: None,
-            monitor_agent_canary_ids: None,
-            monitor_agent_batch_percent: None,
         }
     }
 
     #[test]
     fn runtime_root_default_uses_hidden_dev_dir() {
         assert_eq!(default_runtime_root(), ".rustzen-admin");
+    }
+
+    #[test]
+    fn empty_environment_uses_built_in_runtime_defaults() {
+        let config: Config = Figment::new().extract().expect("built-in config defaults");
+
+        assert_eq!(config.sqlite_path, "./data/db/admin.db");
+        assert_eq!(config.app_host, "0.0.0.0");
+        assert_eq!(config.app_port, 9801);
+        assert_eq!(config.worker_host, "127.0.0.1");
+        assert_eq!(config.monitor_port, 9802);
+        assert_eq!(config.insights_port, 9803);
+        assert_eq!(config.reports_port, 9804);
+        assert_eq!(config.runtime_root, ".rustzen-admin");
+        assert_eq!(config.jwt_secret, DEFAULT_DEV_JWT_SECRET);
+        assert_eq!(config.ipc_token, DEFAULT_IPC_TOKEN);
+        assert_eq!(config.timezone, "UTC");
+        assert_eq!(config.task_run_timeout_seconds, 1800);
+        assert!(!config.deploy_signature_required);
+        assert!(config.deploy_verify_key.is_none());
     }
 
     #[test]
@@ -384,20 +411,52 @@ mod tests {
     fn release_layout_rejects_release_jwt_placeholder() {
         let config = test_config("rustzen-admin-release-{version}", ".");
 
-        assert!(std::panic::catch_unwind(|| ensure_production_jwt_secret(&config)).is_err());
+        assert!(std::panic::catch_unwind(|| ensure_production_config(&config)).is_err());
     }
 
     #[test]
     fn release_layout_rejects_generated_release_jwt_placeholder() {
         let config = test_config("rustzen-admin-release-v0.2.3", ".");
 
-        assert!(std::panic::catch_unwind(|| ensure_production_jwt_secret(&config)).is_err());
+        assert!(std::panic::catch_unwind(|| ensure_production_config(&config)).is_err());
     }
 
     #[test]
     fn release_layout_rejects_legacy_jwt_placeholder() {
         let config = test_config("replace-me", ".");
 
-        assert!(std::panic::catch_unwind(|| ensure_production_jwt_secret(&config)).is_err());
+        assert!(std::panic::catch_unwind(|| ensure_production_config(&config)).is_err());
+    }
+
+    #[test]
+    fn release_layout_rejects_ipc_placeholder() {
+        let mut config = test_config("production-jwt-secret", ".");
+        config.ipc_token = "replace-me".to_string();
+
+        assert!(std::panic::catch_unwind(|| ensure_production_config(&config)).is_err());
+    }
+
+    #[test]
+    fn release_layout_rejects_disabled_signature_verification() {
+        let config = test_config("production-jwt-secret", ".");
+
+        assert!(std::panic::catch_unwind(|| ensure_production_config(&config)).is_err());
+    }
+
+    #[test]
+    fn release_layout_rejects_missing_verify_key() {
+        let mut config = test_config("production-jwt-secret", ".");
+        config.deploy_signature_required = true;
+
+        assert!(std::panic::catch_unwind(|| ensure_production_config(&config)).is_err());
+    }
+
+    #[test]
+    fn release_layout_accepts_hardened_production_config() {
+        let mut config = test_config("production-jwt-secret", ".");
+        config.deploy_signature_required = true;
+        config.deploy_verify_key = Some("ab".repeat(32));
+
+        ensure_production_config(&config);
     }
 }

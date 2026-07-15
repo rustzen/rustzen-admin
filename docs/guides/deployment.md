@@ -61,6 +61,11 @@ must retain `RUSTZEN_DEPLOY_SIGNATURE_REQUIRED=true` with the matching public
 verify key. The installer enables services but does not start them with release
 placeholder secrets.
 
+The generated `config/rz.env` intentionally contains only six production
+overrides: environment mode, runtime root, the two secrets, signature
+enforcement, and the public verify key. Ports, SQLite paths, connection-pool
+limits, logging, timezone, retention, and task timeout use built-in defaults.
+
 ## Apply and rollback
 
 Only `owner` may submit apply, rollback, cleanup, or other release mutations.
@@ -92,21 +97,11 @@ the databases owned by processes that entered the restart sequence, and starts
 those processes on the previous release. Backups and failed candidates remain
 for diagnosis; cleanup is a separate owner action.
 
-## Monitor Agent rollout
+## Monitor Agent
 
-`rz monitor agent` uses the same source and version line but runs on a managed
-node under `deploy/rz-monitor-agent.service`. A rollout is inactive unless all
-`RUSTZEN_MONITOR_AGENT_RELEASE_*` fields and a rollout stage are configured.
-Use `canary` with explicit `RUSTZEN_MONITOR_AGENT_CANARY_IDS` first; after
-verification, use `batch` with a bounded
-`RUSTZEN_MONITOR_AGENT_BATCH_PERCENT`. The Controller will not issue a directive
-when OS, architecture, protocol, current version, or free-space checks fail.
-
-The Agent accepts only the HMAC-signed fixed update directive. It enforces a
-64 MiB limit, exact size and SHA-256, ELF architecture, a fixed candidate
-self-test, same-directory atomic replacement, and previous-binary retention.
-The first successful heartbeat confirms the update; three consecutive failed
-heartbeats restore the previous binary and request a supervisor restart.
+`rz monitor agent` runs on a managed node under
+`deploy/rz-monitor-agent.service` and reports node metrics to the Monitor
+Controller every 30 seconds.
 
 ## Local gates
 
@@ -117,7 +112,7 @@ heartbeats restore the previous binary and request a supervisor restart.
 - `just verify-processes`
 - `git diff --check`
 
-`just verify-processes` terminates each Worker independently and injects
+`just verify-processes` terminates each process independently and injects
 corruption into Admin, Monitor, Insights, and Reports databases one at a time.
 It verifies that unrelated processes stay healthy and restoring each database
 recovers its owning process.

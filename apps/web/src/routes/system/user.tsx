@@ -284,14 +284,14 @@ function UserActions({
         <div className="flex justify-end gap-2">
             <AuthWrap code="system:user:update">
                 <UserDialog mode="edit" initialValues={record} onSuccess={onSuccess}>
-                    <Button type="button" variant="ghost" className="size-8 p-0" aria-label="Edit user">
+                    <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit user">
                         <EditIcon />
                     </Button>
                 </UserDialog>
             </AuthWrap>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="ghost" className="size-8 p-0" aria-label="More user actions">
+                    <Button type="button" variant="ghost" size="icon-sm" aria-label="More user actions">
                         <MoreHorizontalIcon />
                     </Button>
                 </DropdownMenuTrigger>

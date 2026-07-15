@@ -25,6 +25,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { dashboardAPI } from "@/api";
+import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,19 +38,17 @@ export const Route = createFileRoute("/")({
 
 function DashboardPage() {
     return (
-        <div className="flex h-full min-h-0 flex-col gap-4 overflow-auto p-1">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Operational overview for users, runtime health, and activity trends.
-                    </p>
-                </div>
-                <Button>
+        <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto">
+            <PageHeader
+                title="Dashboard"
+                description="Operational overview for users, runtime health, and activity trends."
+                actions={
+                    <Button>
                     <DownloadIcon data-icon="inline-start" />
                     Download
-                </Button>
-            </div>
+                    </Button>
+                }
+            />
 
             <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col gap-4">
                 <div className="w-full overflow-x-auto pb-1">

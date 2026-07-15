@@ -4,6 +4,7 @@ import { lazy, Suspense, useEffect } from "react";
 
 import { MessageContent, authAPI } from "@/api";
 import { BaseLayout } from "@/components/base-layout";
+import { ThemeProvider } from "@/components/theme-provider";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const permissionFreePaths = new Set(["/profile", "/403", "/404"]);
@@ -72,7 +73,7 @@ function RootLayout() {
     }, [userInfo, updateUserInfo]);
 
     return (
-        <>
+        <ThemeProvider>
             <BaseLayout hidden={!token}>
                 <Outlet />
             </BaseLayout>
@@ -83,6 +84,6 @@ function RootLayout() {
                     <TanStackRouterDevtools />
                 </Suspense>
             )}
-        </>
+        </ThemeProvider>
     );
 }

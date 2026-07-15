@@ -233,7 +233,7 @@ function RoleActions({ record, onSuccess }: { record: Role.Item; onSuccess: () =
         <div className="flex justify-end gap-2">
             <AuthWrap code="system:role:update">
                 <RoleDialog mode="edit" record={record} onSuccess={onSuccess}>
-                    <Button type="button" variant="ghost" className="size-8 p-0" aria-label="Edit role">
+                    <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit role">
                         <EditIcon />
                     </Button>
                 </RoleDialog>
@@ -488,8 +488,8 @@ function DeleteRoleDialog({ record, onSuccess }: { record: Role.Item; onSuccess:
             trigger={
                 <Button
                     type="button"
-                    variant="ghost"
-                    className="size-8 p-0 text-destructive"
+                    variant="ghost-destructive"
+                    size="icon-sm"
                     aria-label="Delete role"
                 >
                     <TrashIcon />

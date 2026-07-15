@@ -29,7 +29,8 @@ Use this checklist for repository changes. It is a review aid, not a replacement
 ## Deployment
 
 - Runtime paths derive from `RUSTZEN_RUNTIME_ROOT`.
-- Production config uses `RUSTZEN_SQLITE_PATH` and `RUSTZEN_*`.
+- Production config contains only secrets and release-layout overrides; routine
+  runtime values use `crates/config/` defaults.
 - Release output still matches `docs/guides/deployment.md`.
 
 ## Docs

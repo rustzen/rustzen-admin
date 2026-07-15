@@ -17,17 +17,13 @@ use uuid::Uuid;
 
 use crate::{
     infra::config::CONFIG,
-    workers::common::{
+    processes::common::{
         health, ipc_client, map_worker_error, require_capability, require_ipc, sign_ipc_request,
     },
 };
 
-use super::monitor_update::{
-    AgentFacts, AgentUpdateDirective, apply_update, confirm_pending_update, directive_for,
-    rollback_pending_update, validate_rollout_config,
-};
-
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations/monitor");
+const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
 
 #[derive(Clone)]
 struct MonitorState {
@@ -37,25 +33,15 @@ struct MonitorState {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct HeartbeatInput {
-    protocol_version: u8,
     agent_id: String,
     hostname: String,
     agent_version: String,
-    os: String,
-    arch: String,
-    available_bytes: u64,
     cpu_percent: f32,
     memory_used_bytes: u64,
     memory_total_bytes: u64,
     disk_used_bytes: u64,
     disk_total_bytes: u64,
     collected_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct HeartbeatOutput {
-    update: Option<AgentUpdateDirective>,
 }
 
 #[derive(Debug, Clone, FromRow, Serialize)]
@@ -83,7 +69,6 @@ struct NodeView {
 }
 
 pub async fn run_controller() -> Result<(), Box<dyn std::error::Error>> {
-    validate_rollout_config()?;
     let pool = crate::infra::db::create_pool_for_path(&CONFIG.monitor_database_path()).await?;
     MIGRATOR.run(&pool).await?;
     crate::infra::db::test_connection(&pool).await?;
@@ -105,20 +90,12 @@ pub async fn run_controller() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 pub async fn run_agent() -> Result<(), Box<dyn std::error::Error>> {
-    let agent_id = std::env::var("RUSTZEN_MONITOR_AGENT_ID")
-        .ok()
-        .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| System::host_name().unwrap_or_else(|| Uuid::new_v4().to_string()));
-    let interval_seconds = std::env::var("RUSTZEN_MONITOR_AGENT_INTERVAL_SECONDS")
-        .ok()
-        .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(30)
-        .max(5);
+    let hostname = System::host_name().unwrap_or_else(|| Uuid::new_v4().to_string());
+    let agent_id = hostname.clone();
     let endpoint = format!("{}/ipc/v1/monitor/heartbeat", CONFIG.monitor_base_url());
     let client = ipc_client()?;
     let mut system = System::new_all();
     let mut disks = Disks::new_with_refreshed_list();
-    let mut consecutive_failures = 0_u8;
 
     loop {
         system.refresh_all();
@@ -126,13 +103,9 @@ pub async fn run_agent() -> Result<(), Box<dyn std::error::Error>> {
         let disk_total_bytes: u64 = disks.iter().map(|disk| disk.total_space()).sum();
         let disk_available_bytes: u64 = disks.iter().map(|disk| disk.available_space()).sum();
         let payload = HeartbeatInput {
-            protocol_version: 1,
             agent_id: agent_id.clone(),
-            hostname: System::host_name().unwrap_or_else(|| agent_id.clone()),
+            hostname: hostname.clone(),
             agent_version: env!("CARGO_PKG_VERSION").to_string(),
-            os: std::env::consts::OS.to_string(),
-            arch: std::env::consts::ARCH.to_string(),
-            available_bytes: disk_available_bytes,
             cpu_percent: system.global_cpu_usage(),
             memory_used_bytes: system.used_memory(),
             memory_total_bytes: system.total_memory(),
@@ -148,37 +121,16 @@ pub async fn run_agent() -> Result<(), Box<dyn std::error::Error>> {
         )?;
         match request.send().await {
             Ok(response) if response.status().is_success() => {
-                consecutive_failures = 0;
                 tracing::debug!(%agent_id, "Monitor heartbeat accepted");
-                confirm_pending_update()?;
-                if response.status() != StatusCode::NO_CONTENT {
-                    let output = response.json::<HeartbeatOutput>().await?;
-                    if let Some(update) = output.update {
-                        apply_update(&client, &update).await?;
-                        tracing::info!(%agent_id, "Monitor Agent update staged; exiting for supervisor restart");
-                        return Err(std::io::Error::other(
-                            "Monitor Agent restart required after update",
-                        )
-                        .into());
-                    }
-                }
             }
             Ok(response) => {
-                consecutive_failures = consecutive_failures.saturating_add(1);
                 tracing::warn!(status = %response.status(), %agent_id, "Monitor heartbeat rejected");
             }
             Err(error) => {
-                consecutive_failures = consecutive_failures.saturating_add(1);
                 tracing::warn!(%error, %agent_id, "Monitor heartbeat failed");
             }
         }
-        if consecutive_failures >= 3 && rollback_pending_update()? {
-            tracing::error!(%agent_id, "Monitor Agent update rolled back after heartbeat failures");
-            return Err(
-                std::io::Error::other("Monitor Agent restart required after rollback").into()
-            );
-        }
-        tokio::time::sleep(Duration::from_secs(interval_seconds)).await;
+        tokio::time::sleep(HEARTBEAT_INTERVAL).await;
     }
 }
 
@@ -186,12 +138,9 @@ async fn heartbeat(
     State(state): State<MonitorState>,
     headers: HeaderMap,
     Json(input): Json<HeartbeatInput>,
-) -> Result<Json<HeartbeatOutput>, (StatusCode, String)> {
+) -> Result<StatusCode, (StatusCode, String)> {
     require_capability(&headers, "monitor:heartbeat")?;
-    if input.protocol_version != 1
-        || input.agent_id.trim().is_empty()
-        || input.hostname.trim().is_empty()
-    {
+    if input.agent_id.trim().is_empty() || input.hostname.trim().is_empty() {
         return Err((StatusCode::BAD_REQUEST, "agentId and hostname are required".to_string()));
     }
     let now = Utc::now().to_rfc3339();
@@ -239,15 +188,7 @@ async fn heartbeat(
     .await
     .map_err(internal_error)?;
     transaction.commit().await.map_err(internal_error)?;
-    let update = directive_for(AgentFacts {
-        agent_id: &input.agent_id,
-        current_version: &input.agent_version,
-        os: &input.os,
-        arch: &input.arch,
-        available_bytes: input.available_bytes,
-    })
-    .map_err(internal_error)?;
-    Ok(Json(HeartbeatOutput { update }))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn list_nodes(

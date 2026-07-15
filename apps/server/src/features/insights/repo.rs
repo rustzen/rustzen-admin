@@ -1,7 +1,9 @@
 use reqwest::Method;
 use serde_json::Value;
 
-use crate::{common::error::AppError, features::worker_proxy::request_json, infra::config::CONFIG};
+use crate::{
+    common::error::AppError, features::process_proxy::request_json, infra::config::CONFIG,
+};
 
 use super::types::InsightsPayload;
 

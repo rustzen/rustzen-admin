@@ -28,7 +28,8 @@ Rules for Rust backend work under `apps/server/`.
 - Prefer `#[serde(rename_all = "camelCase")]` on HTTP request/response structs.
 - SQL must be explicit; do not use `SELECT *`.
 - Schema changes require migrations.
-- Runtime config uses `RUSTZEN_SQLITE_PATH` and `RUSTZEN_*`.
+- Runtime config has safe code defaults; `RUSTZEN_*` variables are optional
+  overrides except for production secrets and release verification settings.
 - SQLite is the default runtime storage backend.
 - Scheduled task executors must remain bounded by
   `RUSTZEN_TASK_RUN_TIMEOUT_SECONDS`.

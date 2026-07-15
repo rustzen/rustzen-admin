@@ -9,7 +9,7 @@ Web/Rust A-class monorepo and produces one complete `rz` release artifact.
 - `crates/config/` owns `RUSTZEN_*` configuration and the four database paths.
 - `crates/runtime/` owns runtime layout primitives.
 - `crates/storage/` owns SQLite connection and maintenance primitives.
-- `apps/server/` owns the `rz` CLI, Admin API, Worker adapters, migrations, and
+- `apps/server/` owns the `rz` CLI, Admin API, process adapters, migrations, and
   embedded Web assets.
 - `apps/web/` owns the React UI and typed API clients.
 - `deploy/` owns the four service units and initial installation layout.
@@ -32,22 +32,16 @@ rz reports worker       -> 127.0.0.1:9804 -> data/db/reports.db
 
 `rz monitor agent` is an additional node-side mode of the same complete source
 and version line. It does not create another server release authority. Agent
-heartbeats register protocol, version, OS, architecture, and available space.
-Controller rollout configuration first targets explicit Canary IDs, then a
-stable bounded percentage. The signed directive fixes the download URL,
-SHA-256, size, OS, architecture, and version. An Agent downloads to a temporary
-file, verifies it, runs the fixed candidate self-test, atomically replaces its
-binary, and retains the previous binary until a successful heartbeat. Three
-failed heartbeats restore the previous binary.
+heartbeats register the node version and CPU, memory, and disk metrics.
 
-Admin communicates with Workers only through versioned loopback HTTP. Every
+Admin communicates with the isolated processes only through versioned loopback HTTP. Every
 request carries a 30-second HMAC-SHA256 context bound to method, path, contract
-version, and module capability. Workers independently reject expired,
+version, and module capability. Each process independently rejects expired,
 cross-module, or unsigned contexts. Calls time out after five seconds.
 
-Worker failure is degraded locally: Admin login and unrelated modules remain
+Process failure is degraded locally: Admin login and unrelated modules remain
 available, the failed module returns service unavailable, and the dashboard
-health summary probes all Workers concurrently with a one-second timeout.
+health summary probes all processes concurrently with a one-second timeout.
 
 ## Module scope
 
@@ -77,7 +71,7 @@ generation, or cross-database joins.
 - `viewer` receives only the three `*:view` capabilities.
 
 Frontend visibility is supplementary. Every protected route performs a backend
-capability check, and each Worker verifies the signed module capability again.
+capability check, and each process verifies the signed module capability again.
 
 ## Release topology
 

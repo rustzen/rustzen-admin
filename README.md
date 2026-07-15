@@ -49,19 +49,20 @@ This layout keeps backend, frontend, and repository rules explicit, making the c
 Use the root `justfile` as the command source of truth; inspect the relevant target before running it.
 
 ```bash
-cp .env.example .env
 cargo run -p server -- admin serve
 ```
 
 Local startup is SQLite-first and does not require PostgreSQL.
 SQLite connection primitives, role policy, runtime layout, and logging are owned
 inside this repository; there is no `rustzen-core` runtime dependency.
-Set `RUSTZEN_JWT_SECRET` in `.env` before starting the backend.
+Local development needs no `.env`: database paths, ports, connection-pool
+limits, runtime paths, logging, timezone, JWT lifetime, and development-only
+JWT/IPC secrets have built-in defaults. Use environment variables only to
+override those defaults.
 
 If startup fails with `VersionMismatch`, your local database schema is out-of-date with current migration checksums. Run:
 
 ```bash
-cp .env.example .env
 just reset-db
 cargo run -p server -- admin serve
 ```

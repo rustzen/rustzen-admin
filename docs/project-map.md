@@ -10,7 +10,7 @@ This is a practical path index for task orientation. It maps where to look first
 | `AGENTS.md` | Repository-wide AI constraints. | You start any task. |
 | `Cargo.toml` | Rust workspace definition. | You need crate or dependency context. |
 | `justfile` | Command source of truth. | You need to run, check, build, or package. |
-| `.env.example` | Environment-variable template. | You touch runtime config or deployment. |
+| `.env.example` | Minimal production override template; local defaults live in `crates/config/`. | You touch runtime config or deployment. |
 
 ## Documentation
 

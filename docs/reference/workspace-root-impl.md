@@ -8,6 +8,9 @@ This reference explains runtime-root behavior. The source of truth is `crates/co
 - Local development defaults to `.rustzen-admin`.
 - Production deployment sets `RUSTZEN_RUNTIME_ROOT=.` from the deploy root.
 - `RUSTZEN_FILES_PREFIX` defaults to `/resources`.
+- Other runtime paths, ports, pool limits, logging, timezone, retention, and
+  task timeout also have built-in defaults and do not belong in the minimal
+  production environment file.
 
 ## Derived Paths
 

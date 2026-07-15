@@ -4,7 +4,7 @@ use serde_json::Value;
 
 use crate::{
     common::error::AppError,
-    workers::common::{ipc_client, sign_ipc_request},
+    processes::common::{ipc_client, sign_ipc_request},
 };
 
 pub async fn request_json(

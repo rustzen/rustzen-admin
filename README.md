@@ -68,10 +68,6 @@ cargo run -p server -- admin serve
 
 If startup succeeds, the database will be recreated automatically.
 
-Demo login:
-- Username: `superadmin`
-- Password: `rustzen@123`
-
 ## Demo
 
 - Local demo URL: [https://admin.rustzen.dev](https://admin.rustzen.dev)
@@ -83,9 +79,10 @@ Demo login:
 - `README.md` and `AGENTS.md` stay as lightweight entry documents.
 - `docs/history/` contains historical execution records and is not current implementation truth.
 
-## License and Trademark Boundary
+## License and Trademark
 
-Current source code is available under the
-[Apache License, Version 2.0](./LICENSE.md). Historical tags remain governed by
-the license included in each tag. Attribution and trademark boundaries are
-documented in [NOTICE.md](./NOTICE.md) and [TRADEMARKS.md](./TRADEMARKS.md).
+Source code is licensed under the [Apache License 2.0](./LICENSE.md). Commercial
+use, modification, and distribution are permitted subject to that license.
+Rustzen names, logos, domains, official package namespaces, and official
+distribution channels are not included in the software license. See
+[NOTICE.md](./NOTICE.md) and [TRADEMARKS.md](./TRADEMARKS.md).

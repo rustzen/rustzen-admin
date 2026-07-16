@@ -6,25 +6,37 @@ These diagrams explain the current architecture. Source code and `docs/architect
 
 ```mermaid
 flowchart LR
-    Browser["Browser"] --> WebDev["Vite dev server<br/>local development"]
-    WebDev --> Backend["apps/server<br/>Axum backend"]
-    Browser --> BackendDeploy["apps/server<br/>packaged deployment"]
-    BackendDeploy --> StaticFiles["web/dist"]
-    Backend --> Db["SQLite (default)"]
-    BackendDeploy --> Db
-    BackendDeploy --> RuntimeData["data/uploads<br/>data/avatars<br/>logs"]
+    Browser["Browser"] --> Admin["rz-admin<br/>0.0.0.0:9801"]
+    Vite["Vite dev server"] --> Admin
+    Admin --> Web["web/dist"]
+    Admin --> AdminDb["admin.db"]
+    Admin -->|"loopback + HMAC"| Monitor["rz-monitor<br/>127.0.0.1:9802"]
+    Admin -->|"loopback + HMAC"| Insights["rz-insights<br/>127.0.0.1:9803"]
+    Admin -->|"loopback + HMAC"| Reports["rz-reports<br/>127.0.0.1:9804"]
+    Monitor --> MonitorDb["monitor.db"]
+    Insights --> InsightsDb["insights.db"]
+    Reports --> ReportsDb["reports.db"]
+    Agent["optional rz-monitor agent"] --> Admin
 ```
 
-## Backend Request Flow
+All four server processes are members of one `rz.target` and one signed release
+bundle, but each has its own restart and database boundary.
+
+## Module Contract And Gateway Flow
 
 ```mermaid
 flowchart LR
-    Route["route_with_permission"] --> Handler["handler.rs"]
-    Handler --> Service["service.rs"]
-    Service --> Repo["repo.rs"]
-    Repo --> Db["SQLite (default)"]
-    Service --> Types["types.rs"]
-    Handler --> Response["ApiResponse"]
+    RustRoute["ModuleRouter registration<br/>method + path + access + capability"] --> Axum["module Axum router"]
+    RustRoute --> Manifest["runtime Manifest"]
+    Manifest --> Sync["Admin background sync"]
+    Sync --> Transaction["menu/capability transaction"]
+    Transaction --> Registry["immutable in-memory registry"]
+    Request["module API request"] --> Auth["in-memory permission cache"]
+    Auth --> Registry
+    Registry --> Client["reused HTTP client"]
+    Client --> Delegate["request-scoped HMAC delegation"]
+    Delegate --> Verify["module verifies context + local route"]
+    Verify --> Handler["handler → service → repo"]
 ```
 
 ## Frontend API Flow
@@ -42,9 +54,10 @@ flowchart LR
 ```mermaid
 flowchart LR
     Login["login"] --> Cache["permission cache"]
-    Route["protected route"] --> Require["PermissionsCheck::Require"]
-    Require --> Cache
-    Route --> Registry["permission registry"]
-    Registry --> MenuSync["startup menu sync"]
-    MenuSync --> Menus["menus table"]
+    Mutation["role/menu/module mutation"] --> Cache
+    Manifest["validated module Manifest"] --> MenuSync["transactional menu sync"]
+    MenuSync --> Menus["module menu rows + overrides"]
+    Menus --> Navigation["runtime navigation"]
+    Route["protected route"] --> Cache
+    Route --> Registry["in-memory module route registry"]
 ```

@@ -8,7 +8,7 @@
 ## Boundaries
 
 - Shared authentication and permission-capability helpers for Rust services.
-- No duplicate auth logic should be implemented in `apps/server`.
+- No duplicate auth logic should be implemented in the four applications.
 
 ## Rules
 

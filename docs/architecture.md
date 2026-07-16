@@ -1,108 +1,148 @@
 # Architecture
 
-`rustzen-admin` is the source authority for the RustZen Admin runtime. It is a
-Web/Rust A-class monorepo and produces one complete `rz` release artifact.
+`rustzen-admin` is the source authority for the RustZen Admin, Monitor,
+Insights, and Reports runtime. It is a Web/Rust A-class monorepo that produces
+four independent server binaries in one signed release bundle, with one
+version and one rollback boundary.
 
 ## Ownership
 
-- `crates/auth/` owns authentication and role/capability policy.
-- `crates/config/` owns `RUSTZEN_*` configuration and the four database paths.
-- `crates/runtime/` owns runtime layout primitives.
-- `crates/storage/` owns SQLite connection and maintenance primitives.
-- `apps/server/` owns the `rz` CLI, Admin API, process adapters, migrations, and
-  embedded Web assets.
+- `apps/admin/` owns the Admin API, authentication and RBAC persistence, the
+  in-memory module registry and gateway, release management, Admin migrations,
+  and embedded Web assets.
+- `apps/monitor/` owns Monitor routes, behavior, migrations, and the optional
+  managed-node Agent mode.
+- `apps/insights/` owns Insights routes, behavior, and migrations.
+- `apps/reports/` owns Reports routes, behavior, migrations, and output files.
 - `apps/web/` owns the React UI and typed API clients.
-- `deploy/` owns the four service units and initial installation layout.
+- `crates/ipc/` owns Manifest types, module route registration, and HMAC
+  delegation signing and verification.
+- `crates/auth/` owns shared authentication types and capability policy.
+- `crates/config/` owns focused per-application `RUSTZEN_*` parsing and runtime
+  path defaults.
+- `crates/storage/` owns shared SQLite connection and maintenance primitives.
+- `deploy/` owns the installer, target, recovery unit, four server units, and
+  the separately installed Monitor Agent unit.
 
-There is no runtime dependency on `rustzen-core` or `rz-core`. Monitor,
-Insights, and Reports reuse Admin authentication, permission, menu, logging,
-configuration, and UI carriers; old standalone authentication and system
-management implementations are not migrated.
+There is no runtime dependency on `rustzen-core` or `rz-core`, no registry or
+service discovery, and no dynamic module or independently published module
+version.
 
 ## Runtime topology
 
-One `rz` file runs as four independent server processes:
+| Application | Command | Default bind | Database |
+| --- | --- | --- | --- |
+| Admin | `rz-admin serve` | `0.0.0.0:9801` | `data/db/admin.db` |
+| Monitor | `rz-monitor controller` | `127.0.0.1:9802` | `data/db/monitor.db` |
+| Insights | `rz-insights serve` | `127.0.0.1:9803` | `data/db/insights.db` |
+| Reports | `rz-reports serve` | `127.0.0.1:9804` | `data/db/reports.db` |
 
-```text
-rz admin serve          -> 0.0.0.0:9801 -> data/db/admin.db
-rz monitor controller   -> 127.0.0.1:9802 -> data/db/monitor.db
-rz insights worker      -> 127.0.0.1:9803 -> data/db/insights.db
-rz reports worker       -> 127.0.0.1:9804 -> data/db/reports.db
-```
+`rz-monitor agent` is an optional managed-node process. It reports to the
+Monitor Controller and is intentionally not part of the server `rz.target`.
 
-`rz monitor agent` is an additional node-side mode of the same complete source
-and version line. It does not create another server release authority. Agent
-heartbeats register the node version and CPU, memory, and disk metrics.
+Each server owns only its database and migrations. A module failure leaves
+Admin login and the other module processes available. systemd restarts each
+service independently.
 
-Admin communicates with the isolated processes only through versioned loopback HTTP. Every
-request carries a 30-second HMAC-SHA256 context bound to method, path, contract
-version, and module capability. Each process independently rejects expired,
-cross-module, or unsigned contexts. Calls time out after five seconds.
+## Module contract and gateway
 
-Process failure is degraded locally: Admin login and unrelated modules remain
-available, the failed module returns service unavailable, and the dashboard
-health summary probes all processes concurrently with a one-second timeout.
+Monitor, Insights, and Reports each keep only module metadata and default menu
+presentation in `module.toml`. Their Rust `ModuleRouter` calls are the single
+source for HTTP method, route path, access mode, handler, and required
+capability. The same registration builds the in-memory Axum router and the
+runtime Manifest exposed at `GET /internal/v1/manifest`.
 
-## Module scope
+Admin uses fixed loopback endpoints and synchronizes enabled module Manifests
+in the background. A valid change is reconciled transactionally into module
+menu/capability rows, then swapped into an immutable in-memory registry. An
+invalid or incompatible Manifest never partially updates database or runtime
+state.
 
-- Monitor: authenticated Agent heartbeat, latest CPU/memory/disk metrics,
-  online/offline state, 30-day metric retention, node list and detail.
-- Insights: project keys stored as SHA-256 hashes, exact origin allowlists,
-  `page_view` and `api_request`, PV/UV/request/error/average/P95 summaries, and
-  30-day event retention. The only public ingestion endpoint is
-  `POST /api/insights/track`; `/api/analytics/track` is not exposed.
-- Reports: HTML templates, scalar placeholder substitution with HTML escaping,
-  manual jobs, status, download, restart recovery, and 30-day output expiry.
+The request path performs one in-memory route lookup and one in-memory user
+capability decision. Admin then streams the body through one reused
+`reqwest::Client` and signs a request-scoped HMAC context bound to contract
+version, timestamp, request ID, user ID, module, method, path, and the one
+required capability. The module verifies that context and its local route
+requirement before calling the handler. Admin does not query SQLite, read TOML,
+fetch a Manifest, perform discovery, rebuild a client, send a full permission
+set, or parse and re-serialize JSON on this hot path.
 
-Admin runtime files, operation logs, task-run history, Monitor metrics,
-Insights events, and Reports outputs all use one fixed 30-day retention policy.
-SQLite row deletion is paired with WAL checkpoint, planner optimization, and
-incremental vacuum maintenance.
+Public module routes still require Admin delegation at the service boundary.
+Direct unsigned, expired, cross-module, or wrong-capability calls are rejected.
 
-The modules use only fixed queries needed by these loops. They do not include
-standalone auth, duplicate dashboards, general query builders, cron report
-generation, or cross-database joins.
+## Permissions and menus
 
-## Permissions
+- `owner` receives `*` and is the only built-in role allowed to mutate
+  releases.
+- `admin` receives concrete Monitor, Insights, and Reports capabilities plus
+  deploy view access.
+- `viewer` receives concrete read-only capabilities.
 
-- `owner` receives `*` and is the only role allowed to apply releases.
-- `admin` receives `monitor:view/manage`, `insights:view/manage`, and
-  `reports:view/manage` through concrete synchronized leaf capabilities.
-- `viewer` receives only the three `*:view` capabilities.
-
-Frontend visibility is supplementary. Every protected route performs a backend
-capability check, and each process verifies the signed module capability again.
+Admin persists mutable grants, module enabled state, menu overrides, and
+reconciled module menu rows in SQLite. The permission cache is refreshed on
+login and permission mutations; the gateway reads the cache only. Manual menu
+overrides are preserved when a Manifest refreshes, and disabling a module
+removes it from runtime navigation without deleting its stored overrides.
 
 ## Release topology
 
-Web assets and all four migration sets are embedded into `rz`. Production uses:
+All four Cargo applications use the workspace version. `just build` creates and
+signs one uncompressed tar bundle:
+
+```text
+target/rz/rz-<version>-<arch>.tar
+└── rz-<version>-<arch>/
+    ├── bin/{rz-admin,rz-monitor,rz-insights,rz-reports}
+    ├── systemd/{rz.target,rz-recovery.service,rz-admin.service,
+    │            rz-monitor.service,rz-insights.service,rz-reports.service}
+    ├── config/rz.env
+    └── setup-layout.sh
+```
+
+The initial-only installer verifies the complete bundle signature with a
+separately supplied trusted public key, preserves shared configuration and data,
+and installs an immutable release directory:
 
 ```text
 /opt/rz/
-├── bin/rz -> rz-<version>-<arch>
+├── current -> releases/<version>
+├── releases/<version>/bin/{rz-admin,rz-monitor,rz-insights,rz-reports}
 ├── config/rz.env
 ├── data/db/{admin,monitor,insights,reports}.db
-├── data/reports/
-└── systemd/rz-{admin,monitor,insights,reports}.service
+├── data/releases/rz-<version>-<arch>.tar
+└── data/reports/
 ```
 
-Active deployment records accept only `release`. Historical split Server/Web
-records are retained in `deploy_versions_legacy` and cannot be activated.
+`rz.target` uses `Wants=` for recovery and the four server services. The four
+services use `PartOf=rz.target`, independent restart/start-limit policies, and
+no `Requires=` coupling. `rz-recovery.service` runs before them and blocks their
+start if an interrupted update cannot be recovered.
 
-An update uses a transient `rz update worker` outside the Admin service cgroup.
-It validates the signed complete artifact, creates consistent online backups of
-all four databases, atomically switches `bin/rz`, then restarts Monitor,
-Insights, Reports, and Admin one at a time through health gates. A failed gate
-stops the sequence and restores the previous link plus the databases owned by
-processes already restarted. A durable update journal records every restarted
-unit; a bounded transient-worker restart recovers interruptions without leaving
-two Current releases. Long-lived mixed versions, module-only activation, and
-zero-downtime dual-instance behavior are not implemented.
+Once `current` exists, the installer refuses to switch it. Upgrades run only
+through the Admin update worker so no direct symlink change can create a mixed
+release outside the backup, health-gate, journal, and rollback transaction.
 
-## Local development and verification
+The Admin update worker verifies the complete signed bundle and the installed
+rollback release, creates consistent online backups of all four databases,
+installs or verifies one release directory, atomically switches `current` once,
+then restarts Monitor, Insights, Reports, and Admin through systemd-active and
+release-version health gates. Rollback restores the previous link and only the
+databases whose services entered the restart sequence. The durable journal and
+boot recovery unit close process-crash and host-restart interruption windows.
 
-The root `justfile` is the command authority. The frontend uses Bun 1.3.14 and
-`apps/web/bun.lock`. `just verify-processes` performs local four-process health,
-termination isolation, module-unavailable behavior, database separation,
-four-database corruption, and restore checks. GitHub Actions are not part of
-the build or verification path for this migration.
+Module-only activation, separate service versions, mixed releases, an old
+single-binary fallback, and multiple active release links are not supported.
+
+## Verification
+
+The root `justfile` is the command authority. `just verify-services` uses
+release binaries to test all 24 startup orders, independent termination, four
+database corruption/restore boundaries, gateway and delegation contracts, and
+the Manifest restart/change contract.
+
+The 2026-07-15 same-host gateway comparison used
+`GET /api/monitor/nodes`, release binaries, concurrency 32, 128 warm-up
+requests and 320 measured requests per path. Direct p50/p95/p99 were
+0.825/1.302/1.507 ms; gateway p50/p95/p99 were 1.151/1.722/1.835 ms; the
+corresponding overhead was 0.327/0.419/0.328 ms. The p95 overhead passed the
+2 ms investigation gate.

@@ -1,7 +1,7 @@
 # rustzen-admin
 
 `rustzen-admin` provides the RustZen Admin, Monitor, Insights, and Reports
-runtime in one source repository and one complete `rz` release artifact.
+runtime in one source repository and one signed release bundle.
 
 A structured monorepo starting point for Rust full-stack admin systems.
 
@@ -17,8 +17,12 @@ projects, not just isolated UI demos.
 The repository is organized as a monorepo:
 
 - `crates/auth/` contains shared auth and permission capabilities for Rust services
-- `crates/storage/` contains the admin SQLite adapter and migration entrypoints
-- `apps/server/` contains the Admin API plus isolated Monitor, Insights, and Reports process modes
+- `crates/ipc/` contains the shared Manifest, route, and HMAC delegation contract
+- `crates/storage/` contains shared SQLite pool and maintenance primitives
+- `apps/admin/` contains the Admin API, gateway, RBAC, release management, and Web asset host
+- `apps/monitor/` contains the Monitor Controller and optional managed-node Agent
+- `apps/insights/` contains the Insights service
+- `apps/reports/` contains the Reports service
 - `apps/web/` contains the React frontend application
 - `deploy/` contains deployment assets and release support files
 - `docs/` contains repository-level architecture and development guides
@@ -49,7 +53,10 @@ This layout keeps backend, frontend, and repository rules explicit, making the c
 Use the root `justfile` as the command source of truth; inspect the relevant target before running it.
 
 ```bash
-cargo run -p server -- admin serve
+cargo run -p rustzen-admin -- serve
+cargo run -p rustzen-monitor -- controller
+cargo run -p rustzen-insights -- serve
+cargo run -p rustzen-reports -- serve
 ```
 
 Local startup is SQLite-first and does not require PostgreSQL.
@@ -64,7 +71,7 @@ If startup fails with `VersionMismatch`, your local database schema is out-of-da
 
 ```bash
 just reset-db
-cargo run -p server -- admin serve
+cargo run -p rustzen-admin -- serve
 ```
 
 If startup succeeds, the database will be recreated automatically.

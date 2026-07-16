@@ -18,13 +18,16 @@
 
 - RustZen classification: Web/Rust A-class reference layout.
 - Shared auth and permission capability code lives in `crates/auth/`.
-- Backend lives in `apps/server/`.
-- Migrations live in `apps/server/migrations/`.
+- Shared Manifest, route, and delegation contracts live in `crates/ipc/`.
+- Backends live in `apps/admin/`, `apps/monitor/`, `apps/insights/`, and
+  `apps/reports/`.
+- Each backend owns its migrations under its application directory.
 - Frontend lives in `apps/web/`.
 - Deployment assets live in `deploy/`.
 - Root keeps workspace metadata, docs, command entry points, and shared crates.
-- Deployment contract uses one complete `target/rz/rz-<version>-<arch>` artifact,
-  `/opt/rz`, four `deploy/rz-*.service` units, and `deploy/setup-layout.sh`.
+- Deployment contract uses one signed `target/rz/rz-<version>-<arch>.tar`
+  bundle, `/opt/rz`, `deploy/rz.target`, `deploy/rz-recovery.service`, four
+  server units, and `deploy/setup-layout.sh`.
 - Do not apply Peripheral Vercel, Tauri client, or legacy `zen-server` /
   `zen-web` layout rules to this repository.
 - Do not add systemd `User`/`Group`, hardening, or install-path permission

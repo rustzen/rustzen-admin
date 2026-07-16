@@ -13,16 +13,15 @@ This audit records the current JSON naming boundary. Source code takes precedenc
 
 Current backend files with `#[serde(rename_all = "camelCase")]` include:
 
-- `apps/server/src/features/auth/types.rs`
-- `apps/server/src/features/account/types.rs`
-- `apps/server/src/features/dashboard/types.rs`
-- `apps/server/src/features/manage/deploy/types.rs`
-- `apps/server/src/features/manage/dict/types.rs`
-- `apps/server/src/features/manage/log/types.rs`
-- `apps/server/src/features/manage/task/types.rs`
-- `apps/server/src/features/system/menu/types.rs`
-- `apps/server/src/features/system/role/types.rs`
-- `apps/server/src/features/system/user/types.rs`
+- Admin boundary types under `apps/admin/src/features/`, including auth,
+  account, dashboard, deploy, dictionary, log, task, module, menu, role,
+  status, and user contracts
+- Monitor boundary types under `apps/monitor/src/features/heartbeat/` and
+  `apps/monitor/src/features/nodes/`
+- Insights boundary types under `apps/insights/src/features/overview/`,
+  `projects/`, and `tracking/`
+- Reports boundary types under `apps/reports/src/features/jobs/` and
+  `templates/`
 
 ## Current Frontend Boundary
 

@@ -12,7 +12,12 @@ export function TextareaField({ id, label, value, onChange, ...props }: Textarea
     return (
         <div className="grid gap-2">
             <Label htmlFor={id}>{label}</Label>
-            <Textarea id={id} value={value} onChange={(event) => onChange(event.target.value)} {...props} />
+            <Textarea
+                id={id}
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                {...props}
+            />
         </div>
     );
 }

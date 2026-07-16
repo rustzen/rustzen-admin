@@ -1,11 +1,5 @@
 import { MoonIcon, SunIcon } from "lucide-react";
-import {
-    createContext,
-    useContext,
-    useEffect,
-    useState,
-    type ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -21,7 +15,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         if (typeof window === "undefined") {
             return "light";
         }
-        return localStorage.getItem("rustzen-admin-theme") === "dark" ? "dark" : "light";
+        return document.documentElement.classList.contains("dark") ? "dark" : "light";
     });
 
     useEffect(() => {

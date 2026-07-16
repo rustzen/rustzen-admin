@@ -19,7 +19,7 @@ const DEFAULT_TIMEZONE: &str = "UTC";
 #[derive(Debug)]
 pub enum ConfigError {
     Dotenv(dotenvy::Error),
-    Extract(figment::Error),
+    Extract(Box<figment::Error>),
     Empty(&'static str),
     Invalid(&'static str),
 }
@@ -39,7 +39,7 @@ impl std::error::Error for ConfigError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Dotenv(error) => Some(error),
-            Self::Extract(error) => Some(error),
+            Self::Extract(error) => Some(error.as_ref()),
             Self::Empty(_) | Self::Invalid(_) => None,
         }
     }
@@ -47,7 +47,7 @@ impl std::error::Error for ConfigError {
 
 impl From<figment::Error> for ConfigError {
     fn from(error: figment::Error) -> Self {
-        Self::Extract(error)
+        Self::Extract(Box::new(error))
     }
 }
 

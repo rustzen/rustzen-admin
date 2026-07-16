@@ -1,7 +1,6 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { EditIcon, LockIcon } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
-
-import { createFileRoute } from "@tanstack/react-router";
 
 import { accountAPI, appMessage } from "@/api";
 import { UserAvatar } from "@/components/base-user";
@@ -198,7 +197,9 @@ function ChangePasswordDialog() {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Change Password</DialogTitle>
-                    <DialogDescription>Use a new password that is not used elsewhere.</DialogDescription>
+                    <DialogDescription>
+                        Use a new password that is not used elsewhere.
+                    </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <PasswordField

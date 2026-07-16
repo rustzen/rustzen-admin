@@ -703,7 +703,7 @@ fn validate_release_target(runtime_root: &Path, target: &Path) -> Result<(), std
         || components.len() != 2
         || components[0] != std::path::Component::Normal("releases".as_ref())
         || !matches!(components[1], std::path::Component::Normal(_))
-        || !runtime_root.join(&target).is_dir()
+        || !runtime_root.join(target).is_dir()
     {
         return Err(std::io::Error::other(
             "current release link must target an installed releases/<version> directory",

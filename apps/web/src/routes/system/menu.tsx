@@ -1,8 +1,7 @@
-import { EditIcon, PlusIcon, StopCircleIcon } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { EditIcon, PlusIcon, StopCircleIcon } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import { appMessage, systemAPI } from "@/api";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
@@ -21,8 +20,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
@@ -96,58 +95,60 @@ function MenuPage() {
             }
         >
             <DataTableShell>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="min-w-64">Name</TableHead>
-                                <TableHead className="min-w-64">Code</TableHead>
-                                <TableHead className="min-w-32">Menu Type</TableHead>
-                                <TableHead className="min-w-28">Status</TableHead>
-                                <TableHead className="min-w-28">Sort Order</TableHead>
-                                <TableHead className="min-w-44">Updated At</TableHead>
-                                <TableHead className="w-24 text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {rows.length > 0 ? (
-                                rows.map((record) => (
-                                    <TableRow key={record.id}>
-                                        <TableCell className="font-medium">
-                                            <span
-                                                className="inline-flex items-center"
-                                                style={{ paddingLeft: `${record.depth * 24}px` }}
-                                            >
-                                                {record.depth > 0 ? (
-                                                    <span className="mr-2 text-muted-foreground">└</span>
-                                                ) : null}
-                                                {record.name}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline">{record.code}</Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <MenuTypeBadge menuType={record.menuType} />
-                                        </TableCell>
-                                        <TableCell>
-                                            <MenuStatusBadge status={record.status} />
-                                        </TableCell>
-                                        <TableCell>{record.sortOrder}</TableCell>
-                                        <TableCell>{formatDateTime(record.updatedAt)}</TableCell>
-                                        <TableCell>
-                                            <MenuActions record={record} onSuccess={refresh} />
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="h-40 text-center">
-                                        {isFetching ? "Loading menus..." : "No menus found."}
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="min-w-64">Name</TableHead>
+                            <TableHead className="min-w-64">Code</TableHead>
+                            <TableHead className="min-w-32">Menu Type</TableHead>
+                            <TableHead className="min-w-28">Status</TableHead>
+                            <TableHead className="min-w-28">Sort Order</TableHead>
+                            <TableHead className="min-w-44">Updated At</TableHead>
+                            <TableHead className="w-24 text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {rows.length > 0 ? (
+                            rows.map((record) => (
+                                <TableRow key={record.id}>
+                                    <TableCell className="font-medium">
+                                        <span
+                                            className="inline-flex items-center"
+                                            style={{ paddingLeft: `${record.depth * 24}px` }}
+                                        >
+                                            {record.depth > 0 ? (
+                                                <span className="mr-2 text-muted-foreground">
+                                                    └
+                                                </span>
+                                            ) : null}
+                                            {record.name}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline">{record.code}</Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <MenuTypeBadge menuType={record.menuType} />
+                                    </TableCell>
+                                    <TableCell>
+                                        <MenuStatusBadge status={record.status} />
+                                    </TableCell>
+                                    <TableCell>{record.sortOrder}</TableCell>
+                                    <TableCell>{formatDateTime(record.updatedAt)}</TableCell>
+                                    <TableCell>
+                                        <MenuActions record={record} onSuccess={refresh} />
                                     </TableCell>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={7} className="h-40 text-center">
+                                    {isFetching ? "Loading menus..." : "No menus found."}
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
             </DataTableShell>
         </PageCard>
     );
@@ -365,10 +366,7 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                     {isModuleOwned ? (
                         <div className="grid gap-2">
                             <Label htmlFor="menu-icon">Icon</Label>
-                            <Select
-                                value={icon || undefined}
-                                onValueChange={setIcon}
-                            >
+                            <Select value={icon || undefined} onValueChange={setIcon}>
                                 <SelectTrigger id="menu-icon" className="w-full">
                                     <SelectValue placeholder="Select icon" />
                                 </SelectTrigger>

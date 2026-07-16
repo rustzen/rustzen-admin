@@ -1,8 +1,7 @@
-import { EditIcon, PlusIcon, TrashIcon } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { EditIcon, PlusIcon, TrashIcon } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import { appMessage, systemAPI } from "@/api";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
@@ -112,14 +111,14 @@ function RolePage() {
             title="Role Management"
             description="Manage role definitions and permission assignments."
             actions={
-                    <AuthWrap code="system:role:create">
-                        <RoleDialog mode="create" onSuccess={refresh}>
-                            <Button>
-                                <PlusIcon data-icon="inline-start" />
-                                Create Role
-                            </Button>
-                        </RoleDialog>
-                    </AuthWrap>
+                <AuthWrap code="system:role:create">
+                    <RoleDialog mode="create" onSuccess={refresh}>
+                        <Button>
+                            <PlusIcon data-icon="inline-start" />
+                            Create Role
+                        </Button>
+                    </RoleDialog>
+                </AuthWrap>
             }
             toolbar={
                 <form className="grid gap-3 md:grid-cols-4" onSubmit={search}>
@@ -152,7 +151,12 @@ function RolePage() {
                         <Button type="submit" disabled={isFetching}>
                             Search
                         </Button>
-                        <Button type="button" variant="outline" disabled={isFetching} onClick={reset}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={isFetching}
+                            onClick={reset}
+                        >
                             Reset
                         </Button>
                     </div>
@@ -160,58 +164,64 @@ function RolePage() {
             }
         >
             <DataTableShell>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-16">ID</TableHead>
-                                <TableHead className="min-w-48">Role Name</TableHead>
-                                <TableHead className="min-w-48">Role Code</TableHead>
-                                <TableHead className="min-w-64">Description</TableHead>
-                                <TableHead className="min-w-28">Status</TableHead>
-                                <TableHead className="min-w-40">Permissions</TableHead>
-                                <TableHead className="min-w-44">Updated At</TableHead>
-                                <TableHead className="w-24 text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {rows.length > 0 ? (
-                                rows.map((record) => (
-                                    <TableRow key={record.id}>
-                                        <TableCell className="font-medium">{record.id}</TableCell>
-                                        <TableCell>{record.name}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline">{record.code}</Badge>
-                                        </TableCell>
-                                        <TableCell className="max-w-72 truncate">
-                                            {record.description || "-"}
-                                        </TableCell>
-                                        <TableCell>
-                                            <RoleStatusBadge status={record.status} />
-                                        </TableCell>
-                                        <TableCell>
-                                            {record.menus?.length ? (
-                                                <span title={record.menus.map((menu) => menu.label).join(", ")}>
-                                                    {record.menus.length} permission(s)
-                                                </span>
-                                            ) : (
-                                                <span className="text-muted-foreground">No permissions</span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>{formatDateTime(record.updatedAt)}</TableCell>
-                                        <TableCell>
-                                            <RoleActions record={record} onSuccess={refresh} />
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={8} className="h-40 text-center">
-                                        {isFetching ? "Loading roles..." : "No roles found."}
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-16">ID</TableHead>
+                            <TableHead className="min-w-48">Role Name</TableHead>
+                            <TableHead className="min-w-48">Role Code</TableHead>
+                            <TableHead className="min-w-64">Description</TableHead>
+                            <TableHead className="min-w-28">Status</TableHead>
+                            <TableHead className="min-w-40">Permissions</TableHead>
+                            <TableHead className="min-w-44">Updated At</TableHead>
+                            <TableHead className="w-24 text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {rows.length > 0 ? (
+                            rows.map((record) => (
+                                <TableRow key={record.id}>
+                                    <TableCell className="font-medium">{record.id}</TableCell>
+                                    <TableCell>{record.name}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline">{record.code}</Badge>
+                                    </TableCell>
+                                    <TableCell className="max-w-72 truncate">
+                                        {record.description || "-"}
+                                    </TableCell>
+                                    <TableCell>
+                                        <RoleStatusBadge status={record.status} />
+                                    </TableCell>
+                                    <TableCell>
+                                        {record.menus?.length ? (
+                                            <span
+                                                title={record.menus
+                                                    .map((menu) => menu.label)
+                                                    .join(", ")}
+                                            >
+                                                {record.menus.length} permission(s)
+                                            </span>
+                                        ) : (
+                                            <span className="text-muted-foreground">
+                                                No permissions
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>{formatDateTime(record.updatedAt)}</TableCell>
+                                    <TableCell>
+                                        <RoleActions record={record} onSuccess={refresh} />
                                     </TableCell>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={8} className="h-40 text-center">
+                                    {isFetching ? "Loading roles..." : "No roles found."}
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
             </DataTableShell>
             <TablePagination
                 currentPage={currentPage}
@@ -349,7 +359,9 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{mode === "create" ? "Create Role" : "Edit Role"}</DialogTitle>
-                    <DialogDescription>Configure role identity, status, and allowed permissions.</DialogDescription>
+                    <DialogDescription>
+                        Configure role identity, status, and allowed permissions.
+                    </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <div className="grid gap-4 md:grid-cols-2">
@@ -402,7 +414,9 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
                             placeholder="Enter role description"
                             onChange={setDescription}
                         />
-                        <div className="text-xs text-muted-foreground">{description.length}/200</div>
+                        <div className="text-xs text-muted-foreground">
+                            {description.length}/200
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
@@ -459,17 +473,23 @@ function PermissionPicker({
                             <Label key={option.key} className="items-start justify-start">
                                 <Checkbox
                                     checked={value.includes(option.key)}
-                                    onCheckedChange={(checked) => togglePermission(option.key, checked === true)}
+                                    onCheckedChange={(checked) =>
+                                        togglePermission(option.key, checked === true)
+                                    }
                                 />
                                 <span className="grid gap-1">
                                     <span>{option.title}</span>
-                                    <span className="text-xs text-muted-foreground">{option.code}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {option.code}
+                                    </span>
                                 </span>
                             </Label>
                         ))}
                     </div>
                 ) : (
-                    <div className="text-sm text-muted-foreground">No assignable permissions found.</div>
+                    <div className="text-sm text-muted-foreground">
+                        No assignable permissions found.
+                    </div>
                 )}
             </div>
         </div>

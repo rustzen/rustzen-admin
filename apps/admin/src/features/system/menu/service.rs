@@ -38,17 +38,7 @@ impl MenuService {
     ) -> Result<i64, ServiceError> {
         tracing::info!("Attempting to create menu with name: {}", request.name);
         ensure_not_module_capability(&request.code)?;
-        let menu_id = MenuRepository::create(
-            pool,
-            request.parent_id,
-            &request.name,
-            &request.code,
-            request.menu_type,
-            request.sort_order,
-            request.status,
-            request.icon.as_deref(),
-        )
-        .await?;
+        let menu_id = MenuRepository::create(pool, &request).await?;
         PermissionService::refresh_all_user_permissions(pool).await?;
         Ok(menu_id)
     }

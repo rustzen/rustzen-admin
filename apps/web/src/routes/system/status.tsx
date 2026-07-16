@@ -1,7 +1,12 @@
-import { AlertCircleIcon, CpuIcon, DatabaseIcon, HardDriveIcon, MemoryStickIcon } from "lucide-react";
-
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import {
+    AlertCircleIcon,
+    CpuIcon,
+    DatabaseIcon,
+    HardDriveIcon,
+    MemoryStickIcon,
+} from "lucide-react";
 
 import { systemAPI } from "@/api";
 import { PageHeader } from "@/components/app/page-header";
@@ -38,7 +43,7 @@ function SystemStatusPage() {
                 description="Storage and local resource telemetry refreshed every 30 seconds."
                 actions={
                     <span className="text-sm text-muted-foreground">
-                    Collected at: {data?.collectedAt ? formatDateTime(data.collectedAt) : "-"}
+                        Collected at: {data?.collectedAt ? formatDateTime(data.collectedAt) : "-"}
                     </span>
                 }
             />
@@ -52,7 +57,9 @@ function SystemStatusPage() {
                 <Alert variant="destructive">
                     <AlertCircleIcon />
                     <AlertTitle>Failed to load system status</AlertTitle>
-                    <AlertDescription>Please retry later or check the server logs.</AlertDescription>
+                    <AlertDescription>
+                        Please retry later or check the server logs.
+                    </AlertDescription>
                 </Alert>
             ) : null}
         </div>
@@ -66,7 +73,9 @@ function StorageCard({ storage }: { storage: SystemStatus.StorageStatus }) {
         <Card>
             <CardHeader>
                 <CardTitle>Storage</CardTitle>
-                <CardDescription>SQLite storage and runtime directory distribution.</CardDescription>
+                <CardDescription>
+                    SQLite storage and runtime directory distribution.
+                </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_1fr]">
@@ -93,7 +102,9 @@ function StorageCard({ storage }: { storage: SystemStatus.StorageStatus }) {
                     <div>
                         <div className="mb-5 flex items-start justify-between gap-4">
                             <div>
-                                <div className="text-base font-semibold">Directory Distribution</div>
+                                <div className="text-base font-semibold">
+                                    Directory Distribution
+                                </div>
                                 <div className="mt-1 text-sm text-muted-foreground">
                                     Compared by current directory usage
                                 </div>
@@ -120,7 +131,11 @@ function StorageCard({ storage }: { storage: SystemStatus.StorageStatus }) {
                                             {formatBytes(item.sizeBytes)}
                                         </div>
                                     </div>
-                                    <Progress value={Math.round((item.sizeBytes / maxDirectoryBytes) * 100)} />
+                                    <Progress
+                                        value={Math.round(
+                                            (item.sizeBytes / maxDirectoryBytes) * 100,
+                                        )}
+                                    />
                                 </div>
                             ))}
                         </div>
@@ -176,7 +191,9 @@ function ResourceCard({ resource }: { resource: SystemStatus.LocalResourceStatus
         <Card>
             <CardHeader>
                 <CardTitle>Local Resources</CardTitle>
-                <CardDescription>CPU, memory, and disk utilization on the current host.</CardDescription>
+                <CardDescription>
+                    CPU, memory, and disk utilization on the current host.
+                </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-7 lg:grid-cols-3">
                 <ResourceMetric

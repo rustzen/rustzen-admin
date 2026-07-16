@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import {
     ActivityIcon,
     ClockIcon,
@@ -21,13 +23,10 @@ import {
     YAxis,
 } from "recharts";
 
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-
 import { dashboardAPI } from "@/api";
 import { PageHeader } from "@/components/app/page-header";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calculatePercent, convertUnit } from "@/util";
@@ -44,8 +43,8 @@ function DashboardPage() {
                 description="Operational overview for users, runtime health, and activity trends."
                 actions={
                     <Button>
-                    <DownloadIcon data-icon="inline-start" />
-                    Download
+                        <DownloadIcon data-icon="inline-start" />
+                        Download
                     </Button>
                 }
             />
@@ -179,7 +178,9 @@ const HealthCard = () => {
                 <div className="flex items-center justify-between gap-3">
                     <div>
                         <CardTitle>System Health</CardTitle>
-                        <CardDescription>Runtime pressure across memory, CPU, and disk.</CardDescription>
+                        <CardDescription>
+                            Runtime pressure across memory, CPU, and disk.
+                        </CardDescription>
                     </div>
                     <ShieldAlertIcon className="text-muted-foreground" />
                 </div>
@@ -224,8 +225,14 @@ const MetricsCard = () => {
                 <CardDescription>Seven-day request performance summary.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-3">
-                <MetricBlock label="Average response" value={`${metrics?.avgResponseTime ?? 0}ms`} />
-                <MetricBlock label="Error rate" value={`${(metrics?.errorRate ?? 0).toFixed(1)}%`} />
+                <MetricBlock
+                    label="Average response"
+                    value={`${metrics?.avgResponseTime ?? 0}ms`}
+                />
+                <MetricBlock
+                    label="Error rate"
+                    value={`${(metrics?.errorRate ?? 0).toFixed(1)}%`}
+                />
                 <MetricBlock label="Total requests" value={`${metrics?.totalRequests ?? 0}`} />
             </CardContent>
         </Card>
@@ -254,7 +261,12 @@ const ActivityTrendCard = () => {
                             <XAxis dataKey="date" tickLine={false} axisLine={false} />
                             <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
                             <Tooltip />
-                            <Line type="monotone" dataKey="count" stroke="var(--chart-1)" strokeWidth={2} />
+                            <Line
+                                type="monotone"
+                                dataKey="count"
+                                stroke="var(--chart-1)"
+                                strokeWidth={2}
+                            />
                         </LineChart>
                     </ResponsiveContainer>
                 </div>

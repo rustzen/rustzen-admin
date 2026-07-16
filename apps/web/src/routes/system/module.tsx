@@ -79,7 +79,9 @@ function SystemModulePage() {
                                                     <Button
                                                         type="button"
                                                         size="sm"
-                                                        variant={module.enabled ? "outline" : "default"}
+                                                        variant={
+                                                            module.enabled ? "outline" : "default"
+                                                        }
                                                     >
                                                         {module.enabled ? "Disable" : "Enable"}
                                                     </Button>

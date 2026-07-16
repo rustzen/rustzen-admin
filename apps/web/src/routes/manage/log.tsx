@@ -1,8 +1,7 @@
-import { DownloadIcon, SearchIcon } from "lucide-react";
-import { useMemo, useState } from "react";
-
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { DownloadIcon, SearchIcon } from "lucide-react";
+import { useMemo, useState } from "react";
 
 import { manageAPI } from "@/api";
 import { DataTableShell } from "@/components/app/data-table-shell";
@@ -85,16 +84,16 @@ function LogPage() {
             title="Log"
             description="Audit login and HTTP operation records across the admin service."
             actions={
-                    <AuthWrap code="manage:log:export">
-                        <Button
-                            onClick={() => {
-                                void manageAPI.log.export(params);
-                            }}
-                        >
-                            <DownloadIcon data-icon="inline-start" />
-                            Export
-                        </Button>
-                    </AuthWrap>
+                <AuthWrap code="manage:log:export">
+                    <Button
+                        onClick={() => {
+                            void manageAPI.log.export(params);
+                        }}
+                    >
+                        <DownloadIcon data-icon="inline-start" />
+                        Export
+                    </Button>
+                </AuthWrap>
             }
             toolbar={
                 <div className="flex flex-wrap items-center gap-3">
@@ -141,50 +140,50 @@ function LogPage() {
             }
         >
             <DataTableShell>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-20">ID</TableHead>
-                                <TableHead className="w-36">User</TableHead>
-                                <TableHead className="w-36">Action</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead className="w-28">Status</TableHead>
-                                <TableHead className="w-36">IP Address</TableHead>
-                                <TableHead className="w-28">Duration</TableHead>
-                                <TableHead className="w-44">Created At</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {rows.length > 0 ? (
-                                rows.map((record) => (
-                                    <TableRow key={record.id}>
-                                        <TableCell className="font-medium">{record.id}</TableCell>
-                                        <TableCell>{record.username || "Anonymous User"}</TableCell>
-                                        <TableCell>
-                                            <ActionBadge action={record.action} />
-                                        </TableCell>
-                                        <TableCell className="max-w-80 truncate">
-                                            {record.description || "-"}
-                                        </TableCell>
-                                        <TableCell>
-                                            <StatusBadge status={record.status} />
-                                        </TableCell>
-                                        <TableCell>{record.ipAddress || "-"}</TableCell>
-                                        <TableCell>{formatDuration(record.durationMs)}</TableCell>
-                                        <TableCell className="whitespace-nowrap">
-                                            {record.createdAt}
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={8} className="h-40 text-center">
-                                        {isFetching ? "Loading logs..." : "No logs found."}
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-20">ID</TableHead>
+                            <TableHead className="w-36">User</TableHead>
+                            <TableHead className="w-36">Action</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead className="w-28">Status</TableHead>
+                            <TableHead className="w-36">IP Address</TableHead>
+                            <TableHead className="w-28">Duration</TableHead>
+                            <TableHead className="w-44">Created At</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {rows.length > 0 ? (
+                            rows.map((record) => (
+                                <TableRow key={record.id}>
+                                    <TableCell className="font-medium">{record.id}</TableCell>
+                                    <TableCell>{record.username || "Anonymous User"}</TableCell>
+                                    <TableCell>
+                                        <ActionBadge action={record.action} />
+                                    </TableCell>
+                                    <TableCell className="max-w-80 truncate">
+                                        {record.description || "-"}
+                                    </TableCell>
+                                    <TableCell>
+                                        <StatusBadge status={record.status} />
+                                    </TableCell>
+                                    <TableCell>{record.ipAddress || "-"}</TableCell>
+                                    <TableCell>{formatDuration(record.durationMs)}</TableCell>
+                                    <TableCell className="whitespace-nowrap">
+                                        {record.createdAt}
                                     </TableCell>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={8} className="h-40 text-center">
+                                    {isFetching ? "Loading logs..." : "No logs found."}
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
             </DataTableShell>
             <TablePagination
                 currentPage={currentPage}

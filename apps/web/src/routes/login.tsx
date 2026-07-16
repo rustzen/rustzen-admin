@@ -1,15 +1,15 @@
-import { LockIcon, UserIcon } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
+import { LockIcon, UserIcon } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { appMessage, authAPI } from "@/api";
 import loginIllustrationUrl from "@/assets/login-illustration.png";
 import rustzenLogoUrl from "@/assets/rustzen-logo.png";
+import { ThemeSwitch } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ThemeSwitch } from "@/components/theme-provider";
 import { APP_BRAND_NAME, RUSTZEN_BRAND_NAME } from "@/constant/brand";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -65,9 +65,7 @@ function LoginPage() {
                         alt={RUSTZEN_BRAND_NAME}
                         className="size-10 object-contain"
                     />
-                    <span className="text-[22px] font-bold leading-none">
-                        {APP_BRAND_NAME}
-                    </span>
+                    <span className="text-[22px] font-bold leading-none">{APP_BRAND_NAME}</span>
                     <div className="ms-auto">
                         <ThemeSwitch />
                     </div>

@@ -1,8 +1,9 @@
 # Frontend Guide
 
-The frontend uses Bun 1.3.14. Vite is pinned to 8.1.3 because Vite 8.1.4 is
-not type-compatible with the current stable Vite+ 0.2.4 `defineConfig` plugin
-composition; keep the pin until that local lint gate passes on a newer pair.
+The frontend uses Bun 1.3.14. Vite 8.1.3 and Vite+ 0.2.4 are pinned exactly,
+and the package override keeps transitive Vite consumers on 8.1.3 so plugin
+types come from one Vite instance. Keep the pins until lint, typecheck, and
+build all pass on a newer pair.
 
 Rules for frontend work under `apps/web/`.
 

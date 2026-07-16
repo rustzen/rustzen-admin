@@ -12,7 +12,12 @@ export function TextField({ id, label, value, onChange, ...props }: TextFieldPro
     return (
         <div className="grid gap-2">
             <Label htmlFor={id}>{label}</Label>
-            <Input id={id} value={value} onChange={(event) => onChange(event.target.value)} {...props} />
+            <Input
+                id={id}
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                {...props}
+            />
         </div>
     );
 }

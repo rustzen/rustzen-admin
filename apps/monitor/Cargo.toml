@@ -3,7 +3,7 @@ authors = ["Bruce Dai <bruce@idaibin.dev>"]
 name = "rustzen-monitor"
 version.workspace = true
 edition = "2024"
-license = "Apache-2.0"
+license.workspace = true
 publish = false
 
 [[bin]]

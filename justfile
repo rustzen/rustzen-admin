@@ -20,8 +20,15 @@ dev-web:
 
 # check
 check:
-    cargo check --workspace
+    cd apps/web && bun install --frozen-lockfile
+    cd apps/web && bun run vp fmt --check
     cd apps/web && bun run vp lint
+    cd apps/web && bun x tsc --noEmit
+    cd apps/web && bun run vp build
+    cargo fmt --all -- --check
+    cargo check --workspace
+    cargo clippy --workspace --all-targets -- -D warnings
+    cargo test --workspace
 
 verify-services:
     cargo test -p rustzen-admin changed_manifest_swaps_after_commit_and_invalid_change_rolls_back

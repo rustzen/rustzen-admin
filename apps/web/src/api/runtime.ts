@@ -17,4 +17,5 @@ export const appMessage = {
     loading: (message: MessageContent) => toast.loading(formatMessage(message)),
 };
 
-export const MessageContent = () => createElement(Toaster, { richColors: true, position: "top-right" });
+export const MessageContent = () =>
+    createElement(Toaster, { richColors: true, position: "top-right" });

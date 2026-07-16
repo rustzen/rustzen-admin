@@ -1,8 +1,7 @@
-import { EditIcon, PlusIcon, TrashIcon } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { EditIcon, PlusIcon, TrashIcon } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import { appMessage, manageAPI } from "@/api";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
@@ -75,64 +74,69 @@ function DictPage() {
             }
         >
             <DataTableShell>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-20">ID</TableHead>
-                                <TableHead className="min-w-40">Dict Type</TableHead>
-                                <TableHead className="min-w-36">Label</TableHead>
-                                <TableHead className="min-w-32">Value</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead className="w-32 text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {rows.length > 0 ? (
-                                rows.map((record) => (
-                                    <TableRow key={record.id}>
-                                        <TableCell className="font-medium">{record.id}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="secondary">{record.dictType}</Badge>
-                                        </TableCell>
-                                        <TableCell>{record.label}</TableCell>
-                                        <TableCell>{record.value}</TableCell>
-                                        <TableCell className="max-w-100 truncate">
-                                            {record.description || "-"}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex justify-end gap-2">
-                                                <AuthWrap code="manage:dict:update">
-                                                    <DictDialog
-                                                        mode="edit"
-                                                        initialValues={record}
-                                                        onSuccess={refresh}
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-20">ID</TableHead>
+                            <TableHead className="min-w-40">Dict Type</TableHead>
+                            <TableHead className="min-w-36">Label</TableHead>
+                            <TableHead className="min-w-32">Value</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead className="w-32 text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {rows.length > 0 ? (
+                            rows.map((record) => (
+                                <TableRow key={record.id}>
+                                    <TableCell className="font-medium">{record.id}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="secondary">{record.dictType}</Badge>
+                                    </TableCell>
+                                    <TableCell>{record.label}</TableCell>
+                                    <TableCell>{record.value}</TableCell>
+                                    <TableCell className="max-w-100 truncate">
+                                        {record.description || "-"}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex justify-end gap-2">
+                                            <AuthWrap code="manage:dict:update">
+                                                <DictDialog
+                                                    mode="edit"
+                                                    initialValues={record}
+                                                    onSuccess={refresh}
+                                                >
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon-sm"
+                                                        aria-label="Edit dictionary"
                                                     >
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon-sm"
-                                                            aria-label="Edit dictionary"
-                                                        >
-                                                            <EditIcon />
-                                                        </Button>
-                                                    </DictDialog>
-                                                </AuthWrap>
-                                                <AuthWrap code="manage:dict:delete">
-                                                    <DeleteDictDialog record={record} onSuccess={refresh} />
-                                                </AuthWrap>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="h-40 text-center">
-                                        {isFetching ? "Loading dictionaries..." : "No dictionaries found."}
+                                                        <EditIcon />
+                                                    </Button>
+                                                </DictDialog>
+                                            </AuthWrap>
+                                            <AuthWrap code="manage:dict:delete">
+                                                <DeleteDictDialog
+                                                    record={record}
+                                                    onSuccess={refresh}
+                                                />
+                                            </AuthWrap>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={6} className="h-40 text-center">
+                                    {isFetching
+                                        ? "Loading dictionaries..."
+                                        : "No dictionaries found."}
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
             </DataTableShell>
             <TablePagination
                 currentPage={currentPage}
@@ -167,7 +171,13 @@ const DictDialog = ({ children, initialValues, mode = "create", onSuccess }: Dic
             setValue(initialValues?.value ?? "");
             setDescription(initialValues?.description ?? "");
         }
-    }, [initialValues?.description, initialValues?.dictType, initialValues?.label, initialValues?.value, open]);
+    }, [
+        initialValues?.description,
+        initialValues?.dictType,
+        initialValues?.label,
+        initialValues?.value,
+        open,
+    ]);
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -215,7 +225,9 @@ const DictDialog = ({ children, initialValues, mode = "create", onSuccess }: Dic
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{mode === "create" ? "Create Dictionary" : "Edit Dictionary"}</DialogTitle>
+                    <DialogTitle>
+                        {mode === "create" ? "Create Dictionary" : "Edit Dictionary"}
+                    </DialogTitle>
                     <DialogDescription>
                         Dictionary records provide reusable option labels across the admin.
                     </DialogDescription>

@@ -4,6 +4,7 @@ import { LogOutIcon, UserIcon } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 
 import { appMessage, authAPI, systemAPI } from "@/api";
+import { ThemeSwitch } from "@/components/theme-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +17,6 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import { ThemeSwitch } from "@/components/theme-provider";
 import {
     Sidebar,
     SidebarContent,
@@ -37,8 +37,8 @@ import {
     SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { APP_BRAND_NAME } from "@/constant/brand";
-import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/useAuthStore";
 
 import { AppSearch } from "./app-search";
 import { getMenuData, getSearchRouteItems, type AppRouteItem, type AppRoutePath } from "./routes";
@@ -137,13 +137,7 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
     );
 };
 
-const AppSidebarMenu = ({
-    items,
-    currentPath,
-}: {
-    items: AppRouteItem[];
-    currentPath: string;
-}) => (
+const AppSidebarMenu = ({ items, currentPath }: { items: AppRouteItem[]; currentPath: string }) => (
     <>
         {items.map((group) => {
             if (!group.children?.length) {

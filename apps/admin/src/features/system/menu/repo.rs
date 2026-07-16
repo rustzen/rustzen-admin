@@ -6,7 +6,7 @@ use crate::common::{
 use chrono::Utc;
 use sqlx::{QueryBuilder, Sqlite, SqlitePool};
 
-use super::types::{MenuListQuery, MenuRow, UpdateMenuPayload};
+use super::types::{CreateMenuRequest, MenuListQuery, MenuRow, UpdateMenuPayload};
 
 /// Menu data access layer
 pub struct MenuRepository;
@@ -39,13 +39,7 @@ impl MenuRepository {
     /// Creates a new menu
     pub async fn create(
         pool: &SqlitePool,
-        parent_id: i64,
-        name: &str,
-        code: &str,
-        menu_type: i16,
-        sort_order: i16,
-        status: i16,
-        icon: Option<&str>,
+        request: &CreateMenuRequest,
     ) -> Result<i64, ServiceError> {
         let now = Utc::now().naive_utc();
         let menu_id = sqlx::query_scalar::<_, i64>(
@@ -53,13 +47,13 @@ impl MenuRepository {
              VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)
              RETURNING id",
         )
-        .bind(parent_id)
-        .bind(name)
-        .bind(code)
-        .bind(menu_type)
-        .bind(sort_order)
-        .bind(status)
-        .bind(icon)
+        .bind(request.parent_id)
+        .bind(&request.name)
+        .bind(&request.code)
+        .bind(request.menu_type)
+        .bind(request.sort_order)
+        .bind(request.status)
+        .bind(request.icon.as_deref())
         .bind(now)
         .bind(now)
         .fetch_one(pool)

@@ -89,10 +89,11 @@ pub fn install_bundle(
         sync_directory(&releases)?;
         Ok(())
     });
-    if result.is_err() && staging.exists() {
-        if let Err(error) = fs::remove_dir_all(&staging) {
-            tracing::warn!(%error, path = %staging.display(), "Failed to remove release staging directory");
-        }
+    if result.is_err()
+        && staging.exists()
+        && let Err(error) = fs::remove_dir_all(&staging)
+    {
+        tracing::warn!(%error, path = %staging.display(), "Failed to remove release staging directory");
     }
     result.map(|()| destination)
 }

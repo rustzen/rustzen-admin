@@ -1,8 +1,7 @@
-import { EditIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { EditIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import { appMessage, systemAPI } from "@/api";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
@@ -147,14 +146,14 @@ function UserPage() {
             title="User List"
             description="Manage accounts, roles, and account state."
             actions={
-                    <AuthWrap code="system:user:create">
-                        <UserDialog mode="create" onSuccess={refresh}>
-                            <Button>
-                                <PlusIcon data-icon="inline-start" />
-                                Create User
-                            </Button>
-                        </UserDialog>
-                    </AuthWrap>
+                <AuthWrap code="system:user:create">
+                    <UserDialog mode="create" onSuccess={refresh}>
+                        <Button>
+                            <PlusIcon data-icon="inline-start" />
+                            Create User
+                        </Button>
+                    </UserDialog>
+                </AuthWrap>
             }
             toolbar={
                 <form className="grid gap-3 md:grid-cols-5" onSubmit={search}>
@@ -192,7 +191,12 @@ function UserPage() {
                         <Button type="submit" disabled={isFetching}>
                             Search
                         </Button>
-                        <Button type="button" variant="outline" disabled={isFetching} onClick={reset}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={isFetching}
+                            onClick={reset}
+                        >
                             Reset
                         </Button>
                     </div>
@@ -200,61 +204,66 @@ function UserPage() {
             }
         >
             <DataTableShell>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-16">ID</TableHead>
-                                <TableHead className="w-20">Avatar</TableHead>
-                                <TableHead className="min-w-36">Username</TableHead>
-                                <TableHead className="min-w-48">Email</TableHead>
-                                <TableHead className="min-w-36">Real Name</TableHead>
-                                <TableHead className="min-w-28">Status</TableHead>
-                                <TableHead className="min-w-48">Roles</TableHead>
-                                <TableHead className="min-w-44">Last Login</TableHead>
-                                <TableHead className="min-w-44">Updated At</TableHead>
-                                <TableHead className="w-20 text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {rows.length > 0 ? (
-                                rows.map((record) => (
-                                    <TableRow key={record.id}>
-                                        <TableCell className="font-medium">{record.id}</TableCell>
-                                        <TableCell>
-                                            <Avatar className="size-8">
-                                                <AvatarImage src={record.avatarUrl ?? undefined} alt={record.username} />
-                                                <AvatarFallback>{getUserInitial(record)}</AvatarFallback>
-                                            </Avatar>
-                                        </TableCell>
-                                        <TableCell>{record.username}</TableCell>
-                                        <TableCell>{record.email}</TableCell>
-                                        <TableCell>{record.realName || "-"}</TableCell>
-                                        <TableCell>
-                                            <UserStatusBadge status={record.status} />
-                                        </TableCell>
-                                        <TableCell className="max-w-64 truncate">
-                                            {record.roles.map((role) => role.label).join(", ") || "-"}
-                                        </TableCell>
-                                        <TableCell>{formatDateTime(record.lastLoginAt)}</TableCell>
-                                        <TableCell>{formatDateTime(record.updatedAt)}</TableCell>
-                                        <TableCell>
-                                            <UserActions
-                                                record={record}
-                                                currentUserId={currentUserId}
-                                                onSuccess={refresh}
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-16">ID</TableHead>
+                            <TableHead className="w-20">Avatar</TableHead>
+                            <TableHead className="min-w-36">Username</TableHead>
+                            <TableHead className="min-w-48">Email</TableHead>
+                            <TableHead className="min-w-36">Real Name</TableHead>
+                            <TableHead className="min-w-28">Status</TableHead>
+                            <TableHead className="min-w-48">Roles</TableHead>
+                            <TableHead className="min-w-44">Last Login</TableHead>
+                            <TableHead className="min-w-44">Updated At</TableHead>
+                            <TableHead className="w-20 text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {rows.length > 0 ? (
+                            rows.map((record) => (
+                                <TableRow key={record.id}>
+                                    <TableCell className="font-medium">{record.id}</TableCell>
+                                    <TableCell>
+                                        <Avatar className="size-8">
+                                            <AvatarImage
+                                                src={record.avatarUrl ?? undefined}
+                                                alt={record.username}
                                             />
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={10} className="h-40 text-center">
-                                        {isFetching ? "Loading users..." : "No users found."}
+                                            <AvatarFallback>
+                                                {getUserInitial(record)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    </TableCell>
+                                    <TableCell>{record.username}</TableCell>
+                                    <TableCell>{record.email}</TableCell>
+                                    <TableCell>{record.realName || "-"}</TableCell>
+                                    <TableCell>
+                                        <UserStatusBadge status={record.status} />
+                                    </TableCell>
+                                    <TableCell className="max-w-64 truncate">
+                                        {record.roles.map((role) => role.label).join(", ") || "-"}
+                                    </TableCell>
+                                    <TableCell>{formatDateTime(record.lastLoginAt)}</TableCell>
+                                    <TableCell>{formatDateTime(record.updatedAt)}</TableCell>
+                                    <TableCell>
+                                        <UserActions
+                                            record={record}
+                                            currentUserId={currentUserId}
+                                            onSuccess={refresh}
+                                        />
                                     </TableCell>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={10} className="h-40 text-center">
+                                    {isFetching ? "Loading users..." : "No users found."}
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
             </DataTableShell>
             <TablePagination
                 currentPage={currentPage}
@@ -291,7 +300,12 @@ function UserActions({
             </AuthWrap>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label="More user actions">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="More user actions"
+                    >
                         <MoreHorizontalIcon />
                     </Button>
                 </DropdownMenuTrigger>
@@ -435,7 +449,9 @@ const UserDialog = ({ children, initialValues, mode = "create", onSuccess }: Use
                 <DialogHeader>
                     <DialogTitle>{mode === "create" ? "Create User" : "Edit User"}</DialogTitle>
                     <DialogDescription>
-                        {mode === "create" ? "Create an account and assign roles." : "Update account details and roles."}
+                        {mode === "create"
+                            ? "Create an account and assign roles."
+                            : "Update account details and roles."}
                     </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
@@ -532,7 +548,9 @@ function RolePicker({
                             <Label key={role.value} className="justify-start">
                                 <Checkbox
                                     checked={value.includes(role.value)}
-                                    onCheckedChange={(checked) => toggleRole(role.value, checked === true)}
+                                    onCheckedChange={(checked) =>
+                                        toggleRole(role.value, checked === true)
+                                    }
                                 />
                                 {role.label}
                             </Label>

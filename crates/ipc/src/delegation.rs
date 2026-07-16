@@ -95,7 +95,7 @@ impl DelegatedContext {
         }
         match &self.access {
             DelegatedAccess::Protected(capability) => {
-                if !self.user_id.is_some_and(|user_id| user_id > 0) {
+                if self.user_id.is_none_or(|user_id| user_id <= 0) {
                     return Err(DelegationError::InvalidIdentity);
                 }
                 validate_capability(&self.module, capability)?;

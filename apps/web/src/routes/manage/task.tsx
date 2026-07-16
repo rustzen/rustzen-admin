@@ -1,8 +1,7 @@
-import { HistoryIcon, PlayCircleIcon } from "lucide-react";
-import { useState } from "react";
-
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { HistoryIcon, PlayCircleIcon } from "lucide-react";
+import { useState } from "react";
 
 import { appMessage, manageAPI } from "@/api";
 import { ConfirmDialog } from "@/components/app/confirm-dialog";
@@ -55,64 +54,72 @@ function TaskPage() {
     const rows = data?.data ?? [];
 
     return (
-        <PageCard title="Scheduled Tasks" description="Review scheduler status and manually run maintenance jobs.">
+        <PageCard
+            title="Scheduled Tasks"
+            description="Review scheduler status and manually run maintenance jobs."
+        >
             <DataTableShell>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="min-w-48">Name</TableHead>
-                                <TableHead className="min-w-64">Description</TableHead>
-                                <TableHead className="min-w-36">Cron</TableHead>
-                                <TableHead className="min-w-28">Status</TableHead>
-                                <TableHead className="min-w-44">Next Run</TableHead>
-                                <TableHead className="min-w-44">Last Finished</TableHead>
-                                <TableHead className="min-w-56">Last Error</TableHead>
-                                <TableHead className="w-28 text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {rows.length > 0 ? (
-                                rows.map((record) => (
-                                    <TableRow key={record.taskKey}>
-                                        <TableCell className="font-medium">{record.name}</TableCell>
-                                        <TableCell className="max-w-72 truncate">
-                                            {record.description || "-"}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline">{record.schedule.expression}</Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <TaskStatusBadge
-                                                status={record.running ? "running" : record.lastStatus}
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="min-w-48">Name</TableHead>
+                            <TableHead className="min-w-64">Description</TableHead>
+                            <TableHead className="min-w-36">Cron</TableHead>
+                            <TableHead className="min-w-28">Status</TableHead>
+                            <TableHead className="min-w-44">Next Run</TableHead>
+                            <TableHead className="min-w-44">Last Finished</TableHead>
+                            <TableHead className="min-w-56">Last Error</TableHead>
+                            <TableHead className="w-28 text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {rows.length > 0 ? (
+                            rows.map((record) => (
+                                <TableRow key={record.taskKey}>
+                                    <TableCell className="font-medium">{record.name}</TableCell>
+                                    <TableCell className="max-w-72 truncate">
+                                        {record.description || "-"}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline">
+                                            {record.schedule.expression}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <TaskStatusBadge
+                                            status={record.running ? "running" : record.lastStatus}
+                                        />
+                                    </TableCell>
+                                    <TableCell>{formatDateTime(record.nextRunAt)}</TableCell>
+                                    <TableCell>{formatDateTime(record.lastFinishedAt)}</TableCell>
+                                    <TableCell className="max-w-64 truncate text-muted-foreground">
+                                        {record.lastErrorMessage || "-"}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex justify-end gap-2">
+                                            <TaskRunLogDialog
+                                                taskKey={record.taskKey}
+                                                taskName={record.name}
                                             />
-                                        </TableCell>
-                                        <TableCell>{formatDateTime(record.nextRunAt)}</TableCell>
-                                        <TableCell>{formatDateTime(record.lastFinishedAt)}</TableCell>
-                                        <TableCell className="max-w-64 truncate text-muted-foreground">
-                                            {record.lastErrorMessage || "-"}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex justify-end gap-2">
-                                                <TaskRunLogDialog
-                                                    taskKey={record.taskKey}
-                                                    taskName={record.name}
+                                            <AuthWrap code="manage:task:run">
+                                                <RunTaskDialog
+                                                    record={record}
+                                                    onSuccess={() => void refetch()}
                                                 />
-                                                <AuthWrap code="manage:task:run">
-                                                    <RunTaskDialog record={record} onSuccess={() => void refetch()} />
-                                                </AuthWrap>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={8} className="h-40 text-center">
-                                        {isFetching ? "Loading tasks..." : "No scheduled tasks found."}
+                                            </AuthWrap>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={8} className="h-40 text-center">
+                                    {isFetching ? "Loading tasks..." : "No scheduled tasks found."}
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
             </DataTableShell>
         </PageCard>
     );
@@ -123,7 +130,8 @@ function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: st
     const [currentPage, setCurrentPage] = useState(1);
     const { data, isFetching } = useQuery({
         queryKey: ["manage", "task", taskKey, "runs", currentPage],
-        queryFn: () => manageAPI.task.runs(taskKey, { current: currentPage, pageSize: RUN_PAGE_SIZE }),
+        queryFn: () =>
+            manageAPI.task.runs(taskKey, { current: currentPage, pageSize: RUN_PAGE_SIZE }),
         enabled: open,
     });
     const rows = data?.data ?? [];
@@ -159,7 +167,9 @@ function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: st
                                 rows.map((record) => (
                                     <TableRow key={record.id}>
                                         <TableCell>
-                                            {record.triggerType === "manual" ? "Manual" : "Scheduled"}
+                                            {record.triggerType === "manual"
+                                                ? "Manual"
+                                                : "Scheduled"}
                                         </TableCell>
                                         <TableCell>
                                             <TaskStatusBadge status={record.status} />
@@ -175,7 +185,9 @@ function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: st
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={6} className="h-32 text-center">
-                                        {isFetching ? "Loading task logs..." : "No task runs found."}
+                                        {isFetching
+                                            ? "Loading task logs..."
+                                            : "No task runs found."}
                                     </TableCell>
                                 </TableRow>
                             )}

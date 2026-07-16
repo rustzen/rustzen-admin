@@ -13,11 +13,7 @@ export default defineConfig({
     staged: {
         "*": "vp check --fix",
     },
-    plugins: [
-        tanstackRouter({ autoCodeSplitting: true }),
-        viteReact(),
-        tailwindcss(),
-    ],
+    plugins: [tanstackRouter({ autoCodeSplitting: true }), viteReact(), tailwindcss()],
     resolve: {
         tsconfigPaths: true,
     },

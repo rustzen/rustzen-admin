@@ -18,5 +18,4 @@ declare namespace Auth {
         permissions: string[];
         isSystem: boolean;
     }
-
 }

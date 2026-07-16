@@ -43,7 +43,10 @@ export const UserAvatar = () => {
     return (
         <div className="flex w-full flex-col items-center gap-3 text-center">
             <Avatar className="size-24 border">
-                <AvatarImage src={userInfo?.avatarUrl ?? undefined} alt={userInfo?.realName || userInfo?.username || ""} />
+                <AvatarImage
+                    src={userInfo?.avatarUrl ?? undefined}
+                    alt={userInfo?.realName || userInfo?.username || ""}
+                />
                 <AvatarFallback>{avatarFallback(userInfo)}</AvatarFallback>
             </Avatar>
             <input

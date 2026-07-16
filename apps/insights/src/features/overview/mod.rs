@@ -9,5 +9,5 @@ use rustzen_ipc::{ManifestError, ModuleRouter, Require};
 use crate::app::AppState;
 
 pub fn register(router: ModuleRouter<AppState>) -> Result<ModuleRouter<AppState>, ManifestError> {
-    router.get_with_permission("/overview", handler::overview, Require(insights::VIEW))
+    router.get_with_permission("/overview", handler::overview, Require(insights::OVERVIEW_VIEW))
 }

@@ -7,8 +7,8 @@ pub async fn find_project_by_key(
     project_key_hash: &str,
 ) -> Result<Option<ProjectCredential>, sqlx::Error> {
     sqlx::query_as(
-        "SELECT id, allowed_origins
-         FROM insights_projects WHERE project_key_hash = ?",
+        "SELECT id, allowed_origins FROM insights_projects
+         WHERE project_key_hash = ? AND archived_at IS NULL",
     )
     .bind(project_key_hash)
     .fetch_optional(connection)
@@ -17,20 +17,31 @@ pub async fn find_project_by_key(
 
 pub async fn insert_event(
     connection: &mut SqliteConnection,
-    event: &NewEvent<'_>,
+    event: &NewEvent,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "INSERT INTO insights_events
-         (project_id, event_type, visitor_id, path, duration_ms, is_error, occurred_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO insights_events (
+           project_id, event_name, visitor_id, user_id, session_id, platform,
+           page_path, referrer, api_path, api_method, status_code, duration_ms,
+           is_error, properties, occurred_at, received_at
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(&event.project_id)
-    .bind(event.event_type)
-    .bind(event.visitor_id)
-    .bind(event.path)
+    .bind(&event.event_name)
+    .bind(&event.visitor_id)
+    .bind(&event.user_id)
+    .bind(&event.session_id)
+    .bind(&event.platform)
+    .bind(&event.page_path)
+    .bind(&event.referrer)
+    .bind(&event.api_path)
+    .bind(&event.api_method)
+    .bind(event.status_code)
     .bind(event.duration_ms)
     .bind(event.is_error)
+    .bind(&event.properties)
     .bind(&event.occurred_at)
+    .bind(&event.received_at)
     .execute(connection)
     .await?;
     Ok(())

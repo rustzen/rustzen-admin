@@ -131,7 +131,9 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
                     <UserMenuTrigger userInfo={userInfo} onLogout={handleLogout} />
                 </header>
 
-                <main className="rz-content min-h-0 min-w-0 flex-1 overflow-hidden p-5 xl:p-6">{children}</main>
+                <main className="rz-content min-h-0 min-w-0 flex-1 overflow-hidden p-5 xl:p-6">
+                    {children}
+                </main>
             </SidebarInset>
         </SidebarProvider>
     );

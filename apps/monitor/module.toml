@@ -1,13 +1,45 @@
 [module]
 id = "monitor"
-name = "Monitor"
+name = "Monitoring"
 api_prefix = "/api/monitor"
 contract_version = 1
 
 [[menus]]
-code = "monitor"
-title = "Monitor"
-path = "/monitor"
+code = "overview"
+title = "Overview"
+path = "/monitoring/overview"
 icon = "monitor"
 sort_order = 10
-permission = "monitor:view"
+permission = "monitor:overview:view"
+
+[[menus]]
+code = "nodes"
+title = "Nodes"
+path = "/monitoring/nodes"
+icon = "monitor"
+sort_order = 20
+permission = "monitor:node:view"
+
+[[menus]]
+code = "checks"
+title = "Checks"
+path = "/monitoring/checks"
+icon = "monitor"
+sort_order = 30
+permission = "monitor:check:view"
+
+[[menus]]
+code = "incidents"
+title = "Incidents"
+path = "/monitoring/incidents"
+icon = "monitor"
+sort_order = 40
+permission = "monitor:incident:view"
+
+[[menus]]
+code = "settings"
+title = "Settings"
+path = "/monitoring/settings"
+icon = "monitor"
+sort_order = 50
+permission = "monitor:settings:view"

@@ -109,6 +109,19 @@ where
         self.add_route(Method::POST, path, routing::post(handler), DelegatedAccess::Public)
     }
 
+    pub fn get_public<H, T>(self, path: &str, handler: H) -> Result<Self, ManifestError>
+    where
+        H: Handler<T, S>,
+        T: 'static,
+    {
+        self.add_route(
+            Method::GET,
+            path,
+            routing::get(handler).head(|| async { StatusCode::METHOD_NOT_ALLOWED }),
+            DelegatedAccess::Public,
+        )
+    }
+
     pub fn build(
         self,
         definition: &ModuleDefinition,

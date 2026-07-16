@@ -215,7 +215,7 @@ module_gateway_url() {
     case "$1" in
         monitor) printf 'http://127.0.0.1:%s/api/monitor/nodes\n' "$RUSTZEN_ADMIN_PORT" ;;
         insights) printf 'http://127.0.0.1:%s/api/insights/projects\n' "$RUSTZEN_ADMIN_PORT" ;;
-        reports) printf 'http://127.0.0.1:%s/api/reports/templates\n' "$RUSTZEN_ADMIN_PORT" ;;
+        reports) printf 'http://127.0.0.1:%s/api/reports/systems\n' "$RUSTZEN_ADMIN_PORT" ;;
         *) return 1 ;;
     esac
 }

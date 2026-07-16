@@ -1501,7 +1501,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn conflicting_manual_menu_name_rolls_back_module_reconciliation() {
+    async fn module_menu_names_are_scoped_independently_from_manual_menus() {
         let pool = sqlx::sqlite::SqlitePoolOptions::new()
             .max_connections(1)
             .connect("sqlite::memory:")
@@ -1524,13 +1524,15 @@ mod tests {
             "monitor",
             10,
         );
-        assert!(PermissionService::reconcile_module_manifest(&pool, &manifest).await.is_err());
+        PermissionService::reconcile_module_manifest(&pool, &manifest)
+            .await
+            .expect("module menu may reuse a title in its own navigation group");
         let module_rows: i64 =
             sqlx::query_scalar("SELECT COUNT(*) FROM menus WHERE module_id = 'monitor'")
                 .fetch_one(&pool)
                 .await
                 .expect("module rows after rollback");
-        assert_eq!(module_rows, 0);
+        assert_eq!(module_rows, 1);
         let custom_active: bool =
             sqlx::query_scalar("SELECT is_active FROM menus WHERE code = 'custom:monitor:list'")
                 .fetch_one(&pool)

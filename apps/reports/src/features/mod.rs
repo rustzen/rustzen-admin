@@ -1,3 +1,1 @@
-pub mod files;
-pub mod jobs;
-pub mod templates;
+pub mod automation;

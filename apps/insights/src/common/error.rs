@@ -25,6 +25,10 @@ impl AppError {
         Self::new(StatusCode::FORBIDDEN, message)
     }
 
+    pub fn not_found(resource: &str) -> Self {
+        Self::new(StatusCode::NOT_FOUND, format!("{resource} not found"))
+    }
+
     pub fn input_rejection(status: StatusCode, message: impl Into<String>) -> Self {
         Self::new(status, message)
     }
@@ -46,6 +50,18 @@ impl std::fmt::Display for AppError {
 }
 
 impl std::error::Error for AppError {}
+
+impl From<sqlx::Error> for AppError {
+    fn from(error: sqlx::Error) -> Self {
+        Self::internal(error)
+    }
+}
+
+impl From<serde_json::Error> for AppError {
+    fn from(error: serde_json::Error) -> Self {
+        Self::internal(error)
+    }
+}
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {

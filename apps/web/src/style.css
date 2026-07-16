@@ -20,7 +20,13 @@
         width: 100%;
         background: var(--background);
         color: var(--foreground);
-        font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family:
+            Inter,
+            ui-sans-serif,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
         font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     }
 

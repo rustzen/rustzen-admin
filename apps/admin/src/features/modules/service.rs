@@ -79,6 +79,12 @@ impl ModuleService {
                     runtime.enabled && runtime.compatible() && user.has_capability(&menu.permission)
                 })
             })
+            .map(|mut menu| {
+                if let Some(runtime) = snapshot.modules().get(&menu.module) {
+                    menu.module_name = runtime.spec.name.to_string();
+                }
+                menu
+            })
             .collect())
     }
 

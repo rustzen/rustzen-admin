@@ -1,8 +1,16 @@
 use std::time::Duration;
 
+use axum::extract::{Path, State};
+use rustzen_ipc::ModuleQuery;
 use rustzen_storage::SqlitePool;
 
+use crate::{
+    app::AppState,
+    common::api::{ApiResponse, AppResult},
+};
+
 use super::service;
+use super::types::{MetricPoint, MetricsQuery};
 
 const RETENTION_INTERVAL: Duration = Duration::from_secs(60 * 60);
 
@@ -19,4 +27,12 @@ pub fn spawn_retention(pool: SqlitePool) {
             }
         }
     });
+}
+
+pub(crate) async fn list(
+    State(state): State<AppState>,
+    Path(node_id): Path<String>,
+    ModuleQuery(query): ModuleQuery<MetricsQuery>,
+) -> AppResult<Vec<MetricPoint>> {
+    Ok(ApiResponse::success(service::list(&state.pool, &node_id, query).await?))
 }

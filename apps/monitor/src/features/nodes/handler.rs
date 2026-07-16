@@ -5,7 +5,14 @@ use crate::{
     common::api::{ApiResponse, AppResult},
 };
 
-use super::{service, types::NodeView};
+use super::{
+    service,
+    types::{NodeOverview, NodeView},
+};
+
+pub(crate) async fn overview(State(state): State<AppState>) -> AppResult<NodeOverview> {
+    Ok(ApiResponse::success(service::overview(&state.pool).await?))
+}
 
 pub(crate) async fn list(State(state): State<AppState>) -> AppResult<Vec<NodeView>> {
     Ok(ApiResponse::success(service::list(&state.pool).await?))

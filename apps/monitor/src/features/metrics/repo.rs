@@ -1,11 +1,70 @@
 use rustzen_storage::SqlitePool;
 
+use super::types::MetricPointRow;
+
 pub(super) async fn delete_before(pool: &SqlitePool, cutoff: &str) -> Result<u64, sqlx::Error> {
     sqlx::query("DELETE FROM monitor_metrics WHERE collected_at < ?")
         .bind(cutoff)
         .execute(pool)
         .await
         .map(|result| result.rows_affected())
+}
+
+pub(super) async fn load_raw(
+    pool: &SqlitePool,
+    node_id: &str,
+    from: &str,
+    to: &str,
+) -> Result<Vec<MetricPointRow>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT collected_at, CAST(cpu_percent AS REAL) AS cpu_percent,
+                CASE WHEN memory_total_bytes > 0
+                     THEN memory_used_bytes * 100.0 / memory_total_bytes ELSE 0 END AS memory_percent,
+                CASE WHEN disk_total_bytes > 0
+                     THEN disk_used_bytes * 100.0 / disk_total_bytes ELSE 0 END AS disk_percent
+         FROM monitor_metrics
+         WHERE node_id = ? AND collected_at >= ? AND collected_at <= ?
+         ORDER BY collected_at ASC
+         LIMIT 2000",
+    )
+    .bind(node_id)
+    .bind(from)
+    .bind(to)
+    .fetch_all(pool)
+    .await
+}
+
+pub(super) async fn load_bucketed(
+    pool: &SqlitePool,
+    node_id: &str,
+    from: &str,
+    to: &str,
+    bucket_seconds: i64,
+) -> Result<Vec<MetricPointRow>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT strftime('%Y-%m-%dT%H:%M:%SZ',
+                         (unixepoch(collected_at) / ?) * ?, 'unixepoch') AS collected_at,
+                AVG(cpu_percent) AS cpu_percent,
+                AVG(CASE WHEN memory_total_bytes > 0
+                         THEN memory_used_bytes * 100.0 / memory_total_bytes ELSE 0 END)
+                    AS memory_percent,
+                AVG(CASE WHEN disk_total_bytes > 0
+                         THEN disk_used_bytes * 100.0 / disk_total_bytes ELSE 0 END)
+                    AS disk_percent
+         FROM monitor_metrics
+         WHERE node_id = ? AND collected_at >= ? AND collected_at <= ?
+         GROUP BY unixepoch(collected_at) / ?
+         ORDER BY collected_at ASC
+         LIMIT 2000",
+    )
+    .bind(bucket_seconds)
+    .bind(bucket_seconds)
+    .bind(node_id)
+    .bind(from)
+    .bind(to)
+    .bind(bucket_seconds)
+    .fetch_all(pool)
+    .await
 }
 
 #[cfg(test)]

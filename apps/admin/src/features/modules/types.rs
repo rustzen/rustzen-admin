@@ -16,9 +16,9 @@ pub struct ModuleSpec {
 impl ModuleSpec {
     pub fn fixed() -> Vec<Self> {
         vec![
-            Self { id: "monitor", name: "Monitor", base_url: CONFIG.monitor_base_url() },
-            Self { id: "insights", name: "Insights", base_url: CONFIG.insights_base_url() },
-            Self { id: "reports", name: "Reports", base_url: CONFIG.reports_base_url() },
+            Self { id: "monitor", name: "Monitoring", base_url: CONFIG.monitor_base_url() },
+            Self { id: "insights", name: "Analytics", base_url: CONFIG.insights_base_url() },
+            Self { id: "reports", name: "Automation", base_url: CONFIG.reports_base_url() },
         ]
     }
 }
@@ -104,6 +104,7 @@ pub struct UpdateModuleRequest {
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeMenuResponse {
     pub module: String,
+    pub module_name: String,
     pub code: String,
     pub title: String,
     pub path: String,

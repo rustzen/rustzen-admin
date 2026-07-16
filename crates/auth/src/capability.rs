@@ -79,6 +79,20 @@ mod role_policy_tests {
                     .role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, &format!("{module}:manage"))
             );
         }
+        for capability in [
+            "monitor:overview:view",
+            "monitor:node:view",
+            "monitor:check:view",
+            "monitor:incident:view",
+            "monitor:settings:view",
+            "insights:overview:view",
+            "insights:project:view",
+            "reports:run:view",
+            "reports:template:view",
+        ] {
+            assert!(policy.role_allows_capability(BUILTIN_ADMIN_ROLE_CODE, capability));
+            assert!(policy.role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, capability));
+        }
     }
 }
 
@@ -89,19 +103,44 @@ pub mod dashboard {
 
 /// Monitor capability boundaries.
 pub mod monitor {
-    pub const VIEW: &str = "monitor:view";
+    pub const OVERVIEW_VIEW: &str = "monitor:overview:view";
+    pub const NODE_VIEW: &str = "monitor:node:view";
+    pub const CHECK_VIEW: &str = "monitor:check:view";
+    pub const CHECK_MANAGE: &str = "monitor:check:manage";
+    pub const INCIDENT_VIEW: &str = "monitor:incident:view";
+    pub const INCIDENT_MANAGE: &str = "monitor:incident:manage";
+    pub const SETTINGS_VIEW: &str = "monitor:settings:view";
+    pub const SETTINGS_MANAGE: &str = "monitor:settings:manage";
     pub const MANAGE: &str = "monitor:manage";
 }
 
 /// Insights capability boundaries.
 pub mod insights {
-    pub const VIEW: &str = "insights:view";
+    pub const OVERVIEW_VIEW: &str = "insights:overview:view";
+    pub const PROJECT_VIEW: &str = "insights:project:view";
+    pub const PROJECT_MANAGE: &str = "insights:project:manage";
+    pub const PAGE_VIEW: &str = "insights:page:view";
+    pub const API_VIEW: &str = "insights:api:view";
+    pub const EVENT_VIEW: &str = "insights:event:view";
+    pub const USER_VIEW: &str = "insights:user:view";
+    pub const SETTINGS_VIEW: &str = "insights:settings:view";
+    pub const SETTINGS_MANAGE: &str = "insights:settings:manage";
     pub const MANAGE: &str = "insights:manage";
 }
 
 /// Reports capability boundaries.
 pub mod reports {
-    pub const VIEW: &str = "reports:view";
+    pub const RUN_VIEW: &str = "reports:run:view";
+    pub const RUN_MANAGE: &str = "reports:run:manage";
+    pub const SYSTEM_VIEW: &str = "reports:system:view";
+    pub const SYSTEM_MANAGE: &str = "reports:system:manage";
+    pub const FLOW_VIEW: &str = "reports:flow:view";
+    pub const FLOW_MANAGE: &str = "reports:flow:manage";
+    pub const SCHEDULE_VIEW: &str = "reports:schedule:view";
+    pub const SCHEDULE_MANAGE: &str = "reports:schedule:manage";
+    pub const SETTINGS_VIEW: &str = "reports:settings:view";
+    pub const SETTINGS_MANAGE: &str = "reports:settings:manage";
+    pub const TEMPLATE_VIEW: &str = "reports:template:view";
     pub const MANAGE: &str = "reports:manage";
 }
 

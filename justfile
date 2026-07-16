@@ -36,6 +36,18 @@ verify-services:
     cargo build --release -p rustzen-admin -p rustzen-monitor -p rustzen-insights -p rustzen-reports
     scripts/verify-services.sh target/release/rz-admin target/release/rz-monitor target/release/rz-insights target/release/rz-reports
 
+verify-modules-mvp:
+    cargo build --workspace
+    scripts/verify-services.sh target/debug/rz-admin target/debug/rz-monitor target/debug/rz-insights target/debug/rz-reports
+
+verify-automation-browser browser_path:
+    cargo build -p rustzen-reports
+    scripts/verify-automation-browser.sh target/debug/rz-reports "{{browser_path}}"
+
+e2e-modules browser_path:
+    just verify-modules-mvp
+    just verify-automation-browser "{{browser_path}}"
+
 # Reset local sqlite database and let migrations re-run on next startup.
 reset-db:
     runtime_root="${RUSTZEN_RUNTIME_ROOT:-.rustzen-admin}"; for db in admin monitor insights reports; do rm -f "${runtime_root}/data/db/${db}.db" "${runtime_root}/data/db/${db}.db-shm" "${runtime_root}/data/db/${db}.db-wal"; done

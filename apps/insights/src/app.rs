@@ -36,6 +36,8 @@ pub fn build_router(pool: SqlitePool, ipc_token: &str) -> StartupResult<Router> 
     let module = features::projects::register(module)?;
     let module = features::tracking::register(module)?;
     let module = features::overview::register(module)?;
+    let module = features::query::register(module)?;
+    let module = features::settings::register(module)?;
     let (module_routes, manifest) = module.build(&definition, env!("CARGO_PKG_VERSION"))?;
     let state = AppState { pool, manifest: Arc::new(manifest) };
 
@@ -89,37 +91,51 @@ mod tests {
         let manifest = response_json(manifest_response).await;
         assert_eq!(manifest["module"], "insights");
         assert_eq!(manifest["apiPrefix"], "/api/insights");
+        let routes = manifest["routes"].as_array().expect("routes");
+        assert_eq!(routes.len(), 16);
+        assert!(routes.iter().any(|route| {
+            route["method"] == "GET"
+                && route["path"] == "/tracker.js"
+                && route["access"] == "public"
+        }));
+        assert!(routes.iter().any(|route| {
+            route["method"] == "POST"
+                && route["path"] == "/projects/{id}/rotate-key"
+                && route["permission"] == "insights:project:manage"
+        }));
+
+        let tracker_response = app
+            .clone()
+            .oneshot(signed_request(
+                Method::GET,
+                "/api/insights/tracker.js",
+                DelegatedAccess::Public,
+                Body::empty(),
+            ))
+            .await
+            .expect("tracker response");
+        assert_eq!(tracker_response.status(), StatusCode::OK);
         assert_eq!(
-            manifest["routes"],
-            json!([
-                {
-                    "method": "GET",
-                    "path": "/overview",
-                    "access": "protected",
-                    "permission": "insights:view"
-                },
-                {
-                    "method": "GET",
-                    "path": "/projects",
-                    "access": "protected",
-                    "permission": "insights:view"
-                },
-                {
-                    "method": "POST",
-                    "path": "/projects",
-                    "access": "protected",
-                    "permission": "insights:manage"
-                },
-                { "method": "POST", "path": "/track", "access": "public" }
-            ])
+            tracker_response.headers()[header::CONTENT_TYPE],
+            "application/javascript; charset=utf-8"
         );
+        let tracker = String::from_utf8(
+            to_bytes(tracker_response.into_body(), usize::MAX)
+                .await
+                .expect("tracker body")
+                .to_vec(),
+        )
+        .expect("tracker text");
+        assert!(tracker.contains("window.fetch = async"));
+        assert!(tracker.contains("XMLHttpRequest.prototype.send"));
+        assert!(tracker.contains("userId: identifiedUserId"));
 
         let list_response = app
             .clone()
             .oneshot(signed_request(
                 Method::GET,
                 "/api/insights/projects",
-                DelegatedAccess::protected("insights:view"),
+                DelegatedAccess::protected("insights:project:view"),
                 Body::empty(),
             ))
             .await
@@ -135,7 +151,7 @@ mod tests {
             .oneshot(json_request(
                 Method::POST,
                 "/api/insights/projects",
-                DelegatedAccess::protected("insights:manage"),
+                DelegatedAccess::protected("insights:project:manage"),
                 json!({
                     "name": "Website",
                     "allowedOrigins": ["https://example.com/"]
@@ -171,7 +187,7 @@ mod tests {
         assert_eq!(track_response.status(), StatusCode::OK);
         assert_eq!(
             response_json(track_response).await,
-            json!({ "code": 0, "message": "Success", "data": null })
+            json!({ "code": 0, "message": "Success", "data": { "accepted": 1 } })
         );
     }
 
@@ -182,12 +198,131 @@ mod tests {
             .oneshot(signed_request(
                 Method::GET,
                 "/api/insights/overview?projectId=project",
-                DelegatedAccess::protected("insights:view"),
+                DelegatedAccess::protected("insights:overview:view"),
                 Body::empty(),
             ))
             .await
             .expect("response");
         assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn project_batch_query_rotation_and_archive_form_a_complete_analytics_loop() {
+        let app = build_router(test_pool().await, SECRET).expect("router");
+        let created = response_json(
+            app.clone()
+                .oneshot(json_request(
+                    Method::POST,
+                    "/api/insights/projects",
+                    DelegatedAccess::protected("insights:project:manage"),
+                    json!({ "name": "Loop", "allowedOrigins": ["https://loop.local"] }),
+                ))
+                .await
+                .expect("create"),
+        )
+        .await;
+        let id = created["data"]["id"].as_str().expect("id");
+        let old_key = created["data"]["projectKey"].as_str().expect("key");
+        let batch = json!([
+            { "eventName": "page_view", "visitorId": "v1", "userId": "u1", "platform": "web", "pagePath": "/home", "durationMs": 10 },
+            { "eventName": "api_request", "visitorId": "v1", "platform": "web", "apiPath": "/api/items", "apiMethod": "get", "statusCode": 500, "durationMs": 40, "isError": true },
+            { "eventName": "purchase", "visitorId": "v2", "platform": "app", "properties": { "value": 9 } }
+        ]);
+        let tracked = track_request(&app, old_key, batch).await;
+        assert_eq!(tracked.status(), StatusCode::OK);
+        assert_eq!(response_json(tracked).await["data"]["accepted"], 3);
+
+        for (path, capability) in [
+            (format!("/api/insights/pages?projectId={id}"), "insights:page:view"),
+            (format!("/api/insights/apis?projectId={id}"), "insights:api:view"),
+            (format!("/api/insights/events?projectId={id}"), "insights:event:view"),
+            (format!("/api/insights/users?projectId={id}"), "insights:user:view"),
+        ] {
+            let response = app
+                .clone()
+                .oneshot(signed_request(
+                    Method::GET,
+                    &path,
+                    DelegatedAccess::protected(capability),
+                    Body::empty(),
+                ))
+                .await
+                .expect("query");
+            assert_eq!(response.status(), StatusCode::OK, "{path}");
+            assert!(response_json(response).await["data"]["total"].as_i64().is_some_and(|v| v > 0));
+        }
+        let api_stats = response_json(
+            app.clone()
+                .oneshot(signed_request(
+                    Method::GET,
+                    &format!("/api/insights/apis?projectId={id}"),
+                    DelegatedAccess::protected("insights:api:view"),
+                    Body::empty(),
+                ))
+                .await
+                .expect("api stats"),
+        )
+        .await;
+        assert_eq!(api_stats["data"]["data"][0]["p95DurationMs"], 40);
+
+        let rotated = response_json(
+            app.clone()
+                .oneshot(signed_request(
+                    Method::POST,
+                    &format!("/api/insights/projects/{id}/rotate-key"),
+                    DelegatedAccess::protected("insights:project:manage"),
+                    Body::empty(),
+                ))
+                .await
+                .expect("rotate"),
+        )
+        .await;
+        let new_key = rotated["data"]["projectKey"].as_str().expect("new key");
+        assert_eq!(
+            track_request(&app, old_key, json!({ "eventName": "ping", "visitorId": "v1" }))
+                .await
+                .status(),
+            StatusCode::UNAUTHORIZED
+        );
+        assert_eq!(
+            track_request(&app, new_key, json!({ "eventName": "ping", "visitorId": "v1" }))
+                .await
+                .status(),
+            StatusCode::OK
+        );
+
+        let archived = app
+            .clone()
+            .oneshot(signed_request(
+                Method::DELETE,
+                &format!("/api/insights/projects/{id}"),
+                DelegatedAccess::protected("insights:project:manage"),
+                Body::empty(),
+            ))
+            .await
+            .expect("archive");
+        assert_eq!(archived.status(), StatusCode::OK);
+        assert_eq!(
+            track_request(&app, new_key, json!({ "eventName": "ping", "visitorId": "v1" }))
+                .await
+                .status(),
+            StatusCode::UNAUTHORIZED
+        );
+
+        let tracker = app
+            .oneshot(signed_request(
+                Method::GET,
+                "/api/insights/tracker.js",
+                DelegatedAccess::Public,
+                Body::empty(),
+            ))
+            .await
+            .expect("tracker");
+        assert_eq!(tracker.status(), StatusCode::OK);
+        assert_eq!(
+            tracker.headers()[header::CONTENT_TYPE],
+            "application/javascript; charset=utf-8"
+        );
     }
 
     #[tokio::test]
@@ -198,7 +333,7 @@ mod tests {
             .oneshot(json_request(
                 Method::POST,
                 "/api/insights/projects",
-                DelegatedAccess::protected("insights:manage"),
+                DelegatedAccess::protected("insights:project:manage"),
                 json!({}),
             ))
             .await
@@ -215,7 +350,7 @@ mod tests {
             .oneshot(signed_request(
                 Method::GET,
                 "/api/insights/overview",
-                DelegatedAccess::protected("insights:view"),
+                DelegatedAccess::protected("insights:overview:view"),
                 Body::empty(),
             ))
             .await
@@ -248,7 +383,7 @@ mod tests {
         assert_eq!(non_object.status(), StatusCode::BAD_REQUEST);
         assert_eq!(
             response_json(non_object).await,
-            json!({ "code": 40002, "message": "event body must be an object", "data": null })
+            json!({ "code": 40002, "message": "batch must contain 1 to 100 events", "data": null })
         );
     }
 
@@ -260,6 +395,14 @@ mod tests {
             .expect("connect");
         db::migrate(&pool).await.expect("migrate");
         pool
+    }
+
+    async fn track_request(app: &axum::Router, key: &str, body: Value) -> axum::response::Response {
+        let mut request =
+            json_request(Method::POST, "/api/insights/track", DelegatedAccess::Public, body);
+        request.headers_mut().insert("x-rustzen-project-key", key.parse().expect("key"));
+        request.headers_mut().insert(header::ORIGIN, "https://loop.local".parse().unwrap());
+        app.clone().oneshot(request).await.expect("track")
     }
 
     fn json_request(

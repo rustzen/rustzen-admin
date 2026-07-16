@@ -22,6 +22,9 @@ pub async fn run_controller() -> Result<(), Box<dyn std::error::Error>> {
     infra::db::migrate(&pool).await?;
     infra::db::verify(&pool).await?;
     features::metrics::spawn_retention(pool.clone());
+    features::checks::spawn_scheduler(pool.clone());
+    features::checks::spawn_retention(pool.clone());
+    features::incidents::spawn_evaluator(pool.clone());
 
     let (app, _) = build_app(pool, config::controller().monitor_agent_token.clone())?;
     let address = config::controller().bind_address();
@@ -42,15 +45,24 @@ pub(crate) fn build_app(
     let module_router = ModuleRouter::<AppState>::new(module_id, verifier)
         .post_public("/heartbeat", features::heartbeat::handler::submit)?
         .get_with_permission(
+            "/overview",
+            features::nodes::handler::overview,
+            Require(rustzen_auth::capability::monitor::OVERVIEW_VIEW),
+        )?
+        .get_with_permission(
             "/nodes",
             features::nodes::handler::list,
-            Require(rustzen_auth::capability::monitor::VIEW),
+            Require(rustzen_auth::capability::monitor::NODE_VIEW),
         )?
         .get_with_permission(
             "/nodes/{node_id}",
             features::nodes::handler::get,
-            Require(rustzen_auth::capability::monitor::VIEW),
+            Require(rustzen_auth::capability::monitor::NODE_VIEW),
         )?;
+    let module_router = features::metrics::routes(module_router)?;
+    let module_router = features::checks::routes(module_router)?;
+    let module_router = features::incidents::routes(module_router)?;
+    let module_router = features::settings::routes(module_router)?;
     let (module_routes, manifest) = module_router.build(&definition, env!("CARGO_PKG_VERSION"))?;
     let state = AppState {
         pool,
@@ -93,13 +105,18 @@ mod tests {
         assert_eq!(manifest.module, "monitor");
         assert_eq!(manifest.api_prefix, "/api/monitor");
         assert_eq!(manifest.release_version, env!("CARGO_PKG_VERSION"));
-        assert_eq!(manifest.menus.len(), 1);
-        assert_eq!(manifest.routes.len(), 3);
+        assert_eq!(manifest.menus.len(), 5);
+        assert_eq!(manifest.routes.len(), 18);
         assert!(manifest.routes.iter().any(|route| {
             route.method == "POST"
                 && route.path == "/heartbeat"
                 && route.access == AccessMode::Public
                 && route.permission.is_none()
+        }));
+        assert!(manifest.routes.iter().any(|route| {
+            route.method == "GET"
+                && route.path == "/overview"
+                && route.permission.as_deref() == Some("monitor:overview:view")
         }));
         assert!(
             manifest
@@ -108,10 +125,10 @@ mod tests {
                 .filter(|route| {
                     route.method == "GET"
                         && route.path.starts_with("/nodes")
-                        && route.permission.as_deref() == Some("monitor:view")
+                        && route.permission.as_deref() == Some("monitor:node:view")
                 })
                 .count()
-                == 2
+                == 3
         );
     }
 }

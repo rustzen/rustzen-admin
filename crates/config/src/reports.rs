@@ -10,6 +10,7 @@ use crate::shared::{
 const DEFAULT_INTERNAL_HOST: &str = "127.0.0.1";
 const DEFAULT_REPORTS_PORT: u16 = 9804;
 const DEFAULT_REPORTS_SQLITE_PATH: &str = "./data/db/reports.db";
+const DEFAULT_CREDENTIAL_KEY: &str = "rustzen-development-credential-key";
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ReportsConfig {
@@ -25,6 +26,14 @@ pub struct ReportsConfig {
     pub reports_sqlite_path: Option<String>,
     #[serde(default = "default_ipc_token")]
     pub ipc_token: String,
+    #[serde(default = "default_credential_key")]
+    pub reports_credential_key: String,
+    #[serde(default)]
+    pub reports_browser_path: Option<String>,
+    #[serde(default = "default_headless")]
+    pub reports_headless: bool,
+    #[serde(default = "default_max_concurrency")]
+    pub reports_max_concurrency: usize,
 }
 
 impl ReportsConfig {
@@ -70,6 +79,14 @@ impl ReportsConfig {
         self.runtime.timezone()
     }
 
+    pub fn credential_key(&self) -> &str {
+        &self.reports_credential_key
+    }
+
+    pub fn browser_path(&self) -> Option<&str> {
+        self.reports_browser_path.as_deref()
+    }
+
     fn validate(&self) -> Result<(), ConfigError> {
         self.runtime.validate()?;
         ensure_optional_non_empty("RUSTZEN_INTERNAL_HOST", self.internal_host.as_deref())?;
@@ -82,13 +99,35 @@ impl ReportsConfig {
             "RUSTZEN_IPC_TOKEN",
             &self.ipc_token,
             crate::shared::DEFAULT_IPC_TOKEN,
-        )
+        )?;
+        ensure_production_secret(
+            &self.runtime,
+            "RUSTZEN_REPORTS_CREDENTIAL_KEY",
+            &self.reports_credential_key,
+            DEFAULT_CREDENTIAL_KEY,
+        )?;
+        if !(1..=4).contains(&self.reports_max_concurrency) {
+            return Err(ConfigError::Invalid("RUSTZEN_REPORTS_MAX_CONCURRENCY"));
+        }
+        Ok(())
     }
+}
+
+fn default_credential_key() -> String {
+    DEFAULT_CREDENTIAL_KEY.to_string()
+}
+
+fn default_headless() -> bool {
+    true
+}
+
+fn default_max_concurrency() -> usize {
+    1
 }
 
 #[cfg(test)]
 mod tests {
-    use super::ReportsConfig;
+    use super::{DEFAULT_CREDENTIAL_KEY, ReportsConfig};
 
     #[test]
     fn local_reports_config_uses_its_own_endpoint_and_database() {
@@ -100,12 +139,16 @@ mod tests {
     }
 
     #[test]
-    fn production_reports_requires_only_the_shared_ipc_secret() {
+    fn production_reports_requires_ipc_and_credential_secrets() {
         let mut config = ReportsConfig::local().expect("local Reports config");
         config.runtime.environment = "production".to_string();
         config.ipc_token = "production-ipc-secret".to_string();
+        config.reports_credential_key = "production-credential-secret".to_string();
         config.validate().expect("focused production Reports config");
         config.ipc_token = "replace-me".to_string();
+        assert!(config.validate().is_err());
+        config.ipc_token = "production-ipc-secret".to_string();
+        config.reports_credential_key = DEFAULT_CREDENTIAL_KEY.to_string();
         assert!(config.validate().is_err());
     }
 }

@@ -17,3 +17,11 @@ impl<T> ApiResponse<T> {
 }
 
 pub type AppResult<T> = Result<Json<ApiResponse<T>>, AppError>;
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Page<T> {
+    pub data: Vec<T>,
+    pub total: i64,
+    pub success: bool,
+}

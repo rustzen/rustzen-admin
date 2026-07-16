@@ -12,6 +12,6 @@ pub use service::TemplatesService;
 
 pub fn routes(router: ModuleRouter<AppState>) -> Result<ModuleRouter<AppState>, ManifestError> {
     router
-        .get_with_permission("/templates", handler::list, Require(reports::VIEW))?
+        .get_with_permission("/templates", handler::list, Require(reports::TEMPLATE_VIEW))?
         .post_with_permission("/templates", handler::save, Require(reports::MANAGE))
 }

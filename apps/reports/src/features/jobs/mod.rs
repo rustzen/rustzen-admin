@@ -12,7 +12,7 @@ pub use service::JobsService;
 
 pub fn routes(router: ModuleRouter<AppState>) -> Result<ModuleRouter<AppState>, ManifestError> {
     router
-        .get_with_permission("/jobs", handler::list, Require(reports::VIEW))?
+        .get_with_permission("/jobs", handler::list, Require(reports::RUN_VIEW))?
         .post_with_permission("/jobs", handler::create, Require(reports::MANAGE))?
-        .get_with_permission("/jobs/{job_id}", handler::get, Require(reports::VIEW))
+        .get_with_permission("/jobs/{job_id}", handler::get, Require(reports::RUN_VIEW))
 }

@@ -41,15 +41,15 @@ This is a practical path index for task orientation.
 
 | Path | Value | Inspect when |
 | --- | --- | --- |
-| `apps/monitor/src/features/` | Heartbeat, node, and metrics behavior. | You change Monitor business behavior. |
+| `apps/monitor/src/features/` | Heartbeat, nodes, metrics, TCP checks, incidents, and settings. | You change Monitoring behavior. |
 | `apps/monitor/migrations/` | Monitor-owned schema. | You change Monitor persistence. |
 | `apps/monitor/module.toml` | Monitor metadata and default menu only. | You change module presentation metadata. |
-| `apps/insights/src/features/` | Projects, tracking, and overview behavior. | You change Insights business behavior. |
+| `apps/insights/src/features/` | Projects, tracking, analytics queries, retention, and settings. | You change Analytics behavior. |
 | `apps/insights/migrations/` | Insights-owned schema. | You change Insights persistence. |
 | `apps/insights/module.toml` | Insights metadata and default menu only. | You change module presentation metadata. |
-| `apps/reports/src/features/` | Templates, jobs, and report files. | You change Reports business behavior. |
+| `apps/reports/src/features/automation/` | Systems, encrypted accounts, flows, browser runs, artifacts, schedules, and retention. | You change Automation behavior. |
 | `apps/reports/migrations/` | Reports-owned schema. | You change Reports persistence. |
-| `apps/reports/module.toml` | Reports metadata and default menu only. | You change module presentation metadata. |
+| `apps/reports/module.toml` | Automation metadata and page menus. | You change module presentation metadata. |
 
 Module route method, path, access mode, capability, and handler are declared in
 Rust route registration, not in `module.toml`.

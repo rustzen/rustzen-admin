@@ -20,9 +20,9 @@ The repository is organized as a monorepo:
 - `crates/ipc/` contains the shared Manifest, route, and HMAC delegation contract
 - `crates/storage/` contains shared SQLite pool and maintenance primitives
 - `apps/admin/` contains the Admin API, gateway, RBAC, release management, and Web asset host
-- `apps/monitor/` contains the Monitor Controller and optional managed-node Agent
-- `apps/insights/` contains the Insights service
-- `apps/reports/` contains the Reports service
+- `apps/monitor/` powers Monitoring and the optional managed-node Agent
+- `apps/insights/` powers product Analytics and its public tracker
+- `apps/reports/` powers encrypted browser Automation
 - `apps/web/` contains the React frontend application
 - `deploy/` contains deployment assets and release support files
 - `docs/` contains repository-level architecture and development guides

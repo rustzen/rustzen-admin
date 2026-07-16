@@ -74,6 +74,7 @@ impl From<NavigationMenuRow> for RuntimeMenuResponse {
     fn from(row: NavigationMenuRow) -> Self {
         Self {
             module: row.module_id,
+            module_name: String::new(),
             code: row.module_menu_code,
             title: row.name,
             path: row.path,

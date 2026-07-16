@@ -47,7 +47,7 @@ mod tests {
 
     #[tokio::test]
     async fn embedded_release_contains_index_and_spa_fallback() {
-        for path in ["/", "/monitor"] {
+        for path in ["/", "/monitoring/overview"] {
             let response = serve(path.parse::<Uri>().expect("uri")).await;
             assert_eq!(response.status(), StatusCode::OK);
             let body = to_bytes(response.into_body(), usize::MAX).await.expect("body");

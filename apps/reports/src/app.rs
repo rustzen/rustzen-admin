@@ -2,71 +2,59 @@ use std::{path::PathBuf, sync::Arc};
 
 use axum::{Json, Router, routing::get};
 use rustzen_ipc::{DelegationVerifier, ModuleDefinition, ModuleRouter};
+use rustzen_storage::SqlitePool;
 use serde_json::json;
-use sqlx::SqlitePool;
 
-use crate::{
-    config,
-    features::{
-        files::{self, FilesService},
-        jobs::{self, JobsService},
-        templates::{self, TemplatesService},
-    },
-    infra::db,
-};
+use crate::{config, features::automation, infra::db};
 
 #[derive(Clone)]
 pub struct AppState {
-    pub templates: TemplatesService,
-    pub jobs: JobsService,
-    pub files: FilesService,
+    pub pool: SqlitePool,
+    pub cipher: automation::CredentialCipher,
+    pub output_dir: PathBuf,
+    pub browser_path: Option<String>,
+    pub headless: bool,
+    pub max_concurrency: usize,
 }
 
 impl AppState {
     fn new(pool: SqlitePool, output_dir: PathBuf) -> Self {
-        let templates = TemplatesService::new(pool.clone());
-        let files = FilesService::new(pool.clone(), output_dir);
-        let jobs = JobsService::new(pool, templates.clone(), files.clone());
-        Self { templates, jobs, files }
+        Self {
+            pool,
+            cipher: automation::CredentialCipher::new(config::CONFIG.credential_key()),
+            output_dir,
+            browser_path: config::CONFIG.browser_path().map(str::to_string),
+            headless: config::CONFIG.reports_headless,
+            max_concurrency: config::CONFIG.reports_max_concurrency,
+        }
     }
 }
 
 pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
-    let app = build_app().await?;
-    let address = config::CONFIG.bind_address();
-    let listener = tokio::net::TcpListener::bind(&address).await?;
-    tracing::info!(%address, "Reports service started");
-    axum::serve(listener, app).await?;
-    Ok(())
-}
-
-async fn build_app() -> Result<Router, Box<dyn std::error::Error>> {
     let pool = db::create_pool().await?;
     db::run_migrations(&pool).await?;
     db::test_connection(&pool).await?;
-    let output_dir = config::CONFIG.data_dir().join("reports");
+    let output_dir = config::CONFIG.data_dir().join("automation");
     tokio::fs::create_dir_all(&output_dir).await?;
     let state = AppState::new(pool, output_dir);
-    let recovered = state.jobs.recover_interrupted().await?;
-    if recovered > 0 {
-        tracing::warn!(recovered, "Recovered interrupted report jobs");
-    }
-    state.files.spawn_retention();
-    build_router(state, &config::CONFIG.ipc_token).map_err(Into::into)
+    automation::initialize(&state).await?;
+    let app = build_router(state.clone(), &config::CONFIG.ipc_token)?;
+    automation::spawn(state);
+    let address = config::CONFIG.bind_address();
+    let listener = tokio::net::TcpListener::bind(&address).await?;
+    tracing::info!(%address,"Automation service started");
+    axum::serve(listener, app).await?;
+    Ok(())
 }
 
 fn build_router(state: AppState, ipc_token: &str) -> Result<Router, rustzen_ipc::ManifestError> {
     let verifier = DelegationVerifier::new(ipc_token).map_err(rustzen_ipc::ManifestError::from)?;
     let definition = ModuleDefinition::from_toml(include_str!("../module.toml"))?;
-    let module_id = definition.module.id.clone();
     let api_prefix = definition.module.api_prefix.clone();
-    let module = ModuleRouter::<AppState>::new(module_id, verifier);
-    let module = templates::routes(module)?;
-    let module = jobs::routes(module)?;
-    let module = files::routes(module)?;
+    let module = ModuleRouter::<AppState>::new(definition.module.id.clone(), verifier);
+    let module = automation::routes(module)?;
     let (module_routes, manifest) = module.build(&definition, env!("CARGO_PKG_VERSION"))?;
     let manifest = Arc::new(manifest);
-
     Ok(Router::new()
         .route("/health", get(health))
         .route(
@@ -81,17 +69,13 @@ fn build_router(state: AppState, ipc_token: &str) -> Result<Router, rustzen_ipc:
 }
 
 async fn health() -> Json<serde_json::Value> {
-    Json(json!({
-        "status": "ok",
-        "contractVersion": rustzen_ipc::CONTRACT_VERSION,
-        "releaseVersion": env!("CARGO_PKG_VERSION"),
-    }))
+    Json(
+        json!({"status":"ok","contractVersion":rustzen_ipc::CONTRACT_VERSION,"releaseVersion":env!("CARGO_PKG_VERSION")}),
+    )
 }
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
-
     use axum::{
         body::{Body, to_bytes},
         http::{Method, Request, StatusCode, header},
@@ -101,207 +85,192 @@ mod tests {
     use sqlx::sqlite::SqlitePoolOptions;
     use tower::ServiceExt;
 
-    use crate::infra::db::MIGRATOR;
-
     use super::{AppState, build_router};
+    use crate::{features::automation::CredentialCipher, infra::db::MIGRATOR};
 
-    async fn test_app() -> (axum::Router, PathBuf) {
-        let pool = SqlitePoolOptions::new()
-            .max_connections(1)
-            .connect("sqlite::memory:")
-            .await
-            .expect("connect");
-        MIGRATOR.run(&pool).await.expect("migrate");
-        let output_dir = std::env::temp_dir().join(format!("rz-reports-{}", uuid::Uuid::new_v4()));
-        tokio::fs::create_dir_all(&output_dir).await.expect("create output dir");
-        let state = AppState::new(pool, output_dir.clone());
-        (build_router(state, "test-secret").expect("build router"), output_dir)
+    async fn test_app() -> (axum::Router, AppState) {
+        let pool =
+            SqlitePoolOptions::new().max_connections(1).connect("sqlite::memory:").await.unwrap();
+        MIGRATOR.run(&pool).await.unwrap();
+        let output_dir =
+            std::env::temp_dir().join(format!("rz-automation-{}", uuid::Uuid::new_v4()));
+        tokio::fs::create_dir_all(&output_dir).await.unwrap();
+        let state = AppState {
+            pool,
+            cipher: CredentialCipher::new("test-credential-key"),
+            output_dir,
+            browser_path: None,
+            headless: true,
+            max_concurrency: 1,
+        };
+        (build_router(state.clone(), "test-secret").unwrap(), state)
     }
-
-    fn signed_request(method: Method, uri: &str, capability: &str, body: Value) -> Request<Body> {
+    fn request(method: Method, uri: &str, capability: &str, body: Value) -> Request<Body> {
+        let path = uri.split('?').next().unwrap();
         let context = DelegatedContext::new(
             "request-1",
             Some(7),
             "reports",
             method.clone(),
-            uri,
+            path,
             DelegatedAccess::protected(capability),
         )
-        .expect("context");
-        let headers =
-            DelegationSigner::new("test-secret").expect("signer").sign(&context).expect("sign");
+        .unwrap();
+        let headers = DelegationSigner::new("test-secret").unwrap().sign(&context).unwrap();
         let mut request = Request::builder().method(method).uri(uri);
         for (name, value) in &headers {
             request = request.header(name, value);
         }
         request
             .header(header::CONTENT_TYPE, "application/json")
-            .body(Body::from(serde_json::to_vec(&body).expect("serialize body")))
-            .expect("request")
+            .body(Body::from(body.to_string()))
+            .unwrap()
     }
-
-    async fn json_body(response: axum::response::Response) -> Value {
-        serde_json::from_slice(
-            &to_bytes(response.into_body(), usize::MAX).await.expect("read response"),
-        )
-        .expect("json response")
+    async fn body(response: axum::response::Response) -> Value {
+        serde_json::from_slice(&to_bytes(response.into_body(), usize::MAX).await.unwrap()).unwrap()
     }
 
     #[tokio::test]
-    async fn manifest_and_success_envelope_match_the_module_contract() {
-        let (app, output_dir) = test_app().await;
-        let manifest_response = app
-            .clone()
-            .oneshot(
-                Request::builder()
-                    .uri("/internal/v1/manifest")
-                    .body(Body::empty())
-                    .expect("manifest request"),
-            )
-            .await
-            .expect("manifest response");
-        assert_eq!(manifest_response.status(), StatusCode::OK);
-        let manifest: rustzen_ipc::ModuleManifest =
-            serde_json::from_value(json_body(manifest_response).await).expect("manifest");
-        assert_eq!(manifest.module, "reports");
-        assert_eq!(manifest.api_prefix, "/api/reports");
-        assert_eq!(manifest.routes.len(), 6);
-
+    async fn manifest_exposes_only_the_automation_contract() {
+        let (app, state) = test_app().await;
         let response = app
-            .oneshot(signed_request(
-                Method::GET,
-                "/api/reports/templates",
-                "reports:view",
-                Value::Null,
+            .oneshot(Request::builder().uri("/internal/v1/manifest").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        let manifest = body(response).await;
+        assert_eq!(manifest["module"], "reports");
+        assert_eq!(manifest["routes"].as_array().unwrap().len(), 25);
+        assert!(
+            manifest["routes"].as_array().unwrap().iter().all(|route| !route["path"]
+                .as_str()
+                .unwrap()
+                .contains("templates")
+                && !route["path"].as_str().unwrap().contains("jobs"))
+        );
+        tokio::fs::remove_dir_all(state.output_dir).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn system_account_flow_and_run_are_typed_and_secrets_stay_encrypted() {
+        let (app, state) = test_app().await;
+        let system = body(
+            app.clone()
+                .oneshot(request(
+                    Method::POST,
+                    "/api/reports/systems",
+                    "reports:system:manage",
+                    json!({"name":"Fixture","baseUrl":"https://fixture.local","enabled":true}),
+                ))
+                .await
+                .unwrap(),
+        )
+        .await;
+        let system_id = system["data"]["id"].as_str().unwrap();
+        let account_response=app.clone().oneshot(request(Method::POST,"/api/reports/accounts","reports:system:manage",json!({"systemId":system_id,"name":"Default","username":"operator","secret":"do-not-leak"}))).await.unwrap();
+        assert_eq!(account_response.status(), StatusCode::OK);
+        let account = body(account_response).await;
+        assert!(account["data"].get("secret").is_none());
+        let account_id = account["data"]["id"].as_str().unwrap();
+        let stored: String =
+            sqlx::query_scalar("SELECT secret_ciphertext FROM automation_accounts WHERE id=?")
+                .bind(account_id)
+                .fetch_one(&state.pool)
+                .await
+                .unwrap();
+        assert!(!stored.contains("do-not-leak"));
+        let flow=body(app.clone().oneshot(request(Method::POST,"/api/reports/flows","reports:flow:manage",json!({"systemId":system_id,"name":"Login","steps":[{"action":"goto","url":"/login"},{"action":"fill","selector":"#password","value":"{{account.password}}"}]}))).await.unwrap()).await;
+        let flow_id = flow["data"]["id"].as_str().unwrap();
+        let run = app
+            .clone()
+            .oneshot(request(
+                Method::POST,
+                "/api/reports/runs",
+                "reports:run:manage",
+                json!({"flowId":flow_id,"accountId":account_id,"input":{}}),
             ))
             .await
-            .expect("templates response");
-        assert_eq!(response.status(), StatusCode::OK);
-        let payload = json_body(response).await;
-        assert_eq!(payload, json!({ "code": 0, "message": "Success", "data": [] }));
-        tokio::fs::remove_dir_all(output_dir).await.expect("remove output dir");
-    }
+            .unwrap();
+        assert_eq!(run.status(), StatusCode::OK);
+        assert_eq!(body(run).await["data"]["status"], "queued");
 
-    #[tokio::test]
-    async fn job_creation_is_http_200_and_download_streams_raw_content() {
-        let (app, output_dir) = test_app().await;
-        let template_response = app
+        let other_system = body(
+            app.clone()
+                .oneshot(request(
+                    Method::POST,
+                    "/api/reports/systems",
+                    "reports:system:manage",
+                    json!({"name":"Other","baseUrl":"https://other.local"}),
+                ))
+                .await
+                .unwrap(),
+        )
+        .await;
+        let other_account = body(
+            app.clone()
+                .oneshot(request(
+                    Method::POST,
+                    "/api/reports/accounts",
+                    "reports:system:manage",
+                    json!({
+                        "systemId": other_system["data"]["id"],
+                        "name":"Other",
+                        "username":"operator",
+                        "secret":"other-secret"
+                    }),
+                ))
+                .await
+                .unwrap(),
+        )
+        .await;
+        let other_account_id = other_account["data"]["id"].as_str().unwrap();
+        let mismatched_run = app
             .clone()
-            .oneshot(signed_request(
+            .oneshot(request(
                 Method::POST,
-                "/api/reports/templates",
-                "reports:manage",
+                "/api/reports/runs",
+                "reports:run:manage",
+                json!({"flowId":flow_id,"accountId":other_account_id,"input":{}}),
+            ))
+            .await
+            .unwrap();
+        assert_eq!(mismatched_run.status(), StatusCode::BAD_REQUEST);
+        let mismatched_schedule = app
+            .oneshot(request(
+                Method::POST,
+                "/api/reports/schedules",
+                "reports:schedule:manage",
                 json!({
-                    "id": "template",
-                    "name": "Template",
-                    "content": "<h1>{{name}}</h1>"
+                    "name":"Invalid",
+                    "flowId":flow_id,
+                    "accountId":other_account_id,
+                    "cron":"0 0 * * *",
+                    "input":{}
                 }),
             ))
             .await
-            .expect("template response");
-        assert_eq!(template_response.status(), StatusCode::OK);
-
-        let job_response = app
-            .clone()
-            .oneshot(signed_request(
-                Method::POST,
-                "/api/reports/jobs",
-                "reports:manage",
-                json!({ "templateId": "template", "data": { "name": "<RustZen>" } }),
-            ))
-            .await
-            .expect("job response");
-        assert_eq!(job_response.status(), StatusCode::OK);
-        let job_payload = json_body(job_response).await;
-        assert_eq!(job_payload["code"], 0);
-        assert_eq!(job_payload["message"], "Success");
-        let job_id = job_payload["data"]["id"].as_str().expect("job id");
-
-        let download_uri = format!("/api/reports/jobs/{job_id}/download");
-        let download = app
-            .oneshot(signed_request(Method::GET, &download_uri, "reports:view", Value::Null))
-            .await
-            .expect("download response");
-        assert_eq!(download.status(), StatusCode::OK);
-        assert_eq!(
-            download.headers().get(header::CONTENT_TYPE).and_then(|value| value.to_str().ok()),
-            Some("text/html; charset=utf-8")
-        );
-        assert!(download.headers().contains_key(header::CONTENT_DISPOSITION));
-        assert_eq!(
-            to_bytes(download.into_body(), usize::MAX).await.expect("download body"),
-            "<h1>&lt;RustZen&gt;</h1>"
-        );
-        tokio::fs::remove_dir_all(output_dir).await.expect("remove output dir");
+            .unwrap();
+        assert_eq!(mismatched_schedule.status(), StatusCode::BAD_REQUEST);
+        tokio::fs::remove_dir_all(state.output_dir).await.unwrap();
     }
 
     #[tokio::test]
-    async fn business_errors_preserve_the_existing_admin_proxy_envelope() {
-        let (app, output_dir) = test_app().await;
-        let invalid_job_shape = app
-            .clone()
-            .oneshot(signed_request(Method::POST, "/api/reports/jobs", "reports:manage", json!({})))
-            .await
-            .expect("invalid job shape response");
-        assert_eq!(invalid_job_shape.status(), StatusCode::UNPROCESSABLE_ENTITY);
-        let invalid_job_shape = json_body(invalid_job_shape).await;
-        assert_eq!(invalid_job_shape["code"], 40002);
-        assert!(invalid_job_shape["message"].as_str().is_some_and(|message| {
-            message.starts_with("Failed to deserialize the JSON body into the target type:")
-                && message.contains("templateId")
-        }));
-
-        let invalid_template = app
-            .clone()
-            .oneshot(signed_request(
-                Method::POST,
-                "/api/reports/templates",
-                "reports:manage",
-                json!({ "name": "", "content": "" }),
-            ))
-            .await
-            .expect("invalid template response");
-        assert_eq!(invalid_template.status(), StatusCode::BAD_REQUEST);
-        assert_eq!(
-            json_body(invalid_template).await,
-            json!({
-                "code": 40002,
-                "message": "name and content are required",
-                "data": null
-            })
-        );
-
-        let missing_job = app
-            .oneshot(signed_request(
-                Method::GET,
-                "/api/reports/jobs/missing",
-                "reports:view",
-                Value::Null,
-            ))
-            .await
-            .expect("missing job response");
-        assert_eq!(missing_job.status(), StatusCode::NOT_FOUND);
-        assert_eq!(
-            json_body(missing_job).await,
-            json!({
-                "code": 40002,
-                "message": "report job not found",
-                "data": null
-            })
-        );
-        tokio::fs::remove_dir_all(output_dir).await.expect("remove output dir");
-    }
-
-    #[tokio::test]
-    async fn direct_unsigned_module_request_is_rejected() {
-        let (app, output_dir) = test_app().await;
-        let response = app
-            .oneshot(
-                Request::builder().uri("/api/reports/jobs").body(Body::empty()).expect("request"),
-            )
-            .await
-            .expect("response");
-        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-        tokio::fs::remove_dir_all(output_dir).await.expect("remove output dir");
+    async fn flow_rejects_cross_origin_navigation() {
+        let (app, state) = test_app().await;
+        let system = body(
+            app.clone()
+                .oneshot(request(
+                    Method::POST,
+                    "/api/reports/systems",
+                    "reports:system:manage",
+                    json!({"name":"Fixture","baseUrl":"https://fixture.local"}),
+                ))
+                .await
+                .unwrap(),
+        )
+        .await;
+        let id = system["data"]["id"].as_str().unwrap();
+        let response=app.oneshot(request(Method::POST,"/api/reports/flows","reports:flow:manage",json!({"systemId":id,"name":"Unsafe","steps":[{"action":"goto","url":"https://other.local"}]}))).await.unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        tokio::fs::remove_dir_all(state.output_dir).await.unwrap();
     }
 }

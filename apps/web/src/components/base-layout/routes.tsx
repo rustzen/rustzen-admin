@@ -20,9 +20,7 @@ import type { ReactNode } from "react";
 export type AppRoutePath =
     | "/"
     | "/profile"
-    | "/monitor"
-    | "/insights"
-    | "/reports"
+    | SystemModule.RoutePath
     | "/403"
     | "/404"
     | "/system/user"
@@ -35,7 +33,13 @@ export type AppRoutePath =
     | "/manage/task"
     | "/manage/deploy";
 
-type AppRouteGroupPath = "/system" | "/manage" | "/demo";
+type AppRouteGroupPath =
+    | "/monitoring"
+    | "/analytics"
+    | "/automation"
+    | "/system"
+    | "/manage"
+    | "/demo";
 
 export type AppRouteItem = {
     name: string;
@@ -66,10 +70,10 @@ const profileRoute: AppRouteItem = {
     requiresPermission: false,
 };
 
-const modulePaths: Record<SystemModule.Id, SystemModule.RoutePath> = {
-    monitor: "/monitor",
-    insights: "/insights",
-    reports: "/reports",
+const moduleGroupPaths: Record<SystemModule.Id, AppRouteGroupPath> = {
+    monitor: "/monitoring",
+    insights: "/analytics",
+    reports: "/automation",
 };
 
 const moduleIcons: Record<SystemModule.Icon, ReactNode> = {
@@ -79,20 +83,27 @@ const moduleIcons: Record<SystemModule.Icon, ReactNode> = {
 };
 
 const getModuleRoutes = (navigation: SystemModule.NavigationItem[]): AppRouteItem[] => {
-    return navigation.flatMap((item) => {
+    const groups = new Map<SystemModule.Id, AppRouteItem>();
+    navigation.forEach((item) => {
         const icon = moduleIcons[item.icon];
-        if (modulePaths[item.module] !== item.path || !icon) {
-            return [];
+        if (!registeredModuleRoutePaths.has(item.path) || !icon) {
+            return;
         }
-        return [
-            {
-                path: item.path,
-                name: item.title,
-                icon,
-                requiresPermission: false,
-            },
-        ];
+        const group = groups.get(item.module) ?? {
+            path: moduleGroupPaths[item.module],
+            name: item.moduleName,
+            icon,
+            children: [],
+        };
+        group.children?.push({
+            path: item.path,
+            name: item.title,
+            icon,
+            requiresPermission: false,
+        });
+        groups.set(item.module, group);
     });
+    return Array.from(groups.values());
 };
 
 const systemRoutes: AppRouteItem = {
@@ -179,9 +190,23 @@ const demoRoutes: AppRouteItem = {
 const appRoutePaths = new Set<string>([
     "/",
     "/profile",
-    "/monitor",
-    "/insights",
-    "/reports",
+    "/monitoring/overview",
+    "/monitoring/nodes",
+    "/monitoring/checks",
+    "/monitoring/incidents",
+    "/monitoring/settings",
+    "/analytics/overview",
+    "/analytics/projects",
+    "/analytics/pages",
+    "/analytics/apis",
+    "/analytics/events",
+    "/analytics/users",
+    "/analytics/settings",
+    "/automation/runs",
+    "/automation/systems",
+    "/automation/flows",
+    "/automation/schedules",
+    "/automation/settings",
     "/403",
     "/404",
     "/system/user",
@@ -193,6 +218,26 @@ const appRoutePaths = new Set<string>([
     "/manage/log",
     "/manage/task",
     "/manage/deploy",
+]);
+
+const registeredModuleRoutePaths = new Set<SystemModule.RoutePath>([
+    "/monitoring/overview",
+    "/monitoring/nodes",
+    "/monitoring/checks",
+    "/monitoring/incidents",
+    "/monitoring/settings",
+    "/analytics/overview",
+    "/analytics/projects",
+    "/analytics/pages",
+    "/analytics/apis",
+    "/analytics/events",
+    "/analytics/users",
+    "/analytics/settings",
+    "/automation/runs",
+    "/automation/systems",
+    "/automation/flows",
+    "/automation/schedules",
+    "/automation/settings",
 ]);
 
 export const getMenuData = (

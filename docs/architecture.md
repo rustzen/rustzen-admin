@@ -72,6 +72,17 @@ Direct unsigned, expired, cross-module, or wrong-capability calls are rejected.
 
 ## Permissions and menus
 
+The product navigation presents the stable internal services as grouped modules:
+
+- Monitoring: overview, nodes, TCP checks, incidents, and settings below `/monitoring`;
+- Analytics: overview, projects, pages, APIs, events, users, and settings below `/analytics`;
+- Automation: systems/accounts, flows, runs, schedules, and settings below `/automation`.
+
+The internal service IDs, binaries, databases, and API prefixes remain
+`monitor`, `insights`, and `reports`. Each page menu owns a concrete read
+capability so Manifest reconciliation, Viewer grants, route guards, and frontend
+authorization use the same boundary.
+
 - `owner` receives `*` and is the only built-in role allowed to mutate
   releases.
 - `admin` receives concrete Monitor, Insights, and Reports capabilities plus

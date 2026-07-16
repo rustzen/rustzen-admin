@@ -12,10 +12,12 @@ pub struct OverviewService;
 
 impl OverviewService {
     pub async fn get(pool: &SqlitePool, query: OverviewQuery) -> Result<Overview, AppError> {
-        let from = query.from.unwrap_or_else(|| Utc::now() - Duration::days(30));
+        let settings = crate::features::settings::service::get(pool).await?;
+        let from =
+            query.from.unwrap_or_else(|| Utc::now() - Duration::days(settings.default_query_days));
         let to = query.to.unwrap_or_else(Utc::now);
-        if from > to {
-            return Err(AppError::bad_request("from must be before to"));
+        if from > to || to - from > Duration::days(settings.max_query_days) {
+            return Err(AppError::bad_request("invalid Analytics query range"));
         }
 
         let from = from.to_rfc3339();
@@ -24,7 +26,10 @@ impl OverviewService {
         let totals = repo::totals(&mut transaction, &query.project_id, &from, &to)
             .await
             .map_err(AppError::internal)?;
-        let durations = repo::durations(&mut transaction, &query.project_id, &from, &to)
+        let p95_duration = repo::p95_duration(&mut transaction, &query.project_id, &from, &to)
+            .await
+            .map_err(AppError::internal)?;
+        let trend = repo::trend(&mut transaction, &query.project_id, &from, &to)
             .await
             .map_err(AppError::internal)?;
         transaction.commit().await.map_err(AppError::internal)?;
@@ -32,30 +37,12 @@ impl OverviewService {
         Ok(Overview {
             pv: totals.pv,
             uv: totals.uv,
+            event_count: totals.event_count,
             request_count: totals.request_count,
             error_count: totals.error_count,
             average_duration_ms: totals.average_duration_ms,
-            p95_duration_ms: percentile_95(&durations),
+            p95_duration_ms: p95_duration.and_then(|value| u64::try_from(value).ok()).unwrap_or(0),
+            trend,
         })
-    }
-}
-
-fn percentile_95(sorted: &[i64]) -> u64 {
-    if sorted.is_empty() {
-        return 0;
-    }
-    let index = ((sorted.len() * 95).div_ceil(100)).saturating_sub(1);
-    u64::try_from(sorted[index]).unwrap_or(0)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::percentile_95;
-
-    #[test]
-    fn percentile_contract_uses_nearest_rank() {
-        assert_eq!(percentile_95(&[]), 0);
-        assert_eq!(percentile_95(&[10, 20, 30, 40, 50]), 50);
-        assert_eq!(percentile_95(&[10; 100]), 10);
     }
 }

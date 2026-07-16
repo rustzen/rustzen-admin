@@ -11,5 +11,9 @@ use crate::app::AppState;
 pub use service::FilesService;
 
 pub fn routes(router: ModuleRouter<AppState>) -> Result<ModuleRouter<AppState>, ManifestError> {
-    router.get_with_permission("/jobs/{job_id}/download", handler::download, Require(reports::VIEW))
+    router.get_with_permission(
+        "/jobs/{job_id}/download",
+        handler::download,
+        Require(reports::RUN_VIEW),
+    )
 }

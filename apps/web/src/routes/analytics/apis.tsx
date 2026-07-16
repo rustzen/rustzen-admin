@@ -1,0 +1,106 @@
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+
+import { insightsAPI } from "@/api";
+import { ProjectSelect } from "@/components/analytics/project-select";
+import { DataTableShell } from "@/components/app/data-table-shell";
+import { PageCard } from "@/components/app/page-card";
+import { TablePagination } from "@/components/app/table-pagination";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+
+export const Route = createFileRoute("/analytics/apis")({ component: AnalyticsApisPage });
+const pageSize = 20;
+
+function AnalyticsApisPage() {
+    const [projectId, setProjectId] = useState("");
+    const [path, setPath] = useState("");
+    const [current, setCurrent] = useState(1);
+    const query = { projectId, path: path || undefined, current, pageSize };
+    const { data, isFetching } = useQuery({
+        queryKey: ["insights", "apis", query],
+        queryFn: () => insightsAPI.apis(query),
+        enabled: Boolean(projectId),
+    });
+    return (
+        <PageCard
+            title="APIs"
+            description="Request volume, errors, average latency, and P95 by endpoint."
+            toolbar={
+                <div className="flex flex-wrap gap-3">
+                    <ProjectSelect
+                        value={projectId}
+                        onChange={(value) => {
+                            setProjectId(value);
+                            setCurrent(1);
+                        }}
+                    />
+                    <Input
+                        className="mt-auto w-64"
+                        placeholder="Filter API path"
+                        value={path}
+                        onChange={(event) => {
+                            setPath(event.target.value);
+                            setCurrent(1);
+                        }}
+                    />
+                </div>
+            }
+        >
+            <DataTableShell>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>API</TableHead>
+                            <TableHead>Requests</TableHead>
+                            <TableHead>Errors</TableHead>
+                            <TableHead>Average</TableHead>
+                            <TableHead>P95</TableHead>
+                            <TableHead>Last seen</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {(data?.data ?? []).map((row) => (
+                            <TableRow key={`${row.apiMethod}:${row.apiPath}`}>
+                                <TableCell>
+                                    <Badge variant="outline">{row.apiMethod || "-"}</Badge>{" "}
+                                    <span className="font-mono">{row.apiPath}</span>
+                                </TableCell>
+                                <TableCell>{row.requestCount}</TableCell>
+                                <TableCell>
+                                    {row.errorCount} ({(row.errorRate * 100).toFixed(1)}%)
+                                </TableCell>
+                                <TableCell>{Math.round(row.averageDurationMs)} ms</TableCell>
+                                <TableCell>{row.p95DurationMs} ms</TableCell>
+                                <TableCell>{new Date(row.lastSeenAt).toLocaleString()}</TableCell>
+                            </TableRow>
+                        ))}
+                        {!data?.data.length && (
+                            <TableRow>
+                                <TableCell colSpan={6} className="h-40 text-center">
+                                    {isFetching ? "Loading APIs..." : "No API events found."}
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </DataTableShell>
+            <TablePagination
+                currentPage={current}
+                totalPages={Math.max(1, Math.ceil((data?.total ?? 0) / pageSize))}
+                total={data?.total ?? 0}
+                disabled={isFetching}
+                onPageChange={setCurrent}
+            />
+        </PageCard>
+    );
+}

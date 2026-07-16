@@ -5,13 +5,24 @@ use crate::common::error::AppError;
 
 use super::{
     repo,
-    types::{NodeRow, NodeView},
+    types::{NodeOverview, NodeRow, NodeView},
 };
 
-const ONLINE_WINDOW_SECONDS: i64 = 90;
-
 pub(crate) async fn list(pool: &SqlitePool) -> Result<Vec<NodeView>, AppError> {
-    Ok(repo::load(pool, None).await?.into_iter().map(node_view).collect())
+    let offline_after = crate::features::settings::service::get(pool).await?.offline_after_seconds;
+    Ok(repo::load(pool, None).await?.into_iter().map(|row| node_view(row, offline_after)).collect())
+}
+
+pub(crate) async fn overview(pool: &SqlitePool) -> Result<NodeOverview, AppError> {
+    let nodes = list(pool).await?;
+    let online_nodes = nodes.iter().filter(|node| node.status == "online").count();
+    Ok(NodeOverview {
+        registered_nodes: nodes.len(),
+        online_nodes,
+        offline_nodes: nodes.len() - online_nodes,
+        active_incidents: crate::features::incidents::service::active_count(pool).await?,
+        unhealthy_checks: crate::features::checks::service::unhealthy_count(pool).await?,
+    })
 }
 
 pub(crate) async fn get(pool: &SqlitePool, node_id: &str) -> Result<NodeView, AppError> {
@@ -20,18 +31,19 @@ pub(crate) async fn get(pool: &SqlitePool, node_id: &str) -> Result<NodeView, Ap
         .into_iter()
         .next()
         .ok_or_else(|| AppError::not_found("node"))?;
-    Ok(node_view(row))
+    let offline_after = crate::features::settings::service::get(pool).await?.offline_after_seconds;
+    Ok(node_view(row, offline_after))
 }
 
-fn node_view(row: NodeRow) -> NodeView {
-    node_view_at(row, Utc::now())
+fn node_view(row: NodeRow, offline_after_seconds: i64) -> NodeView {
+    node_view_at(row, Utc::now(), offline_after_seconds)
 }
 
-fn node_view_at(row: NodeRow, now: DateTime<Utc>) -> NodeView {
+fn node_view_at(row: NodeRow, now: DateTime<Utc>, offline_after_seconds: i64) -> NodeView {
     let last_seen = DateTime::parse_from_rfc3339(&row.last_seen_at)
         .map(|value| value.with_timezone(&Utc))
         .unwrap_or(DateTime::<Utc>::MIN_UTC);
-    let status = if last_seen >= now - Duration::seconds(ONLINE_WINDOW_SECONDS) {
+    let status = if last_seen >= now - Duration::seconds(offline_after_seconds) {
         "online"
     } else {
         "offline"
@@ -62,10 +74,10 @@ mod tests {
     }
 
     #[test]
-    fn online_state_uses_the_existing_ninety_second_boundary() {
+    fn online_state_uses_the_configured_offline_boundary() {
         let now = Utc.with_ymd_and_hms(2026, 7, 15, 12, 0, 0).unwrap();
-        let online = node_view_at(row((now - Duration::seconds(90)).to_rfc3339()), now);
-        let offline = node_view_at(row((now - Duration::seconds(91)).to_rfc3339()), now);
+        let online = node_view_at(row((now - Duration::seconds(120)).to_rfc3339()), now, 120);
+        let offline = node_view_at(row((now - Duration::seconds(121)).to_rfc3339()), now, 120);
         assert_eq!(online.status, "online");
         assert_eq!(offline.status, "offline");
     }

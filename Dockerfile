@@ -2,7 +2,6 @@ ARG BASE_IMAGE=ubuntu:24.04
 FROM oven/bun:1.3.14 AS bun-runtime
 FROM ${BASE_IMAGE} AS build
 
-ARG PACKAGE_NAME=server
 ARG TARGET_TRIPLE=x86_64-unknown-linux-musl
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -42,29 +41,27 @@ RUN cd apps/web && bun run vp build
 
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY crates crates
-COPY apps/server/Cargo.toml apps/server/Cargo.toml
-COPY apps/server/build.rs apps/server/build.rs
-COPY apps/server/src apps/server/src
-COPY apps/server/migrations apps/server/migrations
+COPY apps/admin apps/admin
+COPY apps/monitor apps/monitor
+COPY apps/insights apps/insights
+COPY apps/reports apps/reports
 
-RUN mkdir -p /out/target
+RUN mkdir -p /out/bin
 RUN --mount=type=cache,target=/root/.cargo/registry \
     --mount=type=cache,target=/root/.cargo/git \
     --mount=type=cache,target=/app/target \
-    VERSION="$(awk -F '"' '/^version = / { print $2; exit }' apps/server/Cargo.toml)" && \
-    case "${TARGET_TRIPLE}" in \
-        x86_64-*) ARTIFACT_ARCH="x86_64" ;; \
-        aarch64-*) ARTIFACT_ARCH="aarch64" ;; \
-        *) echo "Unsupported target triple: ${TARGET_TRIPLE}" >&2; exit 1 ;; \
-    esac && \
-    ARTIFACT_NAME="rz-${VERSION}-${ARTIFACT_ARCH}" && \
     if [ "${TARGET_TRIPLE}" = "aarch64-unknown-linux-gnu" ]; then \
-        cargo build --release --target "${TARGET_TRIPLE}" -p "${PACKAGE_NAME}"; \
+        cargo build --release --target "${TARGET_TRIPLE}" \
+          -p rustzen-admin -p rustzen-monitor -p rustzen-insights -p rustzen-reports; \
     else \
         RUSTFLAGS="-C target-feature=+crt-static" \
-        cargo build --release --target "${TARGET_TRIPLE}" -p "${PACKAGE_NAME}"; \
+        cargo build --release --target "${TARGET_TRIPLE}" \
+          -p rustzen-admin -p rustzen-monitor -p rustzen-insights -p rustzen-reports; \
     fi && \
-    install -m 0755 "/app/target/${TARGET_TRIPLE}/release/rz" "/out/target/${ARTIFACT_NAME}"
+    install -m 0755 "/app/target/${TARGET_TRIPLE}/release/rz-admin" "/out/bin/rz-admin" && \
+    install -m 0755 "/app/target/${TARGET_TRIPLE}/release/rz-monitor" "/out/bin/rz-monitor" && \
+    install -m 0755 "/app/target/${TARGET_TRIPLE}/release/rz-insights" "/out/bin/rz-insights" && \
+    install -m 0755 "/app/target/${TARGET_TRIPLE}/release/rz-reports" "/out/bin/rz-reports"
 
 FROM scratch AS export
-COPY --from=build /out/target /
+COPY --from=build /out /

@@ -231,8 +231,8 @@ function UploadVersionDialog({
                 <DialogHeader>
                     <DialogTitle>Upload Complete Release</DialogTitle>
                     <DialogDescription>
-                        Upload one signed rz ELF containing Admin, Monitor, Insights, Reports, and
-                        Web.
+                        Upload one signed tar bundle containing Admin, Monitor, Insights, Reports,
+                        Web, and deployment files.
                     </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
@@ -240,7 +240,7 @@ function UploadVersionDialog({
                         id="deploy-version"
                         label="Version"
                         value={version}
-                        placeholder="v0.4.0"
+                        placeholder="0.5.0"
                         onChange={setVersion}
                     />
                     <div className="grid gap-2">
@@ -249,6 +249,7 @@ function UploadVersionDialog({
                             ref={fileInputRef}
                             id="deploy-file"
                             type="file"
+                            accept=".tar,application/x-tar"
                             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                         />
                         <div className="text-sm text-muted-foreground">
@@ -286,7 +287,7 @@ function DeployVersionDialog({
     onSuccess: () => void;
 }) {
     const description =
-        "All four services stop, the rz symlink switches once, and all services restart on the same release. A failed gate restores the previous binary and four database backups.";
+        "The rz symlink switches once, then Monitor, Insights, Reports, and Admin restart in order behind release health gates. A failed gate restores the previous link and the databases for services that entered the restart sequence.";
 
     const submit = async () => {
         await manageAPI.deploy.deploy(record.id);

@@ -5,9 +5,9 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const MARKER_BEGIN = Buffer.from("\nRUSTZEN_RELEASE_SIGNED_MARKER_BEGIN\n");
-const MARKER_END = Buffer.from("\nRUSTZEN_RELEASE_SIGNED_MARKER_END\n");
-const PAYLOAD_VERSION = "rustzen-release-v1";
+const MARKER_BEGIN = Buffer.from("\nRUSTZEN_BUNDLE_SIGNED_MARKER_BEGIN\n");
+const MARKER_END = Buffer.from("\nRUSTZEN_BUNDLE_SIGNED_MARKER_END\n");
+const PAYLOAD_VERSION = "rustzen-bundle-v1";
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_KEY_FILE = path.join(
     PROJECT_ROOT,
@@ -38,10 +38,10 @@ try {
         console.log(keyFile);
     } else if (command === "public-key") {
         process.stdout.write(`${publicKeyHex(loadPrivateKey())}\n`);
-    } else if (command === "sign-release") {
-        signRelease();
-    } else if (command === "verify-release") {
-        verifyRelease();
+    } else if (command === "sign-bundle") {
+        signBundle();
+    } else if (command === "verify-bundle") {
+        verifyBundle();
     } else {
         usage();
         process.exit(1);
@@ -51,49 +51,49 @@ try {
     process.exit(1);
 }
 
-function signRelease() {
+function signBundle() {
     const file = requiredArg("file");
     const version = requiredArg("version");
     const arch = requiredArg("arch");
     const privateKey = loadPrivateKey();
 
     const original = fs.readFileSync(file);
-    const content = stripReleaseMarker(original);
+    const content = stripBundleMarker(original);
     const contentSha256 = sha256Hex(content);
-    const marker = signedMarker({ component: "release", version, arch, contentSha256, privateKey });
+    const marker = signedMarker({ component: "bundle", version, arch, contentSha256, privateKey });
     const mode = fs.statSync(file).mode;
 
     fs.writeFileSync(file, Buffer.concat([content, MARKER_BEGIN, Buffer.from(marker), MARKER_END]));
     fs.chmodSync(file, mode);
-    console.log(`Signed release artifact: ${file}`);
+    console.log(`Signed release bundle: ${file}`);
 }
 
-function verifyRelease() {
+function verifyBundle() {
     const file = requiredArg("file");
     const version = requiredArg("version");
     const arch = requiredArg("arch");
     const data = fs.readFileSync(file);
     const begin = data.lastIndexOf(MARKER_BEGIN);
     if (begin < 0) {
-        throw new Error("Signed release marker is missing.");
+        throw new Error("Signed release bundle marker is missing.");
     }
     const markerStart = begin + MARKER_BEGIN.length;
     const markerEnd = data.indexOf(MARKER_END, markerStart);
     if (markerEnd < 0 || markerEnd + MARKER_END.length !== data.length) {
-        throw new Error("Signed release marker is invalid.");
+        throw new Error("Signed release bundle marker is invalid.");
     }
     const marker = JSON.parse(data.subarray(markerStart, markerEnd).toString("utf8"));
     const contentSha256 = sha256Hex(data.subarray(0, begin));
     if (
         marker.schemaVersion !== 1 ||
-        marker.component !== "release" ||
+        marker.component !== "bundle" ||
         marker.version !== version ||
         marker.arch !== arch ||
         marker.contentSha256 !== contentSha256
     ) {
         throw new Error("Signed release metadata does not match the artifact.");
     }
-    const payload = signaturePayload({ component: "release", version, arch, contentSha256 });
+    const payload = signaturePayload({ component: "bundle", version, arch, contentSha256 });
     const valid = crypto.verify(
         null,
         Buffer.from(payload),
@@ -103,7 +103,7 @@ function verifyRelease() {
     if (!valid) {
         throw new Error("Signed release signature verification failed.");
     }
-    console.log(`Verified release artifact: ${file}`);
+    console.log(`Verified release bundle: ${file}`);
 }
 
 function signedMarker({ component, version, arch, contentSha256, privateKey }) {
@@ -124,7 +124,7 @@ function signaturePayload({ component, version, arch, contentSha256 }) {
     return `${PAYLOAD_VERSION}\ncomponent=${component}\nversion=${version}\narch=${arch}\ncontent_sha256=${contentSha256}\n`;
 }
 
-function stripReleaseMarker(data) {
+function stripBundleMarker(data) {
     const begin = data.lastIndexOf(MARKER_BEGIN);
     if (begin === -1) {
         return data;
@@ -212,8 +212,8 @@ function usage() {
     console.error(`Usage:
   node scripts/deploy-sign.mjs ensure-key
   node scripts/deploy-sign.mjs public-key
-  bun scripts/deploy-sign.mjs sign-release --file <binary> --version <version> --arch <x86_64|aarch64>
-  bun scripts/deploy-sign.mjs verify-release --file <binary> --version <version> --arch <x86_64|aarch64>
+  bun scripts/deploy-sign.mjs sign-bundle --file <tar> --version <version> --arch <x86_64|aarch64>
+  bun scripts/deploy-sign.mjs verify-bundle --file <tar> --version <version> --arch <x86_64|aarch64>
 
 Environment:
   RUSTZEN_DEPLOY_SIGN_KEY_FILE=/path/to/ed25519-private.pem

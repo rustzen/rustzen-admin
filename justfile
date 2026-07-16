@@ -4,16 +4,16 @@
 
 # development
 dev-server:
-    cargo watch -x 'run -p server -- admin serve'
+    cargo watch -x 'run -p rustzen-admin -- serve'
 
 dev-monitor:
-    cargo run -p server -- monitor controller
+    cargo run -p rustzen-monitor -- controller
 
 dev-insights:
-    cargo run -p server -- insights worker
+    cargo run -p rustzen-insights -- serve
 
 dev-reports:
-    cargo run -p server -- reports worker
+    cargo run -p rustzen-reports -- serve
 
 dev-web:
     cd apps/web && bun run dev
@@ -23,9 +23,11 @@ check:
     cargo check --workspace
     cd apps/web && bun run vp lint
 
-verify-processes:
-    cargo build -p server
-    scripts/verify-four-processes.sh target/debug/rz
+verify-services:
+    cargo test -p rustzen-admin changed_manifest_swaps_after_commit_and_invalid_change_rolls_back
+    cargo test -p rustzen-admin warm_gateway_streams_with_memory_auth_and_a_closed_database
+    cargo build --release -p rustzen-admin -p rustzen-monitor -p rustzen-insights -p rustzen-reports
+    scripts/verify-services.sh target/release/rz-admin target/release/rz-monitor target/release/rz-insights target/release/rz-reports
 
 # Reset local sqlite database and let migrations re-run on next startup.
 reset-db:
@@ -33,17 +35,17 @@ reset-db:
 
 # Build all (production)
 build:
-    just build-release
     just build-config
+    just build-release
 
-# Build x86_64 Linux musl server deployment binary
+# Build one signed x86_64 Linux bundle containing all four services.
 build-release:
-    just _build-binary server x86_64-unknown-linux-musl linux/amd64
-    VERSION=$(awk -F '"' '/^version = / { print $2; exit }' apps/server/Cargo.toml) && bun scripts/deploy-sign.mjs sign-release --file target/rz/rz-$VERSION-x86_64 --version $VERSION --arch x86_64
+    just _build-binaries x86_64 x86_64-unknown-linux-musl linux/amd64
+    VERSION=$(awk -F '"' '/^version = / { print $2; exit }' Cargo.toml); BUNDLE=$(scripts/package-release-bundle.sh "$VERSION" x86_64 target/rz/build/x86_64/bin target/rz); bun scripts/deploy-sign.mjs sign-bundle --file "$BUNDLE" --version "$VERSION" --arch x86_64; bun scripts/deploy-sign.mjs verify-bundle --file "$BUNDLE" --version "$VERSION" --arch x86_64
 
 build-native:
     cd apps/web && bun run vp build
-    cargo build --release -p server
+    cargo build --release -p rustzen-admin -p rustzen-monitor -p rustzen-insights -p rustzen-reports
 
 # Build web production bundle
 build-web:
@@ -54,23 +56,20 @@ build-config:
     mkdir -p target/rz/config target/rz/systemd
     cp .env.example target/rz/config/rz.env
     VERIFY_KEY=$(bun scripts/deploy-sign.mjs public-key) && perl -pi -e "s#^RUSTZEN_DEPLOY_VERIFY_KEY=.*#RUSTZEN_DEPLOY_VERIFY_KEY=$VERIFY_KEY#" target/rz/config/rz.env
-    cp deploy/rz-admin.service deploy/rz-monitor.service deploy/rz-insights.service deploy/rz-reports.service target/rz/systemd/
+    cp deploy/rz.target deploy/rz-recovery.service deploy/rz-admin.service deploy/rz-monitor.service deploy/rz-insights.service deploy/rz-reports.service target/rz/systemd/
     cp deploy/setup-layout.sh target/rz/setup-layout.sh
     chmod +x target/rz/setup-layout.sh
 
-_build-binary PACKAGE_NAME TARGET_TRIPLE PLATFORM:
-    mkdir -p target/rz
-    docker buildx build --platform {{PLATFORM}} --build-arg PACKAGE_NAME={{PACKAGE_NAME}} --build-arg TARGET_TRIPLE={{TARGET_TRIPLE}} --target export --output type=local,dest=target/rz .
+_build-binaries ARCH TARGET_TRIPLE PLATFORM:
+    rm -rf target/rz/build/{{ARCH}}
+    mkdir -p target/rz/build/{{ARCH}}
+    docker buildx build --platform {{PLATFORM}} --build-arg TARGET_TRIPLE={{TARGET_TRIPLE}} --target export --output type=local,dest=target/rz/build/{{ARCH}} .
 
 # Update project version.
 bump-version VERSION:
-    @perl -pi -e 's/^version = ".*"/version = "{{VERSION}}"/' apps/server/Cargo.toml
-    @perl -pi -e 's/^version = ".*"/version = "{{VERSION}}"/' crates/auth/Cargo.toml
-    @perl -pi -e 's/^version = ".*"/version = "{{VERSION}}"/' crates/config/Cargo.toml
-    @perl -pi -e 's/^version = ".*"/version = "{{VERSION}}"/' crates/runtime/Cargo.toml
-    @perl -pi -e 's/^version = ".*"/version = "{{VERSION}}"/' crates/storage/Cargo.toml
+    @perl -0pi -e 's/(\[workspace\.package\]\nversion = ")[^"]+/\1{{VERSION}}/' Cargo.toml
     @perl -pi -e 's/"version": ".*"/"version": "{{VERSION}}"/' apps/web/package.json
 
 # Clean build outputs
 clean:
-    rm -rf target apps/web/dist apps/server/target .rustzen-admin
+    rm -rf target apps/web/dist .rustzen-admin

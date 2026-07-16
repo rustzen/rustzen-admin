@@ -1,16 +1,18 @@
 [Unit]
 Description=RustZen Reports Worker
-After=network.target
+After=network.target rz-recovery.service
+PartOf=rz.target
 StartLimitIntervalSec=60
 StartLimitBurst=5
 
 [Service]
 Type=simple
 EnvironmentFile=/opt/rz/config/rz.env
-ExecStart=/opt/rz/bin/rz reports worker
+ExecCondition=/usr/bin/test ! -e /opt/rz/data/recovery-blocked
+ExecStart=/opt/rz/current/bin/rz-reports serve
 WorkingDirectory=/opt/rz
 Restart=on-failure
 RestartSec=5
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=rz.target

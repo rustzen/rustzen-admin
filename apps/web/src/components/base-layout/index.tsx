@@ -1,8 +1,9 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { LogOutIcon, UserIcon } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 
-import { appMessage, authAPI } from "@/api";
+import { appMessage, authAPI, systemAPI } from "@/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,15 +57,21 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
     );
     const router = useRouter();
     const currentPath = useLocation().pathname;
+    const { data: moduleNavigation = [] } = useQuery({
+        queryKey: ["system", "modules", "navigation", menuPermissionSignature],
+        queryFn: systemAPI.module.navigation,
+        enabled: !hidden,
+        refetchInterval: 10_000,
+    });
 
     const menuData = useMemo(
-        () => getMenuData(checkMenuPermissions),
-        [checkMenuPermissions, menuPermissionSignature],
+        () => getMenuData(checkMenuPermissions, moduleNavigation),
+        [checkMenuPermissions, menuPermissionSignature, moduleNavigation],
     );
 
     const searchRoutes = useMemo(
-        () => getSearchRouteItems(checkMenuPermissions),
-        [checkMenuPermissions, menuPermissionSignature],
+        () => getSearchRouteItems(checkMenuPermissions, moduleNavigation),
+        [checkMenuPermissions, menuPermissionSignature, moduleNavigation],
     );
 
     const handleSearchSelect = (path: AppRoutePath) => {

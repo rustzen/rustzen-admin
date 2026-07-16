@@ -1,5 +1,6 @@
 import {
     BookOpenIcon,
+    BoxesIcon,
     ChartNoAxesCombinedIcon,
     ClockIcon,
     CloudUploadIcon,
@@ -27,6 +28,7 @@ export type AppRoutePath =
     | "/system/user"
     | "/system/role"
     | "/system/menu"
+    | "/system/module"
     | "/system/status"
     | "/manage/dict"
     | "/manage/log"
@@ -64,11 +66,34 @@ const profileRoute: AppRouteItem = {
     requiresPermission: false,
 };
 
-const moduleRoutes: AppRouteItem[] = [
-    { path: "/monitor", name: "Monitor", icon: <MonitorIcon /> },
-    { path: "/insights", name: "Insights", icon: <ChartNoAxesCombinedIcon /> },
-    { path: "/reports", name: "Reports", icon: <FileTextIcon /> },
-];
+const modulePaths: Record<SystemModule.Id, SystemModule.RoutePath> = {
+    monitor: "/monitor",
+    insights: "/insights",
+    reports: "/reports",
+};
+
+const moduleIcons: Record<SystemModule.Icon, ReactNode> = {
+    monitor: <MonitorIcon />,
+    "chart-no-axes-combined": <ChartNoAxesCombinedIcon />,
+    "file-text": <FileTextIcon />,
+};
+
+const getModuleRoutes = (navigation: SystemModule.NavigationItem[]): AppRouteItem[] => {
+    return navigation.flatMap((item) => {
+        const icon = moduleIcons[item.icon];
+        if (modulePaths[item.module] !== item.path || !icon) {
+            return [];
+        }
+        return [
+            {
+                path: item.path,
+                name: item.title,
+                icon,
+                requiresPermission: false,
+            },
+        ];
+    });
+};
 
 const systemRoutes: AppRouteItem = {
     name: "System",
@@ -89,6 +114,11 @@ const systemRoutes: AppRouteItem = {
             path: "/system/menu",
             name: "Menu",
             icon: <MenuIcon />,
+        },
+        {
+            path: "/system/module",
+            name: "System Modules",
+            icon: <BoxesIcon />,
         },
         {
             path: "/system/status",
@@ -157,6 +187,7 @@ const appRoutePaths = new Set<string>([
     "/system/user",
     "/system/role",
     "/system/menu",
+    "/system/module",
     "/system/status",
     "/manage/dict",
     "/manage/log",
@@ -164,24 +195,17 @@ const appRoutePaths = new Set<string>([
     "/manage/deploy",
 ]);
 
-export const layoutMenuRoutes: AppRouteItem[] = [
-    dashboardRoute,
-    ...moduleRoutes,
-    systemRoutes,
-    manageRoutes,
-    demoRoutes,
-];
-
-export const layoutSearchRoutes: AppRouteItem[] = [
-    dashboardRoute,
-    profileRoute,
-    ...moduleRoutes,
-    systemRoutes,
-    manageRoutes,
-    demoRoutes,
-];
-
-export const getMenuData = (checkMenuPermissions: (path: string) => boolean): AppRouteItem[] => {
+export const getMenuData = (
+    checkMenuPermissions: (path: string) => boolean,
+    moduleNavigation: SystemModule.NavigationItem[],
+): AppRouteItem[] => {
+    const layoutMenuRoutes: AppRouteItem[] = [
+        dashboardRoute,
+        ...getModuleRoutes(moduleNavigation),
+        systemRoutes,
+        manageRoutes,
+        demoRoutes,
+    ];
     const getMenuList = (menuList: AppRouteItem[]): AppRouteItem[] => {
         return menuList
             .filter((item) => {
@@ -207,7 +231,16 @@ export const getMenuData = (checkMenuPermissions: (path: string) => boolean): Ap
 
 export const getSearchRouteItems = (
     checkMenuPermissions: (path: string) => boolean,
+    moduleNavigation: SystemModule.NavigationItem[],
 ): SearchRouteItem[] => {
+    const layoutSearchRoutes: AppRouteItem[] = [
+        dashboardRoute,
+        profileRoute,
+        ...getModuleRoutes(moduleNavigation),
+        systemRoutes,
+        manageRoutes,
+        demoRoutes,
+    ];
     const flattenRoutes = (routes: AppRouteItem[], groupLabel = "General"): SearchRouteItem[] => {
         return routes.flatMap((route) => {
             if (route.children) {

@@ -16,6 +16,12 @@ declare namespace Menu {
         sortOrder: number;
         status: Status;
         isSystem: boolean;
+        isManual: boolean;
+        path?: string | null;
+        icon?: string | null;
+        moduleId?: string | null;
+        moduleMenuCode?: string | null;
+        isActive: boolean;
         createdAt: string;
         updatedAt: string;
         children?: Item[] | null;
@@ -38,6 +44,7 @@ declare namespace Menu {
         menuType: number;
         sortOrder: number;
         status: number;
+        icon?: string | null;
     }
 
     interface UpdateRequest {
@@ -47,6 +54,7 @@ declare namespace Menu {
         menuType: number;
         sortOrder: number;
         status: number;
+        icon?: string | null;
     }
 
     interface OptionItem extends Api.OptionItem<number> {

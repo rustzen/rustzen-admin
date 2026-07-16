@@ -1,7 +1,7 @@
 import { EditIcon, PlusIcon, StopCircleIcon } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { appMessage, systemAPI } from "@/api";
@@ -22,6 +22,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
     Select,
     SelectContent,
@@ -57,6 +58,12 @@ const statusMeta: Record<number, { label: string; variant: "secondary" | "outlin
     1: { label: "Enabled", variant: "secondary" },
     2: { label: "Disabled", variant: "outline" },
 };
+
+const MODULE_ICON_OPTIONS = [
+    { label: "Monitor", value: "monitor" },
+    { label: "Insights", value: "chart-no-axes-combined" },
+    { label: "Reports", value: "file-text" },
+] as const;
 
 type FlatMenuItem = Menu.Item & {
     depth: number;
@@ -147,16 +154,20 @@ function MenuPage() {
 }
 
 function MenuActions({ record, onSuccess }: { record: Menu.Item; onSuccess: () => void }) {
+    const canEdit = !record.moduleId || Boolean(record.moduleMenuCode);
+
     return (
         <div className="flex justify-end gap-2">
-            <AuthWrap code="system:menu:update">
-                <MenuDialog mode="edit" initialValues={record} onSuccess={onSuccess}>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit menu">
-                        <EditIcon />
-                    </Button>
-                </MenuDialog>
-            </AuthWrap>
-            {!record.isSystem ? (
+            {canEdit ? (
+                <AuthWrap code="system:menu:update">
+                    <MenuDialog mode="edit" initialValues={record} onSuccess={onSuccess}>
+                        <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit menu">
+                            <EditIcon />
+                        </Button>
+                    </MenuDialog>
+                </AuthWrap>
+            ) : null}
+            {!record.isSystem && !record.moduleId ? (
                 <AuthWrap code="system:menu:delete">
                     <DisableMenuDialog record={record} onSuccess={onSuccess} />
                 </AuthWrap>
@@ -173,6 +184,8 @@ interface MenuDialogProps {
 }
 
 const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: MenuDialogProps) => {
+    const queryClient = useQueryClient();
+    const isModuleOwned = Boolean(initialValues?.moduleId);
     const [open, setOpen] = useState(false);
     const [parentId, setParentId] = useState("0");
     const [name, setName] = useState("");
@@ -180,11 +193,12 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
     const [menuType, setMenuType] = useState("1");
     const [status, setStatus] = useState("1");
     const [sortOrder, setSortOrder] = useState("0");
+    const [icon, setIcon] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const { data: menuOptions = [] } = useQuery({
         queryKey: ["system", "menus", "options"],
         queryFn: systemAPI.menu.options,
-        enabled: open,
+        enabled: open && !isModuleOwned,
     });
     const selectableParents = useMemo(
         () => menuOptions.filter((option) => option.value !== initialValues?.id),
@@ -199,6 +213,7 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
             setMenuType(String(initialValues?.menuType ?? 1));
             setStatus(String(initialValues?.status ?? 1));
             setSortOrder(String(initialValues?.sortOrder ?? 0));
+            setIcon(initialValues?.icon ?? "");
         }
     }, [initialValues, open]);
 
@@ -228,6 +243,7 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
             menuType: Number(menuType),
             sortOrder: parsedSortOrder,
             status: Number(status),
+            icon: icon || null,
         };
 
         setSubmitting(true);
@@ -238,6 +254,11 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
             } else if (initialValues?.id) {
                 await systemAPI.menu.update(initialValues.id, payload);
                 appMessage.success("Menu updated");
+            }
+            if (isModuleOwned) {
+                await queryClient.invalidateQueries({
+                    queryKey: ["system", "modules", "navigation"],
+                });
             }
             onSuccess?.();
             setOpen(false);
@@ -252,12 +273,20 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
             <DialogContent className="max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{mode === "create" ? "Create Menu" : "Edit Menu"}</DialogTitle>
-                    <DialogDescription>Configure menu hierarchy, permission code, and display order.</DialogDescription>
+                    <DialogDescription>
+                        {isModuleOwned
+                            ? "Override title, icon, sort order, and visibility. Module identity stays synchronized from its Manifest."
+                            : "Configure menu hierarchy, permission code, and display order."}
+                    </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <div className="grid gap-2">
                         <Label htmlFor="menu-parent">Parent Menu</Label>
-                        <Select value={parentId} onValueChange={setParentId}>
+                        <Select
+                            value={parentId}
+                            onValueChange={setParentId}
+                            disabled={isModuleOwned}
+                        >
                             <SelectTrigger id="menu-parent" className="w-full">
                                 <SelectValue placeholder="Select parent menu" />
                             </SelectTrigger>
@@ -274,7 +303,7 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                     </div>
                     <TextField
                         id="menu-name"
-                        label="Menu Name"
+                        label={isModuleOwned ? "Menu Title" : "Menu Name"}
                         value={name}
                         placeholder="Enter menu name"
                         onChange={setName}
@@ -285,11 +314,22 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                         value={code}
                         placeholder="Enter permission code (e.g., system:menu:list)"
                         onChange={setCode}
+                        disabled={isModuleOwned}
                     />
+                    {isModuleOwned && initialValues?.path ? (
+                        <div className="grid gap-2">
+                            <Label htmlFor="menu-path">Route Path</Label>
+                            <Input id="menu-path" value={initialValues.path} disabled />
+                        </div>
+                    ) : null}
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="grid gap-2">
                             <Label htmlFor="menu-type">Type</Label>
-                            <Select value={menuType} onValueChange={setMenuType}>
+                            <Select
+                                value={menuType}
+                                onValueChange={setMenuType}
+                                disabled={isModuleOwned}
+                            >
                                 <SelectTrigger id="menu-type" className="w-full">
                                     <SelectValue placeholder="Select menu type" />
                                 </SelectTrigger>
@@ -322,6 +362,28 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                             </Select>
                         </div>
                     </div>
+                    {isModuleOwned ? (
+                        <div className="grid gap-2">
+                            <Label htmlFor="menu-icon">Icon</Label>
+                            <Select
+                                value={icon || undefined}
+                                onValueChange={setIcon}
+                            >
+                                <SelectTrigger id="menu-icon" className="w-full">
+                                    <SelectValue placeholder="Select icon" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        {MODULE_ICON_OPTIONS.map((item) => (
+                                            <SelectItem key={item.value} value={item.value}>
+                                                {item.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    ) : null}
                     <TextField
                         id="menu-sort-order"
                         label="Sort Order"

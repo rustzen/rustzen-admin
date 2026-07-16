@@ -63,16 +63,19 @@ function DashboardPage() {
                     </TabsList>
                 </div>
 
-                <TabsContent value="overview" className="mt-0 flex flex-col gap-5">
-                    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
+                <TabsContent
+                    value="overview"
+                    className="mt-0 grid gap-5 xl:grid-cols-[minmax(0,2.05fr)_minmax(320px,0.95fr)]"
+                >
+                    <div className="operations-ledger__main flex min-w-0 flex-col gap-5">
                         <ModuleHealthCards />
-                        <StatsCards />
-                    </div>
-                    <div className="grid gap-4 lg:grid-cols-7">
                         <ActivityTrendCard />
-                        <HealthCard />
+                        <MetricsCard />
                     </div>
-                    <MetricsCard />
+                    <aside className="operations-ledger__rail flex min-w-0 flex-col gap-5">
+                        <StatsCards />
+                        <HealthCard />
+                    </aside>
                 </TabsContent>
 
                 <TabsContent value="analytics" className="mt-0">

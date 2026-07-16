@@ -1,6 +1,6 @@
 version: 1
-revision: 2
-status: runtime-verified-awaiting-reference
+revision: 3
+status: verified
 deterministic:
   results:
     - check: ui-artifact-contract
@@ -15,18 +15,19 @@ deterministic:
       result: pass-no-horizontal-overflow
     - check: authenticated-browser-console
       result: pass-no-errors
+    - check: reference-comparison-1920x1080
+      result: pass-no-p0-p1-p2-findings
 hard_blockers: []
 scores:
-  product_truth: 0
-  user_task: 0
-  information_architecture: 0
-  visual_coherence: 0
-  components_layout: 0
-  interaction_states: 0
-  engineering_fit: 0
-  evidence: 0
-total: 0
-decision: pending-reference-review
-reviewer: pending-human-review
-gaps:
-  - figure-2-pixels-not-available-in-current-thread
+  product_truth: 15
+  user_task: 14
+  information_architecture: 14
+  visual_coherence: 13
+  components_layout: 14
+  interaction_states: 8
+  engineering_fit: 8
+  evidence: 4
+total: 90
+decision: pass
+reviewer: codex-design-qa
+gaps: []

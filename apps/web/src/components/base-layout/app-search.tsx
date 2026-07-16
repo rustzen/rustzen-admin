@@ -50,7 +50,7 @@ export const AppSearch = ({ routes, onSelect }: AppSearchProps) => {
             <Button
                 type="button"
                 variant="outline"
-                className="h-9 w-45 justify-start gap-2 px-3 text-muted-foreground"
+                className="h-9 w-45 justify-start gap-2 px-3 text-muted-foreground xl:w-90"
                 onClick={() => setOpen(true)}
                 aria-label="Open page search"
             >

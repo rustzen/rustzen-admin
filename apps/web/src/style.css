@@ -44,20 +44,34 @@
 
 @layer components {
     .rz-shell {
-        background:
-            radial-gradient(circle at 85% -10%, color-mix(in oklab, var(--primary) 9%, transparent), transparent 34rem),
-            var(--background);
+        background-color: var(--background);
+        background-image: url("/ui/admin-glass-background.png");
+        background-position: center;
+        background-size: cover;
+    }
+
+    .dark .rz-shell {
+        background-color: var(--background);
+        background-image: none;
     }
 
     .rz-sidebar [data-slot="sidebar-inner"] {
         border-inline-end: 1px solid var(--sidebar-border);
-        background: color-mix(in oklab, var(--sidebar) 94%, white);
-        box-shadow: 12px 0 36px color-mix(in oklab, var(--foreground) 5%, transparent);
+        background: var(--sidebar);
+        box-shadow:
+            12px 0 36px rgba(62, 101, 145, 0.12),
+            inset -1px 0 rgba(255, 255, 255, 0.46);
+        backdrop-filter: blur(30px) saturate(1.25);
     }
 
     .rz-topbar {
-        background: color-mix(in oklab, var(--background) 88%, transparent);
-        backdrop-filter: blur(18px) saturate(1.15);
+        background: rgba(244, 249, 255, 0.5);
+        backdrop-filter: blur(28px) saturate(1.25);
+        box-shadow: inset 0 -1px rgba(255, 255, 255, 0.44);
+    }
+
+    .dark .rz-topbar {
+        background: color-mix(in oklab, var(--background) 84%, transparent);
     }
 
     .rz-content {
@@ -65,12 +79,26 @@
     }
 
     .operations-ledger [data-slot="card"] {
-        border-color: color-mix(in oklab, var(--border) 86%, transparent);
-        box-shadow: 0 8px 24px color-mix(in oklab, var(--foreground) 5%, transparent);
+        border-color: rgba(255, 255, 255, 0.6);
+        background: var(--card);
+        box-shadow:
+            0 18px 46px rgba(67, 90, 129, 0.11),
+            inset 0 1px rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(24px) saturate(1.18);
+    }
+
+    .dark .operations-ledger [data-slot="card"] {
+        border-color: var(--border);
+        box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
     }
 
     .operations-ledger {
         max-width: 100rem;
+    }
+
+    .operations-ledger__main,
+    .operations-ledger__rail {
+        min-width: 0;
     }
 
     .operations-ledger [data-slot="card-title"],

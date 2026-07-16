@@ -1,76 +1,88 @@
 # Project Map
 
-This is a practical path index for task orientation. It maps where to look first and when a path matters.
+This is a practical path index for task orientation.
 
 ## Root
 
 | Path | Value | Inspect when |
 | --- | --- | --- |
 | `README.md` | Human entrypoint and project summary. | You need a quick repository overview. |
-| `AGENTS.md` | Repository-wide AI constraints. | You start any task. |
-| `Cargo.toml` | Rust workspace definition. | You need crate or dependency context. |
-| `justfile` | Command source of truth. | You need to run, check, build, or package. |
-| `.env.example` | Minimal production override template; local defaults live in `crates/config/`. | You touch runtime config or deployment. |
+| `AGENTS.md` | Repository-wide contribution constraints. | You start any task. |
+| `Cargo.toml` | Workspace members and authoritative release version. | You change packages, dependencies, or versions. |
+| `justfile` | Command source of truth. | You run, check, build, package, or verify. |
+| `.env.example` | Minimal production configuration template. | You change runtime configuration or deployment. |
 
-## Documentation
-
-| Path | Value | Inspect when |
-| --- | --- | --- |
-| `docs/README.md` | Documentation index with file roles and values. | You need to choose which docs to read. |
-| `docs/guides/ai-coding-rules.md` | AI coding constraints and completion checks. | You start a task with AI contribution expectations. |
-| `docs/architecture.md` | Current repository facts. | You need boundaries, topology, or data flow. |
-| `docs/project-map.md` | Path orientation. | You need to find the right files. |
-| `docs/guides/` | Current development rules. | You are about to edit backend, frontend, deployment, or permission behavior. |
-| `docs/reference/` | Optional deep context. | Current facts and guides are not enough. |
-| `docs/history/` | Non-current records. | You need completed designs or historical context. |
-
-## Backend
+## Shared crates
 
 | Path | Value | Inspect when |
 | --- | --- | --- |
-| `crates/auth/` | Shared auth and capability checks. | You touch auth context, JWT, extractors, or capability checks. |
-| `crates/config/` | Shared runtime configuration and runtime root layout helpers. | You touch runtime config parsing or env-driven startup behavior. |
-| `crates/runtime/` | Runtime path and startup context helpers. | You touch runtime path resolution or deployment topology behavior. |
-| `crates/storage/` | Admin-owned SQLite connection, migration, and maintenance helpers. | You touch DB bootstrap, connection helpers, or migration wiring. |
-| `apps/server/AGENTS.md` | Backend-specific AI rules. | You work under `apps/server/`. |
-| `apps/server/src/infra/` | Config, app assembly, database, local daily logging, auth runtime, capability cache, menu sync, and embedded Web serving. | You touch startup, runtime paths, DB wiring, logging, static serving, or capability sync. |
-| `apps/server/src/infra/db.rs` | SQLite pool creation, embedded migration runner, and startup data migration hook. | You touch DB startup or migration wiring. |
-| `apps/server/src/common/` | Cross-feature backend helpers. | You touch shared file or utility behavior. |
-| `apps/server/src/middleware/` | Axum middleware. | You touch request middleware behavior. |
-| `apps/server/migrations/` | SQL migrations. | You change schema. |
+| `crates/auth/` | JWT/auth context, permission checks, and capability constants. | You change authentication or authorization policy. |
+| `crates/ipc/` | Manifest, method-aware module router, and HMAC delegation contract. | You change module routes or the Admin-to-module boundary. |
+| `crates/config/` | Focused Admin, Monitor, Insights, and Reports configuration. | You change `RUSTZEN_*` parsing, defaults, or runtime paths. |
+| `crates/storage/` | SQLite pool and maintenance primitives. | You change shared SQLite behavior. |
+| `crates/runtime/` | Stable runtime-layout helpers. | You change runtime-root topology. |
 
-## Backend Features
+## Admin
 
 | Path | Value | Inspect when |
 | --- | --- | --- |
-| `apps/server/src/features/auth/` | Login, logout, and current-session bootstrap. | You touch session, token, login info, or logout behavior. |
-| `apps/server/src/features/account/` | Current-account profile, avatar, and password flows. | You touch self-service account behavior. |
-| `apps/server/src/features/dashboard/` | Dashboard summary APIs; intentional smaller read-only aggregation feature without `repo.rs`. | You touch dashboard cards, summary stats, or cross-feature aggregation display. |
-| `apps/server/src/features/manage/dict/` | Dictionary management. | You touch dictionary data or option sources. |
-| `apps/server/src/features/manage/log/` | Operation log management and current audit carrier. | You touch operation or login logs. |
-| `apps/server/src/features/manage/task/` | Fixed scheduled tasks and task run history. | You touch scheduler startup, cron jobs, or retention cleanup. |
-| `apps/server/src/features/manage/deploy/` | Uploaded `server`/`web` deploy versions, file validation, and local activation. | You touch deploy version behavior. |
-| `apps/server/src/features/system/menu/` | Menu and permission menu management. | You touch menu trees or permission-code menu rows. |
-| `apps/server/src/features/system/role/` | Role management. | You touch roles or role-menu assignment. |
-| `apps/server/src/features/system/user/` | User management and access-facing user-role behavior. | You touch admin user CRUD, status, password reset, or user-role assignment. |
+| `apps/admin/AGENTS.md` | Admin-specific backend rules. | You work below `apps/admin/`. |
+| `apps/admin/src/infra/` | Admin startup, DB, auth cache, logging, config, and embedded Web serving. | You change Admin runtime wiring. |
+| `apps/admin/src/features/modules/` | Fixed module state, Manifest sync, immutable registry, gateway, and module APIs. | You change module availability, sync, navigation, or forwarding. |
+| `apps/admin/src/features/manage/deploy/` | Signed bundle validation, update worker, rollback, and recovery. | You change release behavior. |
+| `apps/admin/src/features/auth/` | Login, logout, and current-session bootstrap. | You change sessions or token flows. |
+| `apps/admin/src/features/account/` | Current-account profile, avatar, and password flows. | You change self-service account behavior. |
+| `apps/admin/src/features/dashboard/` | Admin dashboard aggregation. | You change dashboard cards or module health display. |
+| `apps/admin/src/features/manage/` | Dictionaries, logs, scheduled tasks, and deploy versions. | You change Admin management features. |
+| `apps/admin/src/features/system/` | Menu, role, user, and status management. | You change RBAC or system administration. |
+| `apps/admin/migrations/sqlite/` | Admin, RBAC, module-state, and release migrations. | You change Admin schema. |
+
+## Module applications
+
+| Path | Value | Inspect when |
+| --- | --- | --- |
+| `apps/monitor/src/features/` | Heartbeat, node, and metrics behavior. | You change Monitor business behavior. |
+| `apps/monitor/migrations/` | Monitor-owned schema. | You change Monitor persistence. |
+| `apps/monitor/module.toml` | Monitor metadata and default menu only. | You change module presentation metadata. |
+| `apps/insights/src/features/` | Projects, tracking, and overview behavior. | You change Insights business behavior. |
+| `apps/insights/migrations/` | Insights-owned schema. | You change Insights persistence. |
+| `apps/insights/module.toml` | Insights metadata and default menu only. | You change module presentation metadata. |
+| `apps/reports/src/features/` | Templates, jobs, and report files. | You change Reports business behavior. |
+| `apps/reports/migrations/` | Reports-owned schema. | You change Reports persistence. |
+| `apps/reports/module.toml` | Reports metadata and default menu only. | You change module presentation metadata. |
+
+Module route method, path, access mode, capability, and handler are declared in
+Rust route registration, not in `module.toml`.
 
 ## Frontend
 
 | Path | Value | Inspect when |
 | --- | --- | --- |
-| `apps/web/AGENTS.md` | Frontend-specific AI rules. | You work under `apps/web/`. |
-| `apps/web/package.json` | Frontend package and Bun scripts. | You touch frontend dependencies or scripts. |
-| `apps/web/bun.lock` | Frontend Bun lockfile. | You change frontend dependencies or package-manager behavior. |
-| `apps/web/src/routes/` | File-based route pages and root guard. | You add or change pages, redirects, auth gates, or error routes. |
-| `apps/web/src/api/` | Request wrapper, API modules, and frontend API types. | You change backend contracts or page data access. |
-| `apps/web/src/components/base-layout/` | Admin shell, navigation, and layout concerns. | You touch menus, header, shell, or logout UI. |
-| `apps/web/src/components/base-user/` | Current-user UI such as avatar behavior. | You touch profile/avatar visible behavior. |
-| `apps/web/src/store/` | Shared frontend state. | You touch auth state or persisted cross-page state. |
-| `apps/web/src/constant/` | Frontend constants and option lists. | You touch static frontend options. |
-| `apps/web/src/util/` | Frontend utilities. | You touch shared frontend helpers. |
+| `apps/web/AGENTS.md` | Frontend-specific rules. | You work below `apps/web/`. |
+| `apps/web/package.json` and `apps/web/bun.lock` | Bun package and dependency lock. | You change frontend dependencies or scripts. |
+| `apps/web/src/routes/` | File-based pages and route guards. | You add or change pages. |
+| `apps/web/src/api/` | Typed API modules and request wrapper. | You change HTTP contracts or data access. |
+| `apps/web/src/components/base-layout/` | Admin shell and runtime navigation. | You change menus, header, or layout. |
+| `apps/web/src/store/` | Shared frontend state. | You change auth or persisted cross-page state. |
 
-## Deployment
+## Deployment and verification
 
 | Path | Value | Inspect when |
 | --- | --- | --- |
-| `deploy/` | Package installer and service template. | You package or deploy the app. |
+| `Dockerfile` | Four-binary Linux release build. | You change release compilation. |
+| `scripts/package-release-bundle.sh` | Exact bundle assembly and marker checks. | You change bundle membership. |
+| `scripts/deploy-sign.mjs` | Complete-bundle signing and verification. | You change signature behavior. |
+| `deploy/setup-layout.sh` | Signature-verifying initial installer and first atomic `current` link. | You change installation. |
+| `deploy/rz.target` and `deploy/rz-*.service` | Recovery, four server units, and separate Monitor Agent unit. | You change systemd topology. |
+| `scripts/verify-services.sh` | Four-service runtime, isolation, DB restore, and latency verification. | You change runtime contracts or acceptance gates. |
+| `scripts/test-setup-layout.sh` | Signature, initial-install boundary, and unit-topology integration tests. | You change bundle or install layout. |
+
+## Documentation
+
+| Path | Value | Inspect when |
+| --- | --- | --- |
+| `docs/README.md` | Documentation index. | You choose current guidance. |
+| `docs/architecture.md` | Current repository and runtime facts. | You need architecture or data flow. |
+| `docs/guides/` | Current development rules. | You edit backend, frontend, permission, or deployment behavior. |
+| `docs/reference/` | Optional deeper current context. | Current facts and guides are not enough. |
+| `docs/history/` | Non-current plans and records. | You need historical rationale. |

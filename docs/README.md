@@ -31,6 +31,7 @@ This is the documentation entrypoint for `rustzen-admin`.
 | [history/README.md](./history/README.md) | Historical index | Explains where non-current records live. |
 | [history/feats/login-page-design.md](./history/feats/login-page-design.md) | Historical design | Preserves the completed login-page design input and asset link. |
 | [history/feats/sqlite-first-roadmap.md](./history/feats/sqlite-first-roadmap.md) | Historical feature task record | Breaks the sqlite-first design into executable and verifiable tasks. |
+| [history/plans/independent-service-refactor.md](./history/plans/independent-service-refactor.md) | Completed execution baseline | Defines the implemented four-application service split, runtime contract, permission flow, release boundary, and validation gates. |
 | [history/plans/update-docs.md](./history/plans/update-docs.md) | Historical task list | Records the completed documentation-governance task request. |
 | [history/fixes/documentation-audit-report-2026-05-20.md](./history/fixes/documentation-audit-report-2026-05-20.md) | Historical audit | Preserves the pre-consolidation documentation audit snapshot. |
 

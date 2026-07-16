@@ -12,8 +12,12 @@
 仓库采用 monorepo 组织方式：
 
 - `crates/auth/` — 共享的 Rust 认证与权限能力 crate
-- `crates/storage/` — SQLite 存储适配和迁移入口
-- `apps/server/` — Rust 后端应用
+- `crates/ipc/` — Manifest、路由与 HMAC 委托契约
+- `crates/storage/` — SQLite 存储适配和维护能力
+- `apps/admin/` — Admin API、网关、权限与发布管理
+- `apps/monitor/` — Monitor Controller 与可选 Agent
+- `apps/insights/` — Insights 独立服务
+- `apps/reports/` — Reports 独立服务
 - `apps/web/` — React 前端应用
 - `deploy/` — 部署资产和发布支持文件
 - `docs/` — 仓库级架构与开发规范文档

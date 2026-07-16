@@ -21,10 +21,15 @@ This is a current guide for AI-assisted contributions.
 
 ## Ownership Notes
 
-- `crates/` owns shared Rust capability, auth, and storage helpers.
-- `apps/server/` owns backend runtime and features.
+- `crates/` owns shared Rust capability, auth, Manifest, delegation, config,
+  and storage helpers.
+- `apps/admin/` owns Admin runtime, authentication, RBAC, gateway, module
+  synchronization, and release management.
+- `apps/monitor/`, `apps/insights/`, and `apps/reports/` each own one service,
+  its Rust route declarations, behavior, and migrations.
 - `apps/web/` owns frontend routes, API modules, and static runtime-facing behavior.
-- `deploy/` owns packaging and release topology.
+- `deploy/` owns the single-bundle, systemd target, recovery, and service
+  topology.
 
 ## Verification Rule
 

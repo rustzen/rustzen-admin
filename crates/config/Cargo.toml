@@ -6,7 +6,8 @@ license.workspace = true
 publish = false
 
 [dependencies]
+dotenvy = "0.15"
 figment = { version = "0.10.19", features = ["env"] }
-once_cell = "1.21"
 rustzen-runtime = { path = "../runtime" }
 serde = { version = "1", features = ["derive"] }
+url = "2"

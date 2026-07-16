@@ -1,0 +1,13 @@
+[module]
+id = "monitor"
+name = "Monitor"
+api_prefix = "/api/monitor"
+contract_version = 1
+
+[[menus]]
+code = "monitor"
+title = "Monitor"
+path = "/monitor"
+icon = "monitor"
+sort_order = 10
+permission = "monitor:view"

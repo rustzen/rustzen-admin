@@ -1,0 +1,13 @@
+[module]
+id = "reports"
+name = "Reports"
+api_prefix = "/api/reports"
+contract_version = 1
+
+[[menus]]
+code = "reports"
+title = "Reports"
+path = "/reports"
+icon = "file-text"
+sort_order = 30
+permission = "reports:view"

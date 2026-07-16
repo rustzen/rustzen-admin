@@ -1,0 +1,35 @@
+[package]
+authors = ["Bruce Dai <bruce@idaibin.dev>"]
+name = "rustzen-monitor"
+version.workspace = true
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+
+[[bin]]
+name = "rz-monitor"
+path = "src/main.rs"
+
+[dependencies]
+axum = { version = "0.8", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rustzen-auth = { path = "../../crates/auth" }
+rustzen-config = { path = "../../crates/config" }
+rustzen-ipc = { path = "../../crates/ipc" }
+rustzen-storage = { path = "../../crates/storage" }
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+sqlx = { version = "0.9.0", features = [
+    "runtime-tokio",
+    "sqlite",
+    "chrono",
+    "uuid",
+    "migrate",
+] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.17", features = ["v4", "serde"] }
+sysinfo = "0.39.3"
+reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls"] }

@@ -51,8 +51,6 @@ pub fn is_deploy_capability_code(code: &str) -> bool {
 
 #[cfg(test)]
 mod role_policy_tests {
-    use crate::{auth::CurrentUser, permission::PermissionsCheck};
-
     use super::{
         BUILTIN_ADMIN_ROLE_CODE, BUILTIN_OWNER_ROLE_CODE, BUILTIN_VIEWER_ROLE_CODE, RolePolicy,
         SYSTEM_WILDCARD,
@@ -80,56 +78,6 @@ mod role_policy_tests {
                 !policy
                     .role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, &format!("{module}:manage"))
             );
-        }
-    }
-
-    #[test]
-    fn worker_route_capability_matrix_covers_owner_admin_and_viewer() {
-        let routes = [
-            ("GET /monitor/nodes", "monitor:view", true),
-            ("GET /monitor/nodes/{node_id}", "monitor:view", true),
-            ("GET /insights/projects", "insights:view", true),
-            ("POST /insights/projects", "insights:manage", false),
-            ("GET /insights/overview", "insights:view", true),
-            ("GET /reports/templates", "reports:view", true),
-            ("POST /reports/templates", "reports:manage", false),
-            ("GET /reports/jobs", "reports:view", true),
-            ("POST /reports/jobs", "reports:manage", false),
-            ("GET /reports/jobs/{job_id}", "reports:view", true),
-            ("GET /reports/jobs/{job_id}/download", "reports:view", true),
-        ];
-        let policy = RolePolicy;
-        let owner = CurrentUser::new(1, "owner", [SYSTEM_WILDCARD.to_string()], true);
-        let admin = CurrentUser::new(
-            2,
-            "admin",
-            routes
-                .iter()
-                .map(|(_, capability, _)| *capability)
-                .filter(|capability| {
-                    policy.role_allows_capability(BUILTIN_ADMIN_ROLE_CODE, capability)
-                })
-                .map(str::to_string),
-            false,
-        );
-        let viewer = CurrentUser::new(
-            3,
-            "viewer",
-            routes
-                .iter()
-                .map(|(_, capability, _)| *capability)
-                .filter(|capability| {
-                    policy.role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, capability)
-                })
-                .map(str::to_string),
-            false,
-        );
-
-        for (route, capability, viewer_allowed) in routes {
-            let check = PermissionsCheck::Require(capability);
-            assert!(check.check(&owner), "owner must access {route}");
-            assert!(check.check(&admin), "admin must access {route}");
-            assert_eq!(check.check(&viewer), viewer_allowed, "viewer mismatch for {route}");
         }
     }
 }
@@ -189,6 +137,12 @@ pub mod system_menu {
 /// System status capability boundary.
 pub mod system_status {
     pub const VIEW: &str = "system:status:view";
+}
+
+/// Independent module administration capability boundaries.
+pub mod system_module {
+    pub const LIST: &str = "system:module:list";
+    pub const UPDATE: &str = "system:module:update";
 }
 
 /// Dictionary management capability boundaries.

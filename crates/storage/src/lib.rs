@@ -1,7 +1,6 @@
 //! Shared SQLite storage helpers for local-first runtime storage.
 
 pub mod maintenance;
-pub mod migration;
 pub mod sqlite;
 
 pub use maintenance::{SqliteMaintenancePlan, SqliteMaintenanceReport, run_sqlite_maintenance};

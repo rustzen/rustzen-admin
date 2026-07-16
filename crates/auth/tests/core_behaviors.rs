@@ -68,6 +68,20 @@ async fn permission_check_accepts_exact_global_and_prefix_wildcards() {
     assert!(PermissionsCheck::Require("anything:anywhere").check(&root_user));
 }
 
+#[test]
+fn runtime_capability_check_reuses_exact_global_and_prefix_rules() {
+    let user = CurrentUser::new(
+        5,
+        "runtime",
+        ["reports:view".to_string(), "insights:*".to_string()],
+        false,
+    );
+
+    assert!(user.has_capability("reports:view"));
+    assert!(user.has_capability("insights:manage"));
+    assert!(!user.has_capability("monitor:view"));
+}
+
 #[tokio::test]
 async fn permission_check_rejects_unrelated_wildcards() {
     let user = CurrentUser::new(4, "viewer", ["manage:task:*".to_string()], false);

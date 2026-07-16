@@ -24,30 +24,10 @@ impl PermissionsCheck {
     }
 
     pub fn check(&self, user: &CurrentUser) -> bool {
-        if user.is_super {
-            return true;
-        }
-
         match self {
-            Self::Require(code) => has_permission(user, code),
-            Self::Any(codes) => codes.iter().any(|code| has_permission(user, code)),
-            Self::All(codes) => codes.iter().all(|code| has_permission(user, code)),
+            Self::Require(code) => user.has_capability(code),
+            Self::Any(codes) => codes.iter().any(|code| user.has_capability(code)),
+            Self::All(codes) => codes.iter().all(|code| user.has_capability(code)),
         }
     }
-}
-
-fn has_permission(user: &CurrentUser, code: &str) -> bool {
-    if user.permissions.contains("*") || user.permissions.contains(code) {
-        return true;
-    }
-
-    let parts: Vec<&str> = code.split(':').collect();
-    for index in (1..parts.len()).rev() {
-        let wildcard = format!("{}:*", parts[..index].join(":"));
-        if user.permissions.contains(wildcard.as_str()) {
-            return true;
-        }
-    }
-
-    false
 }

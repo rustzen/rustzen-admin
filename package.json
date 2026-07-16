@@ -1,0 +1,7 @@
+{
+  "name": "rustzen-cloud-preview",
+  "private": true,
+  "scripts": {
+    "dev": "node .cloud-preview.mjs"
+  }
+}

@@ -107,11 +107,11 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
                     </Link>
                 </SidebarHeader>
 
-                <SidebarContent>
+                <SidebarContent className="gap-1">
                     <AppSidebarMenu items={menuData} currentPath={currentPath} />
                 </SidebarContent>
 
-                <SidebarFooter>
+                <SidebarFooter className="pb-3 pt-2">
                     <UserMenu userInfo={userInfo} onLogout={handleLogout} />
                 </SidebarFooter>
                 <SidebarRail />
@@ -142,7 +142,7 @@ const AppSidebarMenu = ({ items, currentPath }: { items: AppRouteItem[]; current
         {items.map((group) => {
             if (!group.children?.length) {
                 return (
-                    <SidebarGroup key={group.path ?? group.name}>
+                    <SidebarGroup key={group.path ?? group.name} className="px-2 py-0">
                         <SidebarGroupContent>
                             <SidebarMenu>
                                 <SidebarMenuItem>
@@ -164,7 +164,7 @@ const AppSidebarMenu = ({ items, currentPath }: { items: AppRouteItem[]; current
             }
 
             return (
-                <SidebarGroup key={group.name}>
+                <SidebarGroup key={group.name} className="px-2 py-1">
                     <SidebarGroupLabel className="gap-2">
                         {group.icon}
                         <span>{group.name}</span>

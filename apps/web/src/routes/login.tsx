@@ -72,7 +72,7 @@ function LoginPage() {
                 </header>
 
                 <div className="grid flex-1 items-center gap-8 py-7 lg:grid-cols-[minmax(560px,1fr)_420px] lg:gap-14 xl:grid-cols-[minmax(680px,1fr)_532px] xl:gap-20">
-                    <section className="hidden min-w-0 self-stretch lg:flex lg:flex-col lg:justify-center">
+                    <section className="hidden min-w-0 self-stretch lg:flex lg:flex-col lg:justify-center lg:gap-4 xl:gap-5">
                         <div className="h-125 xl:h-153">
                             <img
                                 src={loginIllustrationUrl}
@@ -80,8 +80,8 @@ function LoginPage() {
                                 className="h-full w-full object-contain object-left drop-shadow-[0_34px_72px_rgba(38,103,255,0.12)]"
                             />
                         </div>
-                        <div className="-mt-9 pl-3 xl:-mt-14">
-                            <div className="flex items-center gap-5 text-[34px] font-extrabold leading-none xl:text-[38px]">
+                        <div className="relative z-10 pl-3">
+                            <div className="flex flex-nowrap items-center gap-5 whitespace-nowrap text-[34px] font-extrabold leading-none xl:text-[38px]">
                                 <span>Efficient</span>
                                 <span className="text-[28px] text-primary">•</span>
                                 <span>Reliable</span>
@@ -101,7 +101,7 @@ function LoginPage() {
                     >
                         <div className="mb-10 grid gap-5 text-center xl:mb-12">
                             <h1 className="text-[36px] font-extrabold leading-none xl:text-[40px]">
-                                RustZen <span className="text-primary">Admin</span>
+                                Rustzen <span className="text-primary">Admin</span>
                             </h1>
                             <p className="text-base leading-none text-muted-foreground">
                                 Welcome to {APP_BRAND_NAME}

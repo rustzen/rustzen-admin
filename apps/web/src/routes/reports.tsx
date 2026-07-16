@@ -202,7 +202,7 @@ function RunReportDialog({ templates }: { templates: Reports.Template[] }) {
     const [open, setOpen] = useState(false);
     const [templateId, setTemplateId] = useState("");
     const [input, setInput] = useState(
-        '{\n  "title": "RustZen Report",\n  "summary": "Generated locally"\n}',
+        '{\n  "title": "Rustzen Report",\n  "summary": "Generated locally"\n}',
     );
     const mutation = useMutation({
         mutationFn: reportsAPI.createJob,

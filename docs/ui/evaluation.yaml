@@ -1,0 +1,30 @@
+version: 1
+revision: 1
+status: partially-verified
+deterministic:
+  results:
+    - check: ui-artifact-contract
+      result: pass
+    - check: web-production-build
+      result: pass
+    - check: login-shell-1440x900
+      result: pass-no-overflow-no-console-errors
+    - check: theme-toggle
+      result: pass-light-to-dark
+hard_blockers:
+  - authenticated-operations-ledger-runtime-not-verified
+scores:
+  product_truth: 0
+  user_task: 0
+  information_architecture: 0
+  visual_coherence: 0
+  components_layout: 0
+  interaction_states: 0
+  engineering_fit: 0
+  evidence: 0
+total: 0
+decision: pending
+reviewer: pending-human-review
+gaps:
+  - figure-2-pixels-not-available-in-current-thread
+  - authenticated-dashboard-session-not-available

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "revision": 1,
+  "source": "apps/web/src/styles/theme.css",
+  "color": {
+    "paper": "#F4F7FA",
+    "surface": "#FFFFFF",
+    "ink": "#172033",
+    "muted": "#667085",
+    "signal": "#275DFF",
+    "line": "#DDE4EC",
+    "success": "#15803D",
+    "warning": "#B45309",
+    "danger": "#B42318"
+  },
+  "layout": {"sidebarWidth": 224, "pagePadding": 24, "sectionGap": 20, "contentMaxWidth": 1600},
+  "surface": {"panelRadius": 12, "controlRadius": 8, "shadow": "0 8px 24px rgba(26,39,59,0.06)"},
+  "typography": {"pageTitle": 24, "sectionTitle": 14, "body": 14, "numeric": "tabular-nums"},
+  "motion": {"fastMs": 120, "standardMs": 180, "reducedMotion": true}
+}

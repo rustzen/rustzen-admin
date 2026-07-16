@@ -1,0 +1,34 @@
+version: 1
+artifact:
+  id: rustzen-admin-operations-ledger-shell
+  revision: 1
+source:
+  repository: rustzen-admin
+  ref: fc69009
+inputs:
+  profile_revision: 1
+  task_revision: 1
+  reference_revision: 1
+  rubric_revision: 1
+generation:
+  provider: not-used
+  model: not-used
+  generated_at: null
+outputs:
+  profile: docs/ui/profile.yaml
+  references: docs/ui/references.yaml
+  task: docs/ui/task.yaml
+  tokens: docs/ui/design-tokens.json
+  component_map: docs/ui/component-map.json
+  evaluation: docs/ui/evaluation.yaml
+evaluation:
+  score: null
+  status: partially-verified
+approval:
+  approved_by: null
+  approved_at: null
+cost:
+  usd: 0
+  duration_minutes: 0
+rollback:
+  accepted_revision: null

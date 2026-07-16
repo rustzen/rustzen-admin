@@ -90,8 +90,8 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
     }
 
     return (
-        <SidebarProvider>
-            <Sidebar variant="inset" collapsible="icon">
+        <SidebarProvider className="rz-shell">
+            <Sidebar className="rz-sidebar" collapsible="icon">
                 <SidebarHeader>
                     <Link
                         to="/"
@@ -117,8 +117,8 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
                 <SidebarRail />
             </Sidebar>
 
-            <SidebarInset className="h-screen overflow-hidden">
-                <header className="flex h-16 shrink-0 items-center gap-3 border-b bg-background px-4">
+            <SidebarInset className="h-screen overflow-hidden bg-transparent">
+                <header className="rz-topbar flex h-16 shrink-0 items-center gap-3 border-b px-5">
                     <SidebarTrigger variant="outline" />
                     <Separator orientation="vertical" className="h-6" />
                     <div className="min-w-0 flex-1">
@@ -131,7 +131,7 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
                     <UserMenuTrigger userInfo={userInfo} onLogout={handleLogout} />
                 </header>
 
-                <main className="min-h-0 flex-1 overflow-hidden bg-muted/30 p-4">{children}</main>
+                <main className="rz-content min-h-0 flex-1 overflow-hidden p-5 xl:p-6">{children}</main>
             </SidebarInset>
         </SidebarProvider>
     );

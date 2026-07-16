@@ -1,0 +1,69 @@
+version: 1
+revision: 1
+task:
+  id: operations-ledger-shell
+  project: rustzen-admin
+  surface: application-shell-and-dashboard
+  goal: Make current module health, operational attention, and recent state legible without turning the product into a decorative dashboard.
+scope:
+  include:
+    - application-shell
+    - navigation-density
+    - dashboard-information-hierarchy
+    - global-tokens
+    - responsive-layout
+  exclude:
+    - backend-api-changes
+    - permission-contract-changes
+    - route-renames
+    - new-analytics
+facts:
+  available:
+    - dashboard-stats
+    - module-health
+    - system-health
+    - observed-metrics
+    - observed-trends
+  unavailable:
+    - prediction
+    - confidence-score
+    - recommended-remediation
+references:
+  - id: figure-2-web-console
+    use:
+      - hierarchy
+      - density
+      - navigation-proportion
+required_states:
+  - loading
+  - empty
+  - error
+  - populated
+  - permission-denied
+validation:
+  target_sizes:
+    - 1920x1080
+    - 1440x900
+  deterministic:
+    - web-lint
+    - web-typecheck
+    - web-test
+    - web-build
+    - no-horizontal-overflow
+    - no-console-errors
+acceptance:
+  - one-primary-operational-focus
+  - no-invented-metrics
+  - no-nested-dashboard
+  - route-and-permission-contracts-preserved
+budget:
+  max_variants: 3
+  max_generation_rounds: 2
+  max_runtime_runs: 5
+  max_duration_minutes: 60
+  max_cost_usd: 3
+  max_artifact_storage_mb: 200
+recovery:
+  preserve_last_accepted_revision: true
+  allow_resume: true
+  allow_rollback: true

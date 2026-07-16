@@ -1,0 +1,17 @@
+version: 1
+revision: 1
+references:
+  - id: figure-2-web-console
+    source: chatgpt-conversation://6a58734e-e99c-83e8-9a9d-0c322b1c0134#figure-2
+    rights_status: reference-only
+    local_copy_allowed: false
+    use:
+      - page-density
+      - navigation-proportion
+      - hierarchy
+      - restrained-surface-treatment
+    ignore:
+      - exact-brand
+      - exact-business-content
+      - unverified-metrics
+      - unverified-navigation

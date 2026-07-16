@@ -37,7 +37,7 @@ export const Route = createFileRoute("/")({
 
 function DashboardPage() {
     return (
-        <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto">
+        <div className="operations-ledger mx-auto flex h-full min-h-0 w-full flex-col gap-5 overflow-y-auto pr-1">
             <PageHeader
                 title="Dashboard"
                 description="Operational overview for users, runtime health, and activity trends."
@@ -63,9 +63,11 @@ function DashboardPage() {
                     </TabsList>
                 </div>
 
-                <TabsContent value="overview" className="mt-0 flex flex-col gap-4">
-                    <ModuleHealthCards />
-                    <StatsCards />
+                <TabsContent value="overview" className="mt-0 flex flex-col gap-5">
+                    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
+                        <ModuleHealthCards />
+                        <StatsCards />
+                    </div>
                     <div className="grid gap-4 lg:grid-cols-7">
                         <ActivityTrendCard />
                         <HealthCard />
@@ -91,24 +93,28 @@ const ModuleHealthCards = () => {
         refetchInterval: 15_000,
     });
     return (
-        <div className="grid gap-3 sm:grid-cols-3">
+        <Card className="gap-0 overflow-hidden py-0">
+            <CardHeader className="border-b py-4">
+                <CardTitle>Module availability</CardTitle>
+                <CardDescription>Current release and reachability for each runtime module.</CardDescription>
+            </CardHeader>
+            <CardContent className="divide-y p-0">
             {(["monitor", "insights", "reports"] as const).map((module) => {
                 const health = data.find((item) => item.module === module);
                 return (
-                    <Card key={module} className="gap-3 py-4">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="capitalize">{module}</CardTitle>
+                    <div key={module} className="grid grid-cols-[1fr_auto] items-center gap-4 px-6 py-4">
+                        <div className="min-w-0">
+                            <div className="font-medium capitalize">{module}</div>
+                            <div className="mt-1 text-xs text-muted-foreground">Release {health?.releaseVersion ?? "-"}</div>
+                        </div>
                             <Badge variant={health?.available ? "default" : "destructive"}>
                                 {health?.available ? "Available" : "Unavailable"}
                             </Badge>
-                        </CardHeader>
-                        <CardContent className="text-sm text-muted-foreground">
-                            Release {health?.releaseVersion ?? "-"}
-                        </CardContent>
-                    </Card>
+                    </div>
                 );
             })}
-        </div>
+            </CardContent>
+        </Card>
     );
 };
 
@@ -146,20 +152,24 @@ const StatsCards = () => {
     ];
 
     return (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="gap-0 overflow-hidden py-0">
+            <CardHeader className="border-b py-4">
+                <CardTitle>Account ledger</CardTitle>
+                <CardDescription>Registered, active, recent, and pending access.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 p-0">
             {cards.map((item) => (
-                <Card key={item.title}>
-                    <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-                        <CardTitle className="text-sm font-medium">{item.title}</CardTitle>
-                        <item.icon className="text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{item.value}</div>
-                        <p className="text-xs text-muted-foreground">{item.description}</p>
-                    </CardContent>
-                </Card>
+                <div key={item.title} className="border-b border-e p-4 even:border-e-0 [&:nth-last-child(-n+2)]:border-b-0">
+                    <div className="flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
+                        <span>{item.title}</span>
+                        <item.icon className="size-4" />
+                    </div>
+                    <div className="tabular-nums mt-2 text-2xl font-semibold tracking-tight">{item.value}</div>
+                    <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+                </div>
             ))}
-        </div>
+            </CardContent>
+        </Card>
     );
 };
 
@@ -318,8 +328,8 @@ const ProgressRow = ({
 );
 
 const MetricBlock = ({ label, value }: { label: string; value: string }) => (
-    <div className="rounded-lg border bg-card p-4">
-        <div className="text-2xl font-bold">{value}</div>
+    <div className="border-s-2 border-primary/25 ps-4">
+        <div className="tabular-nums text-2xl font-semibold tracking-tight">{value}</div>
         <div className="text-sm text-muted-foreground">{label}</div>
     </div>
 );

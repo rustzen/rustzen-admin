@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "revision": 1,
+  "components": {
+    "application-shell": {"decision": "adapt", "source": "apps/web/src/components/base-layout/index.tsx", "reason": "Existing route, permission, search, theme, and account owner."},
+    "sidebar": {"decision": "reuse", "source": "apps/web/src/components/ui/sidebar.tsx", "reason": "Existing shadcn-compatible responsive and collapse behavior."},
+    "page-header": {"decision": "reuse", "source": "apps/web/src/components/app/page-header.tsx", "reason": "Existing page heading owner."},
+    "dashboard": {"decision": "adapt", "source": "apps/web/src/routes/index.tsx", "reason": "Existing real dashboard API and loading/error states."},
+    "cards-and-tables": {"decision": "reuse", "source": "apps/web/src/components/ui", "reason": "Existing component and token system."}
+  }
+}

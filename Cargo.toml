@@ -1,6 +1,19 @@
 [workspace]
-members = ["apps/server", "crates/auth", "crates/config", "crates/runtime", "crates/storage"]
+members = [
+    "apps/admin",
+    "apps/insights",
+    "apps/monitor",
+    "apps/reports",
+    "crates/auth",
+    "crates/config",
+    "crates/ipc",
+    "crates/runtime",
+    "crates/storage",
+]
 resolver = "2"
+
+[workspace.package]
+version = "0.5.0"
 
 [profile.release]
 opt-level = "z"

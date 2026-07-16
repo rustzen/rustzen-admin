@@ -1,0 +1,13 @@
+[module]
+id = "insights"
+name = "Insights"
+api_prefix = "/api/insights"
+contract_version = 1
+
+[[menus]]
+code = "insights"
+title = "Insights"
+path = "/insights"
+icon = "chart-no-axes-combined"
+sort_order = 20
+permission = "insights:view"

@@ -1,0 +1,37 @@
+[package]
+name = "rustzen-reports"
+version.workspace = true
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+
+[[bin]]
+name = "rz-reports"
+path = "src/main.rs"
+
+[dependencies]
+axum = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+rustzen-auth = { path = "../../crates/auth" }
+rustzen-config = { path = "../../crates/config" }
+rustzen-ipc = { path = "../../crates/ipc" }
+rustzen-storage = { path = "../../crates/storage" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.9.0", features = [
+    "runtime-tokio",
+    "sqlite",
+    "chrono",
+    "uuid",
+    "migrate",
+] }
+thiserror = "2.0"
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["io"] }
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.17", features = ["v4", "serde"] }
+
+[dev-dependencies]
+tower = "0.5"

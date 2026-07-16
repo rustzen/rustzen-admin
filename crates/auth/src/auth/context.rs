@@ -26,6 +26,19 @@ impl CurrentUser {
             is_super,
         }
     }
+
+    pub fn has_capability(&self, capability: &str) -> bool {
+        if self.is_super || self.permissions.contains("*") || self.permissions.contains(capability)
+        {
+            return true;
+        }
+
+        let parts = capability.split(':').collect::<Vec<_>>();
+        (1..parts.len()).rev().any(|index| {
+            let wildcard = format!("{}:*", parts[..index].join(":"));
+            self.permissions.contains(wildcard.as_str())
+        })
+    }
 }
 
 impl<S> FromRequestParts<S> for CurrentUser

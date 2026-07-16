@@ -37,7 +37,7 @@ export const Route = createFileRoute("/")({
 
 function DashboardPage() {
     return (
-        <div className="operations-ledger mx-auto flex h-full min-h-0 w-full flex-col gap-5 overflow-y-auto pr-1">
+        <div className="operations-ledger mx-auto flex h-full min-h-0 min-w-0 w-full flex-col gap-5 overflow-y-auto pr-1">
             <PageHeader
                 title="Dashboard"
                 description="Operational overview for users, runtime health, and activity trends."

@@ -117,7 +117,7 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
                 <SidebarRail />
             </Sidebar>
 
-            <SidebarInset className="h-screen overflow-hidden bg-transparent">
+            <SidebarInset className="h-screen w-auto min-w-0 overflow-hidden bg-transparent">
                 <header className="rz-topbar flex h-16 shrink-0 items-center gap-3 border-b px-5">
                     <SidebarTrigger variant="outline" />
                     <Separator orientation="vertical" className="h-6" />
@@ -131,7 +131,7 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
                     <UserMenuTrigger userInfo={userInfo} onLogout={handleLogout} />
                 </header>
 
-                <main className="rz-content min-h-0 flex-1 overflow-hidden p-5 xl:p-6">{children}</main>
+                <main className="rz-content min-h-0 min-w-0 flex-1 overflow-hidden p-5 xl:p-6">{children}</main>
             </SidebarInset>
         </SidebarProvider>
     );

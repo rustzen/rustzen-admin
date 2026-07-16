@@ -1,7 +1,7 @@
 version: 1
 artifact:
   id: rustzen-admin-operations-ledger-shell
-  revision: 1
+  revision: 2
 source:
   repository: rustzen-admin
   ref: fc69009
@@ -23,7 +23,7 @@ outputs:
   evaluation: docs/ui/evaluation.yaml
 evaluation:
   score: null
-  status: partially-verified
+  status: runtime-verified-awaiting-reference
 approval:
   approved_by: null
   approved_at: null

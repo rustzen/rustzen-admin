@@ -461,7 +461,7 @@ fn menu_type(permission_code: &str) -> i16 {
 
 fn permission_title(permission_code: &str) -> String {
     if permission_code == SYSTEM_WILDCARD {
-        return "All Capabilities".to_string();
+        return "全部权限".to_string();
     }
 
     let segments: Vec<&str> = permission_code.split(':').collect();
@@ -471,11 +471,57 @@ fn permission_title(permission_code: &str) -> String {
 
     if permission_code.ends_with(":*") {
         let meaningful_segments = &segments[..segments.len().saturating_sub(1)];
-        let base = humanize_segments(meaningful_segments);
-        if base.is_empty() { "Management".to_string() } else { format!("{base} Management") }
+        let base = localize_segments(meaningful_segments);
+        if base.is_empty() || base.ends_with("管理") { base } else { format!("{base}管理") }
     } else {
-        humanize_segments(&segments)
+        localize_segments(&segments)
     }
+}
+
+fn localize_segment(segment: &str) -> String {
+    match segment {
+        "dashboard" => "仪表盘",
+        "system" => "系统",
+        "user" => "用户",
+        "role" => "角色",
+        "menu" => "菜单",
+        "module" => "模块",
+        "status" => "状态",
+        "manage" => "管理",
+        "dict" => "字典",
+        "log" => "日志",
+        "task" => "任务",
+        "deploy" => "部署",
+        "monitor" => "监控",
+        "node" => "节点",
+        "check" => "服务监控",
+        "incident" => "事件",
+        "settings" => "设置",
+        "insights" => "分析",
+        "overview" => "概览",
+        "project" => "项目",
+        "event" => "事件",
+        "page" => "页面",
+        "api" => "API",
+        "report" | "reports" => "报表",
+        "flow" => "流程",
+        "run" => "执行",
+        "schedule" => "计划",
+        "template" => "模板",
+        "create" => "新增",
+        "delete" => "删除",
+        "list" => "列表",
+        "options" => "选项",
+        "update" => "修改",
+        "password" => "密码",
+        "view" => "查看",
+        "export" => "导出",
+        "analyze" => "分析",
+        "recover" => "恢复",
+        "restart" => "重启",
+        other => return humanize_segment(other),
+    }
+    .to_string()
 }
 
 fn humanize_segment(segment: &str) -> String {
@@ -493,13 +539,8 @@ fn humanize_segment(segment: &str) -> String {
         .join(" ")
 }
 
-fn humanize_segments(segments: &[&str]) -> String {
-    segments
-        .iter()
-        .map(|segment| humanize_segment(segment))
-        .filter(|segment| !segment.is_empty())
-        .collect::<Vec<_>>()
-        .join(" ")
+fn localize_segments(segments: &[&str]) -> String {
+    segments.iter().map(|segment| localize_segment(segment)).collect::<Vec<_>>().join("")
 }
 
 async fn upsert_menu_seed_record(
@@ -693,7 +734,7 @@ async fn upsert_all_capabilities_menu(
     let now = Utc::now().naive_utc();
     sqlx::query(
         "INSERT INTO menus (parent_id, name, code, menu_type, sort_order, status, is_system, is_manual, created_at, updated_at)
-         VALUES (0, 'All Capabilities', ?, ?, 1, ?, TRUE, FALSE, ?, ?)
+         VALUES (0, '全部权限', ?, ?, 1, ?, TRUE, FALSE, ?, ?)
          ON CONFLICT(code) WHERE deleted_at IS NULL DO UPDATE
          SET name = EXCLUDED.name,
              menu_type = EXCLUDED.menu_type,
@@ -901,7 +942,7 @@ mod tests {
 
     #[test]
     fn wildcard_capability_uses_clear_display_title() {
-        assert_eq!(permission_title("*"), "All Capabilities");
+        assert_eq!(permission_title("*"), "全部权限");
     }
 
     #[test]
@@ -920,7 +961,7 @@ mod tests {
             .iter()
             .find(|record| record.permission_code == "dashboard:*")
             .expect("dashboard parent");
-        assert_eq!(dashboard_parent.title, "Dashboard Management");
+        assert_eq!(dashboard_parent.title, "仪表盘管理");
         assert_eq!(dashboard_parent.menu_type, MENU_TYPE_DIRECTORY);
         assert_eq!(dashboard_parent.parent_code, None);
 
@@ -928,7 +969,7 @@ mod tests {
             .iter()
             .find(|record| record.permission_code == "dashboard:view")
             .expect("dashboard view");
-        assert_eq!(dashboard_view.title, "Dashboard View");
+        assert_eq!(dashboard_view.title, "仪表盘查看");
         assert_eq!(dashboard_view.menu_type, MENU_TYPE_MENU);
         assert_eq!(dashboard_view.parent_code.as_deref(), Some("dashboard:*"));
 
@@ -936,7 +977,7 @@ mod tests {
             .iter()
             .find(|record| record.permission_code == "report:view")
             .expect("report view");
-        assert_eq!(report_view.title, "Report View");
+        assert_eq!(report_view.title, "报表查看");
         assert_eq!(report_view.menu_type, MENU_TYPE_MENU);
         assert_eq!(report_view.parent_code.as_deref(), Some("report:*"));
 
@@ -944,7 +985,7 @@ mod tests {
             .iter()
             .find(|record| record.permission_code == "system:user:*")
             .expect("user group");
-        assert_eq!(user_group.title, "System User Management");
+        assert_eq!(user_group.title, "系统用户管理");
         assert_eq!(user_group.menu_type, MENU_TYPE_DIRECTORY);
         assert_eq!(user_group.parent_code.as_deref(), Some("system:*"));
 
@@ -952,7 +993,7 @@ mod tests {
             .iter()
             .find(|record| record.permission_code == "system:user:list")
             .expect("user list");
-        assert_eq!(user_list.title, "System User List");
+        assert_eq!(user_list.title, "系统用户列表");
         assert_eq!(user_list.menu_type, MENU_TYPE_MENU);
         assert_eq!(user_list.parent_code.as_deref(), Some("system:user:*"));
 
@@ -960,7 +1001,7 @@ mod tests {
             .iter()
             .find(|record| record.permission_code == "manage:log:export")
             .expect("log export");
-        assert_eq!(log_export.title, "Manage Log Export");
+        assert_eq!(log_export.title, "管理日志导出");
         assert_eq!(log_export.menu_type, MENU_TYPE_BUTTON);
         assert_eq!(log_export.parent_code.as_deref(), Some("manage:log:*"));
     }

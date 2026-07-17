@@ -7,8 +7,8 @@ pub const BUILTIN_VIEWER_ROLE_CODE: &str = "viewer";
 
 const DEPLOY_CAPABILITY_PREFIX: &str = "manage:deploy:";
 const DEPLOY_VIEW_CAPABILITY: &str = "manage:deploy:list";
-const OWNER_ONLY_CAPABILITY_PREFIXES: &[&str] =
-    &["system:module:", "system:status:", "manage:task:", "manage:deploy:"];
+const OWNER_ONLY_CAPABILITY_ROOTS: &[&str] =
+    &["system:module", "system:status", "manage:task", "manage:deploy"];
 const VIEW_ACTIONS: &[&str] = &["list", "view", "options"];
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
@@ -47,7 +47,9 @@ impl RolePolicy {
     }
 
     pub fn is_owner_only_capability(self, capability_code: &str) -> bool {
-        OWNER_ONLY_CAPABILITY_PREFIXES.iter().any(|prefix| capability_code.starts_with(prefix))
+        OWNER_ONLY_CAPABILITY_ROOTS.iter().any(|root| {
+            capability_code == *root || capability_code.starts_with(&format!("{root}:"))
+        })
     }
 }
 
@@ -67,9 +69,16 @@ mod role_policy_tests {
         let policy = RolePolicy;
         assert!(policy.role_allows_capability(BUILTIN_OWNER_ROLE_CODE, SYSTEM_WILDCARD));
         assert!(policy.role_allows_capability(BUILTIN_ADMIN_ROLE_CODE, "system:user:create"));
-        for capability in
-            ["system:module:list", "system:status:view", "manage:task:list", "manage:deploy:list"]
-        {
+        for capability in [
+            "system:module",
+            "system:module:list",
+            "system:status",
+            "system:status:view",
+            "manage:task",
+            "manage:task:list",
+            "manage:deploy",
+            "manage:deploy:list",
+        ] {
             assert!(!policy.role_allows_capability(BUILTIN_ADMIN_ROLE_CODE, capability));
             assert!(!policy.role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, capability));
         }

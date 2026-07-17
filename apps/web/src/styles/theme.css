@@ -1,4 +1,5 @@
 :root {
+    color-scheme: light;
     --radius: 1rem;
     --background: oklch(0.945 0.025 244);
     --foreground: oklch(0.24 0.035 258);
@@ -33,7 +34,31 @@
     --sidebar-ring: var(--ring);
 }
 
+.white {
+    color-scheme: light;
+    --background: oklch(0.985 0.002 247);
+    --foreground: oklch(0.22 0.025 258);
+    --card: oklch(1 0 0 / 96%);
+    --card-foreground: var(--foreground);
+    --popover: oklch(1 0 0 / 98%);
+    --popover-foreground: var(--foreground);
+    --secondary: oklch(0.965 0.006 247);
+    --secondary-foreground: var(--foreground);
+    --muted: oklch(0.958 0.006 247);
+    --muted-foreground: oklch(0.51 0.025 258);
+    --accent: oklch(0.945 0.014 247);
+    --accent-foreground: var(--foreground);
+    --border: oklch(0.89 0.012 247);
+    --input: oklch(0.86 0.014 247);
+    --sidebar: oklch(1 0 0 / 96%);
+    --sidebar-foreground: var(--foreground);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+}
+
 .dark {
+    color-scheme: dark;
     --background: oklch(0.129 0.042 264.695);
     --foreground: oklch(0.984 0.003 247.858);
     --card: oklch(0.14 0.04 259.21);

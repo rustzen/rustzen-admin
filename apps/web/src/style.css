@@ -61,6 +61,11 @@
         background-image: none;
     }
 
+    .white .rz-shell {
+        background-color: var(--background);
+        background-image: none;
+    }
+
     .rz-sidebar [data-slot="sidebar-inner"] {
         border-inline-end: 1px solid var(--sidebar-border);
         background: var(--sidebar);
@@ -78,6 +83,15 @@
 
     .dark .rz-topbar {
         background: color-mix(in oklab, var(--background) 84%, transparent);
+    }
+
+    .white .rz-sidebar [data-slot="sidebar-inner"],
+    .white .rz-topbar,
+    .white .operations-ledger [data-slot="card"] {
+        border-color: var(--border);
+        background: var(--card);
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+        backdrop-filter: none;
     }
 
     .rz-content {

@@ -1,9 +1,9 @@
-import { MoonIcon, SunIcon } from "lucide-react";
+import { MoonIcon, PaletteIcon, SunIcon } from "lucide-react";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "white" | "dark";
 
 const ThemeContext = createContext<{
     theme: Theme;
@@ -15,10 +15,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         if (typeof window === "undefined") {
             return "light";
         }
-        return document.documentElement.classList.contains("dark") ? "dark" : "light";
+        if (document.documentElement.classList.contains("dark")) {
+            return "dark";
+        }
+        return document.documentElement.classList.contains("white") ? "white" : "light";
     });
 
     useEffect(() => {
+        document.documentElement.classList.toggle("white", theme === "white");
         document.documentElement.classList.toggle("dark", theme === "dark");
         localStorage.setItem("rustzen-admin-theme", theme);
     }, [theme]);
@@ -27,22 +31,40 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 }
 
 export function ThemeSwitch() {
-    const context = useContext(ThemeContext);
-    if (!context) {
-        throw new Error("ThemeSwitch must be rendered inside ThemeProvider");
-    }
-
-    const nextTheme = context.theme === "dark" ? "light" : "dark";
+    const context = useTheme();
+    const nextTheme: Theme =
+        context.theme === "light" ? "white" : context.theme === "white" ? "dark" : "light";
+    const labels: Record<Theme, string> = {
+        light: "color glass",
+        white: "white",
+        dark: "dark",
+    };
+    const icon =
+        context.theme === "light" ? (
+            <PaletteIcon />
+        ) : context.theme === "white" ? (
+            <SunIcon />
+        ) : (
+            <MoonIcon />
+        );
 
     return (
         <Button
             type="button"
             variant="ghost"
             size="icon"
-            aria-label={`Switch to ${nextTheme} theme`}
+            aria-label={`Current theme: ${labels[context.theme]}. Switch to ${labels[nextTheme]} theme`}
             onClick={() => context.setTheme(nextTheme)}
         >
-            {context.theme === "dark" ? <SunIcon /> : <MoonIcon />}
+            {icon}
         </Button>
     );
+}
+
+export function useTheme() {
+    const context = useContext(ThemeContext);
+    if (!context) {
+        throw new Error("useTheme must be used inside ThemeProvider");
+    }
+    return context;
 }

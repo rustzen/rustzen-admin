@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sqlx::FromRow;
 
 #[derive(Debug, Clone, FromRow, Serialize)]
@@ -10,12 +10,4 @@ pub struct Settings {
     pub max_batch_events: i64,
     pub business_timezone: String,
     pub updated_at: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UpdateSettings {
-    pub event_retention_days: i64,
-    pub default_query_days: i64,
-    pub max_query_days: i64,
 }

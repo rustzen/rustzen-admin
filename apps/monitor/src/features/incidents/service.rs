@@ -2,60 +2,9 @@ use chrono::Utc;
 use rustzen_storage::SqlitePool;
 use uuid::Uuid;
 
-use crate::{
-    common::error::AppError,
-    features::{checks::types::Page, nodes::types::NodeView},
-};
+use crate::{common::error::AppError, features::nodes::types::NodeView};
 
-use super::{
-    repo,
-    types::{Incident, IncidentQuery},
-};
-
-pub(crate) async fn list(
-    pool: &SqlitePool,
-    query: IncidentQuery,
-) -> Result<Page<Incident>, AppError> {
-    if let Some(status) = query.status.as_deref()
-        && !matches!(status, "active" | "open" | "acknowledged" | "resolved")
-    {
-        return Err(AppError::invalid_input(
-            "status must be active, open, acknowledged, or resolved",
-        ));
-    }
-    if let Some(source_type) = query.source_type.as_deref()
-        && !matches!(source_type, "node" | "check" | "resource")
-    {
-        return Err(AppError::invalid_input("sourceType must be node, check, or resource"));
-    }
-    let current = query.current.unwrap_or(1);
-    let page_size = query.page_size.unwrap_or(20);
-    if current < 1 || !(1..=100).contains(&page_size) {
-        return Err(AppError::invalid_input(
-            "current must be positive and pageSize must be between 1 and 100",
-        ));
-    }
-    let (rows, total) = repo::list(
-        pool,
-        (current - 1) * page_size,
-        page_size,
-        query.status.as_deref(),
-        query.source_type.as_deref(),
-    )
-    .await?;
-    Ok(Page { data: rows.into_iter().map(Incident::from).collect(), total, success: true })
-}
-
-pub(crate) async fn get(pool: &SqlitePool, id: &str) -> Result<Incident, AppError> {
-    repo::get(pool, id).await?.map(Incident::from).ok_or_else(|| AppError::not_found("incident"))
-}
-
-pub(crate) async fn acknowledge(pool: &SqlitePool, id: &str) -> Result<Incident, AppError> {
-    if !repo::acknowledge(pool, id, &Utc::now().to_rfc3339()).await? {
-        return Err(AppError::invalid_input("only open incidents can be acknowledged"));
-    }
-    get(pool, id).await
-}
+use super::repo;
 
 pub(crate) async fn observe(
     pool: &SqlitePool,
@@ -154,39 +103,20 @@ pub(crate) async fn active_count(pool: &SqlitePool) -> Result<i64, AppError> {
 mod tests {
     use crate::infra::db::migrated_test_pool;
 
-    use super::{IncidentQuery, acknowledge, list, observe};
+    use super::{active_count, observe};
 
     #[tokio::test]
-    async fn incident_lifecycle_deduplicates_acknowledges_and_resolves() {
+    async fn incident_lifecycle_deduplicates_and_resolves() {
         let pool = migrated_test_pool().await;
         for _ in 0..2 {
             observe(&pool, "check", "check-1", "tcp_down", "TCP down", serde_json::json!({}), true)
                 .await
                 .expect("observe active");
         }
-        let page = list(
-            &pool,
-            IncidentQuery { current: None, page_size: None, status: None, source_type: None },
-        )
-        .await
-        .expect("list");
-        assert_eq!(page.total, 1);
-        let incident = acknowledge(&pool, &page.data[0].id).await.expect("acknowledge");
-        assert_eq!(incident.status, "acknowledged");
+        assert_eq!(active_count(&pool).await.expect("active count"), 1);
         observe(&pool, "check", "check-1", "tcp_down", "TCP down", serde_json::json!({}), false)
             .await
             .expect("resolve");
-        let resolved = list(
-            &pool,
-            IncidentQuery {
-                current: None,
-                page_size: None,
-                status: Some("resolved".to_string()),
-                source_type: None,
-            },
-        )
-        .await
-        .expect("resolved list");
-        assert_eq!(resolved.total, 1);
+        assert_eq!(active_count(&pool).await.expect("resolved count"), 0);
     }
 }

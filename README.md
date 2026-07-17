@@ -22,7 +22,7 @@ The repository is organized as a monorepo:
 - `apps/admin/` contains the Admin API, gateway, RBAC, release management, and Web asset host
 - `apps/monitor/` powers Monitoring and the optional managed-node Agent
 - `apps/insights/` powers product Analytics and its public tracker
-- `apps/reports/` powers encrypted browser Automation
+- `apps/reports/` powers report templates, filling runs, and live execution views
 - `apps/web/` contains the React frontend application
 - `deploy/` contains deployment assets and release support files
 - `docs/` contains repository-level architecture and development guides

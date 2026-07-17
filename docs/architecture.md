@@ -74,9 +74,10 @@ Direct unsigned, expired, cross-module, or wrong-capability calls are rejected.
 
 The product navigation presents the stable internal services as grouped modules:
 
-- Monitoring: overview, nodes, TCP checks, incidents, and settings below `/monitoring`;
-- Analytics: overview, projects, pages, APIs, events, users, and settings below `/analytics`;
-- Automation: systems/accounts, flows, runs, schedules, and settings below `/automation`.
+- Monitoring: overview, self-registering nodes, and service monitoring below `/monitoring`;
+- Analytics: an instance-wide overview and raw details below `/analytics`, without a project
+  selector or project-scoped queries;
+- Reports: target-backed templates plus filling runs and live browser frames below `/reports`.
 
 The internal service IDs, binaries, databases, and API prefixes remain
 `monitor`, `insights`, and `reports`. Each page menu owns a concrete read

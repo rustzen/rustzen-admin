@@ -64,8 +64,8 @@ function MonitoringChecksPage() {
     const total = data?.total ?? 0;
     return (
         <PageCard
-            title="TCP checks"
-            description="Probe TCP services on a fixed interval and open incidents after repeated failures."
+            title="Service monitoring"
+            description="Probe TCP services on a fixed interval and inspect durable results."
             actions={
                 <AuthWrap code="monitor:check:manage">
                     <CheckDialog onSaved={refresh} />

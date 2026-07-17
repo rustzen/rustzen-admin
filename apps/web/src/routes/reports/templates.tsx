@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { CopyIcon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { CopyIcon, Globe2Icon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { appMessage, reportsAPI } from "@/api";
@@ -36,7 +36,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-export const Route = createFileRoute("/automation/flows")({ component: FlowsPage });
+export const Route = createFileRoute("/reports/templates")({ component: FlowsPage });
 const example: Reports.FlowStep[] = [
     { action: "goto", url: "/login" },
     { action: "fill", selector: "#username", value: "{{account.username}}" },
@@ -56,6 +56,7 @@ function FlowsPage() {
         queryFn: () => reportsAPI.flows(),
     });
     const refresh = () => client.invalidateQueries({ queryKey: ["reports", "flows"] });
+    const refreshSystems = () => client.invalidateQueries({ queryKey: ["reports", "systems"] });
     const clone = useMutation({
         mutationFn: (flow: Reports.Flow) =>
             reportsAPI.createFlow({
@@ -70,12 +71,17 @@ function FlowsPage() {
     });
     return (
         <PageCard
-            title="Flows"
-            description="Define small, validated browser workflows without arbitrary JavaScript."
+            title="Report templates"
+            description="Define the target and validated steps used by each filling workflow."
             actions={
-                <AuthWrap code="reports:flow:manage">
-                    <FlowDialog systems={systems} onSaved={refresh} />
-                </AuthWrap>
+                <div className="flex gap-2">
+                    <AuthWrap code="reports:system:manage">
+                        <TargetDialog onSaved={refreshSystems} />
+                    </AuthWrap>
+                    <AuthWrap code="reports:flow:manage">
+                        <FlowDialog systems={systems} onSaved={refresh} />
+                    </AuthWrap>
+                </div>
             }
         >
             <DataTableShell>
@@ -129,7 +135,7 @@ function FlowsPage() {
                                                         </Button>
                                                     }
                                                     title="Delete flow?"
-                                                    description="Runs and schedules must no longer reference it."
+                                                    description="Existing filling runs must no longer reference it."
                                                     confirmLabel="Delete"
                                                     destructive
                                                     onConfirm={() =>
@@ -155,6 +161,61 @@ function FlowsPage() {
                 </Table>
             </DataTableShell>
         </PageCard>
+    );
+}
+
+function TargetDialog({ onSaved }: { onSaved: () => Promise<unknown> }) {
+    const [open, setOpen] = useState(false);
+    const [name, setName] = useState("");
+    const [baseUrl, setBaseUrl] = useState("");
+    const mutation = useMutation({
+        mutationFn: () =>
+            reportsAPI.createSystem({ name: name.trim(), baseUrl: baseUrl.trim(), enabled: true }),
+        onSuccess: async () => {
+            await onSaved();
+            appMessage.success("Target added");
+            setOpen(false);
+        },
+    });
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline">
+                    <Globe2Icon />
+                    Add target
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add report target</DialogTitle>
+                    <DialogDescription>
+                        Templates can only navigate within this trusted origin.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4">
+                    <div className="grid gap-2">
+                        <Label>Name</Label>
+                        <Input value={name} onChange={(event) => setName(event.target.value)} />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Base URL</Label>
+                        <Input
+                            value={baseUrl}
+                            placeholder="https://example.com"
+                            onChange={(event) => setBaseUrl(event.target.value)}
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button
+                        disabled={!name.trim() || !baseUrl.trim() || mutation.isPending}
+                        onClick={() => mutation.mutate()}
+                    >
+                        Add target
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
 function FlowDialog({
@@ -208,14 +269,14 @@ function FlowDialog({
                     ) : (
                         <>
                             <PlusIcon />
-                            New flow
+                            New template
                         </>
                     )}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>{flow ? "Edit flow" : "New browser flow"}</DialogTitle>
+                    <DialogTitle>{flow ? "Edit template" : "New report template"}</DialogTitle>
                     <DialogDescription>
                         Supported actions: goto, fill, click, waitFor, assertText, screenshot.
                     </DialogDescription>

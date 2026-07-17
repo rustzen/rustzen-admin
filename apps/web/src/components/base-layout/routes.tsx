@@ -36,7 +36,7 @@ export type AppRoutePath =
 type AppRouteGroupPath =
     | "/monitoring"
     | "/analytics"
-    | "/automation"
+    | "/reports"
     | "/system"
     | "/manage"
     | "/demo";
@@ -73,7 +73,7 @@ const profileRoute: AppRouteItem = {
 const moduleGroupPaths: Record<SystemModule.Id, AppRouteGroupPath> = {
     monitor: "/monitoring",
     insights: "/analytics",
-    reports: "/automation",
+    reports: "/reports",
 };
 
 const moduleIcons: Record<SystemModule.Icon, ReactNode> = {
@@ -193,20 +193,10 @@ const appRoutePaths = new Set<string>([
     "/monitoring/overview",
     "/monitoring/nodes",
     "/monitoring/checks",
-    "/monitoring/incidents",
-    "/monitoring/settings",
     "/analytics/overview",
-    "/analytics/projects",
-    "/analytics/pages",
-    "/analytics/apis",
-    "/analytics/events",
-    "/analytics/users",
-    "/analytics/settings",
-    "/automation/runs",
-    "/automation/systems",
-    "/automation/flows",
-    "/automation/schedules",
-    "/automation/settings",
+    "/analytics/details",
+    "/reports/templates",
+    "/reports/runs",
     "/403",
     "/404",
     "/system/user",
@@ -224,20 +214,10 @@ const registeredModuleRoutePaths = new Set<SystemModule.RoutePath>([
     "/monitoring/overview",
     "/monitoring/nodes",
     "/monitoring/checks",
-    "/monitoring/incidents",
-    "/monitoring/settings",
     "/analytics/overview",
-    "/analytics/projects",
-    "/analytics/pages",
-    "/analytics/apis",
-    "/analytics/events",
-    "/analytics/users",
-    "/analytics/settings",
-    "/automation/runs",
-    "/automation/systems",
-    "/automation/flows",
-    "/automation/schedules",
-    "/automation/settings",
+    "/analytics/details",
+    "/reports/templates",
+    "/reports/runs",
 ]);
 
 export const getMenuData = (

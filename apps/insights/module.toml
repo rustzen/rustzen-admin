@@ -13,49 +13,9 @@ sort_order = 110
 permission = "insights:overview:view"
 
 [[menus]]
-code = "projects"
-title = "Projects"
-path = "/analytics/projects"
+code = "details"
+title = "Details"
+path = "/analytics/details"
 icon = "chart-no-axes-combined"
 sort_order = 120
-permission = "insights:project:view"
-
-[[menus]]
-code = "pages"
-title = "Pages"
-path = "/analytics/pages"
-icon = "chart-no-axes-combined"
-sort_order = 130
-permission = "insights:page:view"
-
-[[menus]]
-code = "apis"
-title = "APIs"
-path = "/analytics/apis"
-icon = "chart-no-axes-combined"
-sort_order = 140
-permission = "insights:api:view"
-
-[[menus]]
-code = "events"
-title = "Events"
-path = "/analytics/events"
-icon = "chart-no-axes-combined"
-sort_order = 150
 permission = "insights:event:view"
-
-[[menus]]
-code = "users"
-title = "Users"
-path = "/analytics/users"
-icon = "chart-no-axes-combined"
-sort_order = 160
-permission = "insights:user:view"
-
-[[menus]]
-code = "settings"
-title = "Settings"
-path = "/analytics/settings"
-icon = "chart-no-axes-combined"
-sort_order = 170
-permission = "insights:settings:view"

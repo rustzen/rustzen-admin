@@ -51,71 +51,6 @@ pub async fn delete_system(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Er
         .map(|r| r.rows_affected() == 1)
 }
 
-pub async fn accounts(
-    pool: &SqlitePool,
-    system_id: Option<&str>,
-) -> Result<Vec<Account>, sqlx::Error> {
-    sqlx::query_as("SELECT id,system_id,name,username,1 AS secret_configured,created_at,updated_at FROM automation_accounts WHERE (? IS NULL OR system_id=?) ORDER BY created_at DESC").bind(system_id).bind(system_id).fetch_all(pool).await
-}
-pub async fn account_secret(
-    pool: &SqlitePool,
-    id: &str,
-) -> Result<Option<AccountSecret>, sqlx::Error> {
-    sqlx::query_as(
-        "SELECT system_id,username,secret_ciphertext,secret_nonce FROM automation_accounts WHERE id=?",
-    )
-    .bind(id)
-    .fetch_optional(pool)
-    .await
-}
-#[allow(clippy::too_many_arguments)]
-pub async fn insert_account(
-    pool: &SqlitePool,
-    id: &str,
-    system_id: &str,
-    name: &str,
-    username: &str,
-    ciphertext: &str,
-    nonce: &str,
-    now: &str,
-) -> Result<(), sqlx::Error> {
-    sqlx::query("INSERT INTO automation_accounts(id,system_id,name,username,secret_ciphertext,secret_nonce,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)").bind(id).bind(system_id).bind(name).bind(username).bind(ciphertext).bind(nonce).bind(now).bind(now).execute(pool).await?;
-    Ok(())
-}
-#[allow(clippy::too_many_arguments)]
-pub async fn update_account(
-    pool: &SqlitePool,
-    id: &str,
-    system_id: &str,
-    name: &str,
-    username: &str,
-    secret: Option<(&str, &str)>,
-    now: &str,
-) -> Result<bool, sqlx::Error> {
-    let result = if let Some((ciphertext, nonce)) = secret {
-        sqlx::query("UPDATE automation_accounts SET system_id=?,name=?,username=?,secret_ciphertext=?,secret_nonce=?,updated_at=? WHERE id=?").bind(system_id).bind(name).bind(username).bind(ciphertext).bind(nonce).bind(now).bind(id).execute(pool).await?
-    } else {
-        sqlx::query(
-            "UPDATE automation_accounts SET system_id=?,name=?,username=?,updated_at=? WHERE id=?",
-        )
-        .bind(system_id)
-        .bind(name)
-        .bind(username)
-        .bind(now)
-        .bind(id)
-        .execute(pool)
-        .await?
-    };
-    Ok(result.rows_affected() == 1)
-}
-pub async fn delete_account(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
-    sqlx::query("DELETE FROM automation_accounts WHERE id=?")
-        .bind(id)
-        .execute(pool)
-        .await
-        .map(|r| r.rows_affected() == 1)
-}
-
 pub async fn flows(
     pool: &SqlitePool,
     system_id: Option<&str>,
@@ -170,7 +105,7 @@ pub async fn runs(
     limit: i64,
     status: Option<&str>,
 ) -> Result<(Vec<Run>, i64), sqlx::Error> {
-    let rows=sqlx::query_as("SELECT id,flow_id,account_id,schedule_id,status,input_json,error,created_at,started_at,finished_at FROM automation_runs WHERE (? IS NULL OR status=?) ORDER BY created_at DESC LIMIT ? OFFSET ?").bind(status).bind(status).bind(limit).bind(offset).fetch_all(pool).await?;
+    let rows=sqlx::query_as("SELECT id,flow_id,status,input_json,error,created_at,started_at,finished_at FROM automation_runs WHERE (? IS NULL OR status=?) ORDER BY created_at DESC LIMIT ? OFFSET ?").bind(status).bind(status).bind(limit).bind(offset).fetch_all(pool).await?;
     let total =
         sqlx::query_scalar("SELECT COUNT(*) FROM automation_runs WHERE (? IS NULL OR status=?)")
             .bind(status)
@@ -180,18 +115,16 @@ pub async fn runs(
     Ok((rows, total))
 }
 pub async fn run(pool: &SqlitePool, id: &str) -> Result<Option<Run>, sqlx::Error> {
-    sqlx::query_as("SELECT id,flow_id,account_id,schedule_id,status,input_json,error,created_at,started_at,finished_at FROM automation_runs WHERE id=?").bind(id).fetch_optional(pool).await
+    sqlx::query_as("SELECT id,flow_id,status,input_json,error,created_at,started_at,finished_at FROM automation_runs WHERE id=?").bind(id).fetch_optional(pool).await
 }
 pub async fn insert_run(
     pool: &SqlitePool,
     id: &str,
     flow_id: &str,
-    account_id: Option<&str>,
-    schedule_id: Option<&str>,
     input: &str,
     now: &str,
 ) -> Result<bool, sqlx::Error> {
-    sqlx::query("INSERT INTO automation_runs(id,flow_id,account_id,schedule_id,status,input_json,created_at) VALUES(?,?,?,?,'queued',?,?)").bind(id).bind(flow_id).bind(account_id).bind(schedule_id).bind(input).bind(now).execute(pool).await.map(|r|r.rows_affected()==1)
+    sqlx::query("INSERT INTO automation_runs(id,flow_id,status,input_json,created_at) VALUES(?,?,'queued',?,?)").bind(id).bind(flow_id).bind(input).bind(now).execute(pool).await.map(|r|r.rows_affected()==1)
 }
 pub async fn claim_run(pool: &SqlitePool, id: &str, now: &str) -> Result<bool, sqlx::Error> {
     sqlx::query(
@@ -277,6 +210,26 @@ pub async fn insert_artifact(
     .await?;
     Ok(())
 }
+pub async fn upsert_live_artifact(
+    pool: &SqlitePool,
+    id: &str,
+    run_id: &str,
+    file_name: &str,
+    now: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "INSERT INTO automation_artifacts(id,run_id,kind,file_name,created_at)
+         VALUES(?,?,'live-frame',?,?)
+         ON CONFLICT(id) DO UPDATE SET created_at=excluded.created_at",
+    )
+    .bind(id)
+    .bind(run_id)
+    .bind(file_name)
+    .bind(now)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
 pub async fn artifact(
     pool: &SqlitePool,
     id: &str,
@@ -291,87 +244,9 @@ pub async fn artifacts(pool: &SqlitePool, run_id: &str) -> Result<Vec<Artifact>,
         .await
 }
 
-pub async fn schedules(pool: &SqlitePool) -> Result<Vec<Schedule>, sqlx::Error> {
-    sqlx::query_as("SELECT id,name,flow_id,account_id,cron,input_json,enabled,next_run_at,created_at,updated_at FROM automation_schedules ORDER BY created_at DESC").fetch_all(pool).await
-}
-#[allow(clippy::too_many_arguments)]
-pub async fn insert_schedule(
-    pool: &SqlitePool,
-    id: &str,
-    name: &str,
-    flow_id: &str,
-    account_id: Option<&str>,
-    cron: &str,
-    input: &str,
-    enabled: bool,
-    next: &str,
-    now: &str,
-) -> Result<(), sqlx::Error> {
-    sqlx::query("INSERT INTO automation_schedules(id,name,flow_id,account_id,cron,input_json,enabled,next_run_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(id).bind(name).bind(flow_id).bind(account_id).bind(cron).bind(input).bind(enabled).bind(next).bind(now).bind(now).execute(pool).await?;
-    Ok(())
-}
-pub async fn delete_schedule(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
-    sqlx::query("DELETE FROM automation_schedules WHERE id=?")
-        .bind(id)
-        .execute(pool)
-        .await
-        .map(|r| r.rows_affected() == 1)
-}
-#[allow(clippy::too_many_arguments)]
-pub async fn update_schedule(
-    pool: &SqlitePool,
-    id: &str,
-    name: &str,
-    flow_id: &str,
-    account_id: Option<&str>,
-    cron: &str,
-    input: &str,
-    enabled: bool,
-    next: &str,
-    now: &str,
-) -> Result<bool, sqlx::Error> {
-    sqlx::query("UPDATE automation_schedules SET name=?,flow_id=?,account_id=?,cron=?,input_json=?,enabled=?,next_run_at=?,updated_at=? WHERE id=?")
-        .bind(name).bind(flow_id).bind(account_id).bind(cron).bind(input).bind(enabled).bind(next).bind(now).bind(id)
-        .execute(pool).await.map(|result| result.rows_affected() == 1)
-}
-pub async fn due_schedules(pool: &SqlitePool, now: &str) -> Result<Vec<Schedule>, sqlx::Error> {
-    sqlx::query_as("SELECT id,name,flow_id,account_id,cron,input_json,enabled,next_run_at,created_at,updated_at FROM automation_schedules WHERE enabled=1 AND next_run_at<=? ORDER BY next_run_at LIMIT 20").bind(now).fetch_all(pool).await
-}
-pub async fn schedule_tick(
-    pool: &SqlitePool,
-    schedule: &Schedule,
-    scheduled_at: &str,
-    next: &str,
-    run_id: &str,
-    now: &str,
-) -> Result<bool, sqlx::Error> {
-    let mut tx = pool.begin().await?;
-    let inserted=sqlx::query("INSERT OR IGNORE INTO automation_schedule_ticks(schedule_id,scheduled_at,run_id) VALUES(?,?,?)").bind(&schedule.id).bind(scheduled_at).bind(run_id).execute(&mut *tx).await?.rows_affected()==1;
-    if inserted {
-        sqlx::query("INSERT INTO automation_runs(id,flow_id,account_id,schedule_id,status,input_json,created_at) VALUES(?,?,?,?,'queued',?,?)").bind(run_id).bind(&schedule.flow_id).bind(&schedule.account_id).bind(&schedule.id).bind(&schedule.input_json).bind(now).execute(&mut *tx).await?;
-    }
-    sqlx::query("UPDATE automation_schedules SET next_run_at=?,updated_at=? WHERE id=?")
-        .bind(next)
-        .bind(now)
-        .bind(&schedule.id)
-        .execute(&mut *tx)
-        .await?;
-    tx.commit().await?;
-    Ok(inserted)
-}
-
 pub async fn settings(pool: &SqlitePool) -> Result<Settings, sqlx::Error> {
     sqlx::query_as("SELECT run_retention_days,artifact_retention_days,default_step_timeout_seconds,max_run_timeout_seconds,updated_at FROM automation_settings WHERE singleton=1").fetch_one(pool).await
 }
-pub async fn update_settings(
-    pool: &SqlitePool,
-    input: &UpdateSettings,
-    now: &str,
-) -> Result<(), sqlx::Error> {
-    sqlx::query("UPDATE automation_settings SET run_retention_days=?,artifact_retention_days=?,default_step_timeout_seconds=?,max_run_timeout_seconds=?,updated_at=? WHERE singleton=1").bind(input.run_retention_days).bind(input.artifact_retention_days).bind(input.default_step_timeout_seconds).bind(input.max_run_timeout_seconds).bind(now).execute(pool).await?;
-    Ok(())
-}
-
 pub async fn expired_artifacts(
     pool: &SqlitePool,
     cutoff: &str,

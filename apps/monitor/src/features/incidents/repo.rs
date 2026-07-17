@@ -1,6 +1,6 @@
 use rustzen_storage::SqlitePool;
 
-use super::types::{IncidentRow, ResourceSample};
+use super::types::ResourceSample;
 
 pub(super) struct ActiveIncident<'a> {
     pub id: &'a str,
@@ -10,75 +10,6 @@ pub(super) struct ActiveIncident<'a> {
     pub title: &'a str,
     pub details: &'a str,
     pub observed_at: &'a str,
-}
-
-pub(super) async fn list(
-    pool: &SqlitePool,
-    offset: i64,
-    limit: i64,
-    status: Option<&str>,
-    source_type: Option<&str>,
-) -> Result<(Vec<IncidentRow>, i64), sqlx::Error> {
-    let rows = sqlx::query_as(
-        "SELECT id, source_type, source_id, kind, title, status, details, opened_at,
-                acknowledged_at, resolved_at, last_observed_at
-         FROM monitor_incidents
-         WHERE (? IS NULL OR (? = 'active' AND status IN ('open', 'acknowledged')) OR status = ?)
-           AND (? IS NULL OR source_type = ?)
-         ORDER BY CASE status WHEN 'open' THEN 0 WHEN 'acknowledged' THEN 1 ELSE 2 END,
-                  opened_at DESC
-         LIMIT ? OFFSET ?",
-    )
-    .bind(status)
-    .bind(status)
-    .bind(status)
-    .bind(source_type)
-    .bind(source_type)
-    .bind(limit)
-    .bind(offset)
-    .fetch_all(pool)
-    .await?;
-    let total = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM monitor_incidents
-         WHERE (? IS NULL OR (? = 'active' AND status IN ('open', 'acknowledged')) OR status = ?)
-           AND (? IS NULL OR source_type = ?)",
-    )
-    .bind(status)
-    .bind(status)
-    .bind(status)
-    .bind(source_type)
-    .bind(source_type)
-    .fetch_one(pool)
-    .await?;
-    Ok((rows, total))
-}
-
-pub(super) async fn get(pool: &SqlitePool, id: &str) -> Result<Option<IncidentRow>, sqlx::Error> {
-    sqlx::query_as(
-        "SELECT id, source_type, source_id, kind, title, status, details, opened_at,
-                acknowledged_at, resolved_at, last_observed_at
-         FROM monitor_incidents WHERE id = ?",
-    )
-    .bind(id)
-    .fetch_optional(pool)
-    .await
-}
-
-pub(super) async fn acknowledge(
-    pool: &SqlitePool,
-    id: &str,
-    acknowledged_at: &str,
-) -> Result<bool, sqlx::Error> {
-    sqlx::query(
-        "UPDATE monitor_incidents
-         SET status = 'acknowledged', acknowledged_at = ?
-         WHERE id = ? AND status = 'open'",
-    )
-    .bind(acknowledged_at)
-    .bind(id)
-    .execute(pool)
-    .await
-    .map(|result| result.rows_affected() == 1)
 }
 
 pub(super) async fn upsert_active(

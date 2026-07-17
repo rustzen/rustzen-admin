@@ -4,20 +4,10 @@ declare namespace SystemModule {
         | "/monitoring/overview"
         | "/monitoring/nodes"
         | "/monitoring/checks"
-        | "/monitoring/incidents"
-        | "/monitoring/settings"
         | "/analytics/overview"
-        | "/analytics/projects"
-        | "/analytics/pages"
-        | "/analytics/apis"
-        | "/analytics/events"
-        | "/analytics/users"
-        | "/analytics/settings"
-        | "/automation/runs"
-        | "/automation/systems"
-        | "/automation/flows"
-        | "/automation/schedules"
-        | "/automation/settings";
+        | "/analytics/details"
+        | "/reports/templates"
+        | "/reports/runs";
     type Icon = "monitor" | "chart-no-axes-combined" | "file-text";
 
     interface Item {

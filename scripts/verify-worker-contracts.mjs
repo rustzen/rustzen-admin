@@ -145,41 +145,6 @@ if (metrics.length !== 1 || metrics[0].cpuPercent !== heartbeat.cpuPercent) {
   throw new Error(`unexpected Monitor metric history: ${JSON.stringify(metrics)}`);
 }
 
-const settings = await responseData(
-  await expectStatus(
-    await directRequest(
-      monitorBase,
-      "monitor",
-      "/api/monitor/settings",
-      "monitor:settings:view",
-    ),
-    200,
-    "Monitor settings",
-  ),
-  "Monitor settings",
-);
-const { updatedAt: _settingsUpdatedAt, ...settingsUpdate } = settings;
-const updatedSettings = await responseData(
-  await expectStatus(
-    await directRequest(
-      monitorBase,
-      "monitor",
-      "/api/monitor/settings",
-      "monitor:settings:manage",
-      {
-        method: "PUT",
-        body: JSON.stringify({ ...settingsUpdate, offlineAfterSeconds: 120 }),
-      },
-    ),
-    200,
-    "Monitor settings update",
-  ),
-  "Monitor settings update",
-);
-if (updatedSettings.offlineAfterSeconds !== 120) {
-  throw new Error(`Monitor settings update was not persisted: ${JSON.stringify(updatedSettings)}`);
-}
-
 const probe = await responseData(
   await expectStatus(
     await directRequest(
@@ -248,58 +213,16 @@ if (checkResults.length !== 1 || checkResults[0].status !== "up") {
   throw new Error(`Monitor scheduled TCP check did not succeed: ${JSON.stringify(checkResults)}`);
 }
 
-const incidents = await responseData(
-  await expectStatus(
-    await directRequest(
-      monitorBase,
-      "monitor",
-      "/api/monitor/incidents?status=active",
-      "monitor:incident:view",
-    ),
-    200,
-    "Monitor incident list",
-  ),
-  "Monitor incident list",
-);
-if (!incidents.success || incidents.total !== 0) {
-  throw new Error(`unexpected Monitor active incidents: ${JSON.stringify(incidents)}`);
-}
-
 await expectStatus(
   await directRequest(monitorBase, "monitor", "/api/monitor/nodes", "monitor:manage"),
   403,
   "Monitor local capability mismatch",
 );
 
-const project = await responseData(
-  await expectStatus(
-    await directRequest(
-      insightsBase,
-      "insights",
-      "/api/insights/projects",
-      "insights:project:manage",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          name: "Local verification",
-          allowedOrigins: ["https://verify.local"],
-        }),
-      },
-    ),
-    200,
-    "Insights project creation",
-  ),
-  "Insights project creation",
-);
-
 const accepted = await responseData(
   await expectStatus(
     await directRequest(insightsBase, "insights", "/api/insights/track", "public", {
       method: "POST",
-      headers: {
-        origin: "https://verify.local",
-        "x-rustzen-project-key": project.projectKey,
-      },
       body: JSON.stringify([
         { eventName: "page_view", visitorId: "visitor-a", userId: "user-a", platform: "web", pagePath: "/verify", durationMs: 12 },
         { eventName: "api_request", visitorId: "visitor-a", platform: "web", apiPath: "/api/verify", apiMethod: "GET", statusCode: 500, durationMs: 42, isError: true },
@@ -315,29 +238,12 @@ if (accepted.accepted !== 3) {
   throw new Error(`unexpected Insights accepted count: ${JSON.stringify(accepted)}`);
 }
 
-await expectStatus(
-  await directRequest(insightsBase, "insights", "/api/insights/track", "public", {
-    method: "POST",
-    headers: {
-      origin: "https://denied.local",
-      "x-rustzen-project-key": project.projectKey,
-    },
-    body: JSON.stringify({
-      eventName: "page_view",
-      visitorId: "visitor-b",
-      pagePath: "/denied",
-    }),
-  }),
-  403,
-  "Insights origin rejection",
-);
-
 const overview = await responseData(
   await expectStatus(
     await directRequest(
       insightsBase,
       "insights",
-      `/api/insights/overview?projectId=${encodeURIComponent(project.id)}`,
+      "/api/insights/overview",
       "insights:overview:view",
     ),
     200,
@@ -356,28 +262,16 @@ if (
   throw new Error(`unexpected Insights overview: ${JSON.stringify(overview)}`);
 }
 
-for (const [path, capability, expectedTotal] of [
-  ["pages", "insights:page:view", 1],
-  ["apis", "insights:api:view", 1],
-  ["events", "insights:event:view", 3],
-  ["users", "insights:user:view", 2],
-]) {
-  const page = await responseData(
-    await expectStatus(
-      await directRequest(
-        insightsBase,
-        "insights",
-        `/api/insights/${path}?projectId=${encodeURIComponent(project.id)}`,
-        capability,
-      ),
-      200,
-      `Insights ${path} query`,
-    ),
-    `Insights ${path} query`,
-  );
-  if (!page.success || page.total !== expectedTotal) {
-    throw new Error(`unexpected Insights ${path}: ${JSON.stringify(page)}`);
-  }
+const details = await responseData(
+  await expectStatus(
+    await directRequest(insightsBase, "insights", "/api/insights/events", "insights:event:view"),
+    200,
+    "Insights details query",
+  ),
+  "Insights details query",
+);
+if (!details.success || details.total !== 3) {
+  throw new Error(`unexpected Insights details: ${JSON.stringify(details)}`);
 }
 
 const trackerScript = await expectStatus(
@@ -389,30 +283,7 @@ if (!trackerScript.headers.get("content-type")?.startsWith("application/javascri
   throw new Error("Insights tracker did not return JavaScript content type");
 }
 
-const insightsSettings = await responseData(
-  await expectStatus(
-    await directRequest(insightsBase, "insights", "/api/insights/settings", "insights:settings:view"),
-    200,
-    "Insights settings",
-  ),
-  "Insights settings",
-);
-const updatedInsightsSettings = await responseData(
-  await expectStatus(
-    await directRequest(insightsBase, "insights", "/api/insights/settings", "insights:settings:manage", {
-      method: "PUT",
-      body: JSON.stringify({ eventRetentionDays: 45, defaultQueryDays: 14, maxQueryDays: 90 }),
-    }),
-    200,
-    "Insights settings update",
-  ),
-  "Insights settings update",
-);
-if (insightsSettings.eventRetentionDays !== 30 || updatedInsightsSettings.eventRetentionDays !== 45) {
-  throw new Error("Insights settings did not persist");
-}
-
-const automationSystem = await responseData(
+const reportTarget = await responseData(
   await expectStatus(
     await directRequest(
       reportsBase,
@@ -429,54 +300,35 @@ const automationSystem = await responseData(
       },
     ),
     200,
-    "Automation system creation",
+    "Report target creation",
   ),
-  "Automation system creation",
+  "Report target creation",
 );
-const account = await responseData(
-  await expectStatus(
-    await directRequest(reportsBase, "reports", "/api/reports/accounts", "reports:system:manage", {
-      method: "POST",
-      body: JSON.stringify({ systemId: automationSystem.id, name: "Fixture account", username: "fixture", secret: "contract-secret" }),
-    }),
-    200,
-    "Automation account creation",
-  ),
-  "Automation account creation",
-);
-if ("secret" in account || JSON.stringify(account).includes("contract-secret")) {
-  throw new Error("Automation account exposed its write-only secret");
-}
 const flow = await responseData(
   await expectStatus(
     await directRequest(reportsBase, "reports", "/api/reports/flows", "reports:flow:manage", {
       method: "POST",
-      body: JSON.stringify({ systemId: automationSystem.id, name: "Fixture flow", steps: [{ action: "goto", url: "/health" }, { action: "assertText", selector: "body", text: "ok" }] }),
+      body: JSON.stringify({ systemId: reportTarget.id, name: "Fixture template", steps: [{ action: "goto", url: "/health" }, { action: "assertText", selector: "body", text: "ok" }] }),
     }),
     200,
-    "Automation flow creation",
+    "Report template creation",
   ),
-  "Automation flow creation",
+  "Report template creation",
 );
 await expectStatus(
-  await directRequest(reportsBase, "reports", "/api/reports/flows", "reports:flow:manage", { method: "POST", body: JSON.stringify({ systemId: automationSystem.id, name: "Cross origin", steps: [{ action: "goto", url: "https://example.com" }] }) }),
+  await directRequest(reportsBase, "reports", "/api/reports/flows", "reports:flow:manage", { method: "POST", body: JSON.stringify({ systemId: reportTarget.id, name: "Cross origin", steps: [{ action: "goto", url: "https://example.com" }] }) }),
   400,
-  "Automation cross-origin rejection",
+  "Report cross-origin rejection",
 );
-const schedule = await responseData(
+const reportRun = await responseData(
   await expectStatus(
-    await directRequest(reportsBase, "reports", "/api/reports/schedules", "reports:schedule:manage", { method: "POST", body: JSON.stringify({ name: "Fixture schedule", flowId: flow.id, accountId: account.id, cron: "0 0 * * *", input: {}, enabled: false }) }),
+    await directRequest(reportsBase, "reports", "/api/reports/runs", "reports:run:manage", { method: "POST", body: JSON.stringify({ flowId: flow.id, input: {} }) }),
     200,
-    "Automation schedule creation",
+    "Report filling run creation",
   ),
-  "Automation schedule creation",
+  "Report filling run creation",
 );
-if (schedule.enabled || !schedule.nextRunAt) throw new Error("Automation schedule contract failed");
-const automationSettings = await responseData(
-  await expectStatus(await directRequest(reportsBase, "reports", "/api/reports/settings", "reports:settings:view"), 200, "Automation settings"),
-  "Automation settings",
-);
-if (automationSettings.runRetentionDays !== 30) throw new Error("Unexpected Automation settings");
+if (reportRun.status !== "queued") throw new Error("Report filling run was not queued");
 
 function percentile(values, quantile) {
   const sorted = [...values].sort((left, right) => left - right);

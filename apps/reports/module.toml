@@ -1,45 +1,21 @@
 [module]
 id = "reports"
-name = "Automation"
+name = "Reports"
 api_prefix = "/api/reports"
 contract_version = 1
 
 [[menus]]
-code = "systems"
-title = "Systems"
-path = "/automation/systems"
+code = "templates"
+title = "Templates"
+path = "/reports/templates"
 icon = "file-text"
 sort_order = 210
-permission = "reports:system:view"
-
-[[menus]]
-code = "flows"
-title = "Flows"
-path = "/automation/flows"
-icon = "file-text"
-sort_order = 220
 permission = "reports:flow:view"
 
 [[menus]]
 code = "runs"
-title = "Runs"
-path = "/automation/runs"
+title = "Filling Runs"
+path = "/reports/runs"
 icon = "file-text"
-sort_order = 230
+sort_order = 220
 permission = "reports:run:view"
-
-[[menus]]
-code = "schedules"
-title = "Schedules"
-path = "/automation/schedules"
-icon = "file-text"
-sort_order = 240
-permission = "reports:schedule:view"
-
-[[menus]]
-code = "settings"
-title = "Settings"
-path = "/automation/settings"
-icon = "file-text"
-sort_order = 250
-permission = "reports:settings:view"

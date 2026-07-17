@@ -5,7 +5,6 @@ use sqlx::FromRow;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OverviewQuery {
-    pub project_id: String,
     pub from: Option<DateTime<Utc>>,
     pub to: Option<DateTime<Utc>>,
 }

@@ -3,11 +3,11 @@ use std::time::Duration;
 use chrono::{Duration as ChronoDuration, Utc};
 use rustzen_storage::{SqliteMaintenancePlan, SqlitePool, run_sqlite_maintenance};
 
-use crate::common::{error::AppError, project_key};
+use crate::common::error::AppError;
 
 use super::{
     repo,
-    types::{DomainCredentials, NewEvent, TrackAccepted, TrackInput},
+    types::{NewEvent, TrackAccepted, TrackInput},
 };
 
 pub struct TrackingService;
@@ -16,7 +16,6 @@ impl TrackingService {
     pub async fn track(
         pool: &SqlitePool,
         inputs: Vec<TrackInput>,
-        credentials: DomainCredentials,
     ) -> Result<TrackAccepted, AppError> {
         let settings = crate::features::settings::service::get(pool).await?;
         if inputs.is_empty() || inputs.len() > settings.max_batch_events as usize {
@@ -32,20 +31,9 @@ impl TrackingService {
             .collect::<Result<Vec<_>, _>>()?;
 
         let mut transaction = pool.begin().await.map_err(AppError::internal)?;
-        let project = repo::find_project_by_key(
-            &mut transaction,
-            &project_key::hash(credentials.project_key.trim()),
-        )
-        .await?
-        .ok_or_else(|| AppError::unauthorized("invalid project key"))?;
-        let allowed_origins: Vec<String> = serde_json::from_str(&project.allowed_origins)?;
-        if !origin_allowed(&allowed_origins, credentials.origin.as_deref()) {
-            return Err(AppError::forbidden("origin is not allowed"));
-        }
-
         let accepted = events.len();
         for mut event in events {
-            event.project_id.clone_from(&project.id);
+            event.project_id = "default".to_string();
             repo::insert_event(&mut transaction, &event).await?;
         }
         transaction.commit().await.map_err(AppError::internal)?;
@@ -161,31 +149,6 @@ fn clean_optional(value: Option<String>, max: usize) -> Result<Option<String>, A
         .map(Option::flatten)
 }
 
-fn origin_allowed(allowed: &[String], origin: Option<&str>) -> bool {
-    if allowed.is_empty() {
-        return true;
-    }
-    origin
-        .map(|origin| origin.trim().trim_end_matches('/').to_ascii_lowercase())
-        .is_some_and(|origin| allowed.iter().any(|allowed| allowed == &origin))
-}
-
 fn to_i64(value: u64) -> i64 {
     i64::try_from(value).unwrap_or(i64::MAX)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::origin_allowed;
-
-    #[test]
-    fn origin_contract_allows_unrestricted_projects_and_exact_allowlists() {
-        assert!(origin_allowed(&[], None));
-        assert!(origin_allowed(&[], Some("https://example.com")));
-        assert!(origin_allowed(&["https://example.com".to_string()], Some("https://example.com/")));
-        assert!(!origin_allowed(
-            &["https://example.com".to_string()],
-            Some("https://sub.example.com")
-        ));
-    }
 }

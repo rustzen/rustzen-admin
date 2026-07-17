@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 import {
     CartesianGrid,
@@ -17,6 +18,14 @@ import { DataTableShell } from "@/components/app/data-table-shell";
 import { PageCard } from "@/components/app/page-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import {
     Sheet,
@@ -48,6 +57,7 @@ function MonitoringNodesPage() {
         <PageCard
             title="Nodes"
             description="Latest heartbeat and resource snapshot from each registered node."
+            actions={<AddNodeDialog />}
         >
             <DataTableShell>
                 <Table>
@@ -122,6 +132,44 @@ function MonitoringNodesPage() {
             </DataTableShell>
             <NodeDetails node={selected} onOpenChange={(open) => !open && setSelected(null)} />
         </PageCard>
+    );
+}
+
+function AddNodeDialog() {
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button>
+                    <PlusIcon />
+                    Add node
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add a monitoring node</DialogTitle>
+                    <DialogDescription>
+                        Start the bundled agent on the node. It is added to this list after its
+                        first accepted heartbeat.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 text-sm">
+                    <p>
+                        Set the controller endpoint and the same
+                        <code className="mx-1 rounded bg-muted px-1 py-0.5">
+                            RUSTZEN_MONITOR_AGENT_TOKEN
+                        </code>
+                        used by the Monitor service.
+                    </p>
+                    <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
+                        rz-monitor agent
+                    </pre>
+                    <p className="text-muted-foreground">
+                        The node ID is derived from the agent hostname; repeated heartbeats update
+                        the existing row instead of creating duplicates.
+                    </p>
+                </div>
+            </DialogContent>
+        </Dialog>
     );
 }
 

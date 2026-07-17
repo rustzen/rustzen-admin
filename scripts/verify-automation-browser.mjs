@@ -20,7 +20,7 @@ const fixture = createServer((request, response) => {
     return;
   }
   response.writeHead(200, { "content-type": "text/html" });
-  response.end(`<form method="post"><input id="username" name="username"><input id="password" name="password"><input id="title" name="title"><button id="submit" type="submit">Submit</button></form>`);
+  response.end(`<form method="post"><input id="title" name="title"><button id="submit" type="submit">Submit</button></form>`);
 });
 await new Promise(resolve => fixture.listen(fixturePort, "127.0.0.1", resolve));
 
@@ -48,19 +48,15 @@ async function call(path, capability, method = "GET", body) {
 
 try {
   const system = await call("/api/reports/systems", "reports:system:manage", "POST", { name: "Browser fixture", baseUrl: `http://127.0.0.1:${fixturePort}` });
-  const account = await call("/api/reports/accounts", "reports:system:manage", "POST", { systemId: system.id, name: "Fixture", username: "rustzen-user", secret: "rustzen-secret" });
-  if (JSON.stringify(account).includes("rustzen-secret")) throw new Error("Account response exposed secret");
   const flow = await call("/api/reports/flows", "reports:flow:manage", "POST", { systemId: system.id, name: "Real form submission", steps: [
     { action: "goto", url: "/" },
-    { action: "fill", selector: "#username", value: "{{account.username}}" },
-    { action: "fill", selector: "#password", value: "{{account.password}}" },
     { action: "fill", selector: "#title", value: "{{input.title}}" },
     { action: "click", selector: "#submit" },
     { action: "waitFor", selector: "#received" },
     { action: "assertText", selector: "#received", text: "RustZen+MVP" },
     { action: "screenshot", name: "submitted" },
   ] });
-  const run = await call("/api/reports/runs", "reports:run:manage", "POST", { flowId: flow.id, accountId: account.id, input: { title: "RustZen MVP" } });
+  const run = await call("/api/reports/runs", "reports:run:manage", "POST", { flowId: flow.id, input: { title: "RustZen MVP" } });
   let current;
   for (let attempt = 0; attempt < 600; attempt += 1) {
     current = await call(`/api/reports/runs/${run.id}`, "reports:run:view");
@@ -71,13 +67,19 @@ try {
     const failedSteps = await call(`/api/reports/runs/${run.id}/steps`, "reports:run:view");
     throw new Error(`Browser run failed: ${JSON.stringify(current)}, steps=${JSON.stringify(failedSteps)}`);
   }
-  if (!submitted.includes("username=rustzen-user") || !submitted.includes("password=rustzen-secret") || !submitted.includes("title=RustZen+MVP")) throw new Error(`Fixture received unexpected form: ${submitted}`);
+  if (!submitted.includes("title=RustZen+MVP")) throw new Error(`Fixture received unexpected form: ${submitted}`);
   const steps = await call(`/api/reports/runs/${run.id}/steps`, "reports:run:view");
-  if (steps.length !== 8 || steps.some(step => step.status !== "succeeded")) throw new Error(`Unexpected step audit: ${JSON.stringify(steps)}`);
-  if (JSON.stringify(steps).includes("rustzen-secret")) throw new Error("Step audit exposed secret");
+  if (steps.length !== 6 || steps.some(step => step.status !== "succeeded")) throw new Error(`Unexpected step audit: ${JSON.stringify(steps)}`);
   const artifacts = await call(`/api/reports/runs/${run.id}/artifacts`, "reports:run:view");
-  if (artifacts.length !== 1) throw new Error(`Expected one screenshot artifact: ${JSON.stringify(artifacts)}`);
-  console.log(`Automation browser verification passed: run=${run.id}, steps=${steps.length}, artifacts=${artifacts.length}`);
+  if (!artifacts.some(artifact => artifact.kind === "screenshot") || !artifacts.some(artifact => artifact.kind === "live-frame")) {
+    throw new Error(`Expected screenshot and live-frame artifacts: ${JSON.stringify(artifacts)}`);
+  }
+  const livePath = `/api/reports/runs/${run.id}/live-frame`;
+  const liveResponse = await fetch(`${reportsBase}${livePath}`, { headers: headers(livePath, "reports:run:view") });
+  if (!liveResponse.ok || !liveResponse.headers.get("content-type")?.startsWith("image/png") || (await liveResponse.arrayBuffer()).byteLength === 0) {
+    throw new Error(`Live frame endpoint failed: ${liveResponse.status}`);
+  }
+  console.log(`Reports browser verification passed: run=${run.id}, steps=${steps.length}, artifacts=${artifacts.length}`);
 } finally {
   await new Promise(resolve => fixture.close(resolve));
 }

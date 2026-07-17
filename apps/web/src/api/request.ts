@@ -49,6 +49,18 @@ export const apiDownload = async ({
     return downloadName;
 };
 
+export const apiBlob = async (options: RequestOptions): Promise<Blob | null> => {
+    const { url, config } = formatFetchConfig(options);
+    const response = await fetch(url, config);
+    if (response.status === 204) {
+        return null;
+    }
+    if (!response.ok) {
+        return handleError(response);
+    }
+    return response.blob();
+};
+
 const getAuthHeaders = (): Record<string, string> => {
     const token = useAuthStore.getState().token;
     return token ? { Authorization: `Bearer ${token}` } : {};

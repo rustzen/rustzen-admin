@@ -23,35 +23,6 @@ pub struct SaveSystem {
     pub notes: Option<String>,
 }
 
-#[derive(Debug, Clone, FromRow, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Account {
-    pub id: String,
-    pub system_id: String,
-    pub name: String,
-    pub username: String,
-    pub secret_configured: bool,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct SaveAccount {
-    pub system_id: String,
-    pub name: String,
-    pub username: String,
-    pub secret: Option<String>,
-}
-
-#[derive(Debug, Clone, FromRow)]
-pub struct AccountSecret {
-    pub system_id: String,
-    pub username: String,
-    pub secret_ciphertext: String,
-    pub secret_nonce: String,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "action", rename_all = "camelCase", deny_unknown_fields)]
 pub enum FlowStep {
@@ -124,8 +95,6 @@ pub struct SaveFlow {
 pub struct Run {
     pub id: String,
     pub flow_id: String,
-    pub account_id: Option<String>,
-    pub schedule_id: Option<String>,
     pub status: String,
     pub input_json: String,
     pub error: Option<String>,
@@ -138,7 +107,6 @@ pub struct Run {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateRun {
     pub flow_id: String,
-    pub account_id: Option<String>,
     #[serde(default = "empty_object")]
     pub input: Value,
 }
@@ -168,33 +136,6 @@ pub struct Artifact {
     pub kind: String,
     pub file_name: String,
     pub created_at: String,
-}
-
-#[derive(Debug, Clone, FromRow, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Schedule {
-    pub id: String,
-    pub name: String,
-    pub flow_id: String,
-    pub account_id: Option<String>,
-    pub cron: String,
-    pub input_json: String,
-    pub enabled: bool,
-    pub next_run_at: Option<String>,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct SaveSchedule {
-    pub name: String,
-    pub flow_id: String,
-    pub account_id: Option<String>,
-    pub cron: String,
-    #[serde(default = "empty_object")]
-    pub input: Value,
-    pub enabled: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -227,23 +168,4 @@ pub struct Settings {
     pub default_step_timeout_seconds: i64,
     pub max_run_timeout_seconds: i64,
     pub updated_at: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UpdateSettings {
-    pub run_retention_days: i64,
-    pub artifact_retention_days: i64,
-    pub default_step_timeout_seconds: i64,
-    pub max_run_timeout_seconds: i64,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RuntimeSettings {
-    #[serde(flatten)]
-    pub settings: Settings,
-    pub max_concurrency: usize,
-    pub headless: bool,
-    pub browser_configured: bool,
 }

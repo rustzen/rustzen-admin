@@ -1,4 +1,4 @@
-import { apiRequest } from "@/api/request";
+import { apiBlob, apiRequest } from "@/api/request";
 
 export const reportsAPI = {
     systems: () => apiRequest<Reports.System[]>({ url: "/api/reports/systems" }),
@@ -16,22 +16,6 @@ export const reportsAPI = {
         }),
     deleteSystem: (id: string) =>
         apiRequest<void>({ url: `/api/reports/systems/${id}`, method: "DELETE" }),
-    accounts: (systemId?: string) =>
-        apiRequest<Reports.Account[]>({ url: "/api/reports/accounts", params: { systemId } }),
-    createAccount: (params: Reports.SaveAccount) =>
-        apiRequest<Reports.Account, Reports.SaveAccount>({
-            url: "/api/reports/accounts",
-            method: "POST",
-            params,
-        }),
-    updateAccount: (id: string, params: Reports.SaveAccount) =>
-        apiRequest<Reports.Account, Reports.SaveAccount>({
-            url: `/api/reports/accounts/${id}`,
-            method: "PUT",
-            params,
-        }),
-    deleteAccount: (id: string) =>
-        apiRequest<void>({ url: `/api/reports/accounts/${id}`, method: "DELETE" }),
     flows: (systemId?: string) =>
         apiRequest<Reports.Flow[]>({ url: "/api/reports/flows", params: { systemId } }),
     createFlow: (params: Reports.SaveFlow) =>
@@ -63,26 +47,11 @@ export const reportsAPI = {
         apiRequest<Reports.RunStep[]>({ url: `/api/reports/runs/${id}/steps` }),
     runArtifacts: (id: string) =>
         apiRequest<Reports.Artifact[]>({ url: `/api/reports/runs/${id}/artifacts` }),
-    schedules: () => apiRequest<Reports.Schedule[]>({ url: "/api/reports/schedules" }),
-    createSchedule: (params: Reports.SaveSchedule) =>
-        apiRequest<Reports.Schedule, Reports.SaveSchedule>({
-            url: "/api/reports/schedules",
-            method: "POST",
-            params,
-        }),
-    updateSchedule: (id: string, params: Reports.SaveSchedule) =>
-        apiRequest<Reports.Schedule, Reports.SaveSchedule>({
-            url: `/api/reports/schedules/${id}`,
-            method: "PUT",
-            params,
-        }),
-    deleteSchedule: (id: string) =>
-        apiRequest<void>({ url: `/api/reports/schedules/${id}`, method: "DELETE" }),
-    settings: () => apiRequest<Reports.Settings>({ url: "/api/reports/settings" }),
-    updateSettings: (params: Reports.UpdateSettings) =>
-        apiRequest<Reports.Settings, Reports.UpdateSettings>({
-            url: "/api/reports/settings",
-            method: "PUT",
-            params,
-        }),
+    liveFrame: async (id: string, signal?: AbortSignal) => {
+        const blob = await apiBlob({ url: `/api/reports/runs/${id}/live-frame`, signal });
+        if (blob && (blob.type !== "image/png" || blob.size === 0)) {
+            throw new Error("Invalid live frame response");
+        }
+        return blob;
+    },
 };

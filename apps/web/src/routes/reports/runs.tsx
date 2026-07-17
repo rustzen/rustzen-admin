@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { BanIcon, EyeIcon, PlayIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { appMessage, reportsAPI } from "@/api";
 import { DataTableShell } from "@/components/app/data-table-shell";
@@ -43,7 +43,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-export const Route = createFileRoute("/automation/runs")({ component: RunsPage });
+export const Route = createFileRoute("/reports/runs")({ component: RunsPage });
 const size = 20;
 const variants: Record<Reports.Run["status"], "default" | "secondary" | "destructive" | "outline"> =
     {
@@ -60,10 +60,6 @@ function RunsPage() {
     const { data: flows = [] } = useQuery({
         queryKey: ["reports", "flows"],
         queryFn: () => reportsAPI.flows(),
-    });
-    const { data: accounts = [] } = useQuery({
-        queryKey: ["reports", "accounts"],
-        queryFn: () => reportsAPI.accounts(),
     });
     const { data, isFetching } = useQuery({
         queryKey: ["reports", "runs", current],
@@ -83,11 +79,11 @@ function RunsPage() {
     const runs = data?.data ?? [];
     return (
         <PageCard
-            title="Runs"
-            description="Execute browser flows and inspect their durable step-by-step audit trail."
+            title="Filling runs"
+            description="Write selected input data through a report template and inspect execution live."
             actions={
                 <AuthWrap code="reports:run:manage">
-                    <RunDialog flows={flows} accounts={accounts} />
+                    <RunDialog flows={flows} />
                 </AuthWrap>
             }
         >
@@ -170,11 +166,10 @@ function RunsPage() {
         </PageCard>
     );
 }
-function RunDialog({ flows, accounts }: { flows: Reports.Flow[]; accounts: Reports.Account[] }) {
+function RunDialog({ flows }: { flows: Reports.Flow[] }) {
     const client = useQueryClient();
     const [open, setOpen] = useState(false),
         [flowId, setFlowId] = useState(""),
-        [accountId, setAccountId] = useState("none"),
         [json, setJson] = useState("{}");
     const mutation = useMutation({
         mutationFn: reportsAPI.createRun,
@@ -187,7 +182,7 @@ function RunDialog({ flows, accounts }: { flows: Reports.Flow[]; accounts: Repor
     const save = () => {
         try {
             const input = JSON.parse(json) as Record<string, unknown>;
-            mutation.mutate({ flowId, ...(accountId !== "none" ? { accountId } : {}), input });
+            mutation.mutate({ flowId, input });
         } catch {
             appMessage.error("Input must be valid JSON");
         }
@@ -204,7 +199,7 @@ function RunDialog({ flows, accounts }: { flows: Reports.Flow[]; accounts: Repor
                 <DialogHeader>
                     <DialogTitle>Start run</DialogTitle>
                     <DialogDescription>
-                        Choose a validated flow, optional account, and input object.
+                        Choose a validated flow and the input object to write.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4">
@@ -213,15 +208,6 @@ function RunDialog({ flows, accounts }: { flows: Reports.Flow[]; accounts: Repor
                         value={flowId}
                         onChange={setFlowId}
                         items={flows.map((f) => ({ id: f.id, name: f.name }))}
-                    />
-                    <Choice
-                        label="Account"
-                        value={accountId}
-                        onChange={setAccountId}
-                        items={[
-                            { id: "none", name: "No account" },
-                            ...accounts.map((a) => ({ id: a.id, name: a.name })),
-                        ]}
                     />
                     <div className="grid gap-2">
                         <Label>Input JSON</Label>
@@ -242,15 +228,29 @@ function RunDialog({ flows, accounts }: { flows: Reports.Flow[]; accounts: Repor
     );
 }
 function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }) {
+    const { data: currentRun = run } = useQuery({
+        queryKey: ["reports", "run", run?.id],
+        queryFn: () => reportsAPI.run(run!.id),
+        enabled: Boolean(run),
+        initialData: run,
+        refetchInterval: (query) => {
+            const status = query.state.data?.status;
+            return status === "queued" || status === "running" ? 1000 : false;
+        },
+    });
     const { data: steps = [] } = useQuery({
         queryKey: ["reports", "run-steps", run?.id],
         queryFn: () => reportsAPI.runSteps(run!.id),
         enabled: Boolean(run),
+        refetchInterval:
+            currentRun?.status === "queued" || currentRun?.status === "running" ? 1000 : false,
     });
     const { data: artifacts = [] } = useQuery({
         queryKey: ["reports", "run-artifacts", run?.id],
         queryFn: () => reportsAPI.runArtifacts(run!.id),
         enabled: Boolean(run),
+        refetchInterval:
+            currentRun?.status === "queued" || currentRun?.status === "running" ? 1000 : false,
     });
     return (
         <Sheet open={Boolean(run)} onOpenChange={(open) => !open && onClose()}>
@@ -262,12 +262,20 @@ function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }
                 <div className="space-y-5 p-4">
                     {run && (
                         <div className="rounded-md border p-3 text-sm">
-                            <p>Status: {run.status}</p>
-                            <p>Started: {run.startedAt ? date(run.startedAt) : "-"}</p>
-                            <p>Finished: {run.finishedAt ? date(run.finishedAt) : "-"}</p>
-                            {run.error && <p className="mt-2 text-destructive">{run.error}</p>}
+                            <p>Status: {currentRun?.status}</p>
+                            <p>
+                                Started: {currentRun?.startedAt ? date(currentRun.startedAt) : "-"}
+                            </p>
+                            <p>
+                                Finished:{" "}
+                                {currentRun?.finishedAt ? date(currentRun.finishedAt) : "-"}
+                            </p>
+                            {currentRun?.error && (
+                                <p className="mt-2 text-destructive">{currentRun.error}</p>
+                            )}
                         </div>
                     )}
+                    <LiveFrame run={currentRun} />
                     <div>
                         <h3 className="mb-2 font-medium">Steps</h3>
                         {steps.map((step) => (
@@ -313,6 +321,41 @@ function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }
                 </div>
             </SheetContent>
         </Sheet>
+    );
+}
+
+function LiveFrame({ run }: { run?: Reports.Run }) {
+    const { data } = useQuery({
+        queryKey: ["reports", "live-frame", run?.id],
+        queryFn: ({ signal }) => reportsAPI.liveFrame(run!.id, signal),
+        enabled: Boolean(run),
+        refetchInterval: run?.status === "queued" || run?.status === "running" ? 1000 : false,
+    });
+    const [source, setSource] = useState<string>();
+    useEffect(() => setSource(undefined), [run?.id]);
+    useEffect(() => {
+        if (!data) {
+            return;
+        }
+        const url = URL.createObjectURL(data);
+        setSource(url);
+        return () => URL.revokeObjectURL(url);
+    }, [data]);
+    return (
+        <div>
+            <h3 className="mb-2 font-medium">Live view</h3>
+            <div className="flex h-80 items-center justify-center overflow-hidden rounded-md border bg-muted/30">
+                {source ? (
+                    <img src={source} className="h-full w-full object-contain" alt="Live run" />
+                ) : (
+                    <p className="text-sm text-muted-foreground">
+                        {run?.status === "queued" || run?.status === "running"
+                            ? "Waiting for the browser frame..."
+                            : "No live frame was captured."}
+                    </p>
+                )}
+            </div>
+        </div>
     );
 }
 function Choice({

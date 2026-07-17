@@ -4,7 +4,7 @@ use super::types::{OverviewTotals, TrendPoint};
 
 pub async fn totals(
     connection: &mut SqliteConnection,
-    project_id: &str,
+    _project_id: &str,
     from: &str,
     to: &str,
 ) -> Result<OverviewTotals, sqlx::Error> {
@@ -19,9 +19,8 @@ pub async fn totals(
            COALESCE(AVG(CASE WHEN event_name = 'api_request' THEN duration_ms END), 0.0)
              AS average_duration_ms
          FROM insights_events
-         WHERE project_id = ? AND occurred_at >= ? AND occurred_at <= ?",
+         WHERE occurred_at >= ? AND occurred_at <= ?",
     )
-    .bind(project_id)
     .bind(from)
     .bind(to)
     .fetch_one(connection)
@@ -30,16 +29,15 @@ pub async fn totals(
 
 pub async fn p95_duration(
     connection: &mut SqliteConnection,
-    project_id: &str,
+    _project_id: &str,
     from: &str,
     to: &str,
 ) -> Result<Option<i64>, sqlx::Error> {
     let count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM insights_events WHERE project_id = ?
-         AND event_name = 'api_request' AND duration_ms IS NOT NULL
+        "SELECT COUNT(*) FROM insights_events
+         WHERE event_name = 'api_request' AND duration_ms IS NOT NULL
          AND occurred_at >= ? AND occurred_at <= ?",
     )
-    .bind(project_id)
     .bind(from)
     .bind(to)
     .fetch_one(&mut *connection)
@@ -49,11 +47,10 @@ pub async fn p95_duration(
     }
     let offset = (count * 95 + 99) / 100 - 1;
     sqlx::query_scalar(
-        "SELECT duration_ms FROM insights_events WHERE project_id = ?
-         AND event_name = 'api_request' AND duration_ms IS NOT NULL
+        "SELECT duration_ms FROM insights_events
+         WHERE event_name = 'api_request' AND duration_ms IS NOT NULL
          AND occurred_at >= ? AND occurred_at <= ? ORDER BY duration_ms ASC LIMIT 1 OFFSET ?",
     )
-    .bind(project_id)
     .bind(from)
     .bind(to)
     .bind(offset)
@@ -63,7 +60,7 @@ pub async fn p95_duration(
 
 pub async fn trend(
     connection: &mut SqliteConnection,
-    project_id: &str,
+    _project_id: &str,
     from: &str,
     to: &str,
 ) -> Result<Vec<TrendPoint>, sqlx::Error> {
@@ -73,10 +70,9 @@ pub async fn trend(
                 COUNT(DISTINCT visitor_id) AS uv,
                 SUM(CASE WHEN event_name = 'api_request' THEN 1 ELSE 0 END) AS request_count,
                 SUM(is_error) AS error_count
-         FROM insights_events WHERE project_id = ? AND occurred_at >= ? AND occurred_at <= ?
+         FROM insights_events WHERE occurred_at >= ? AND occurred_at <= ?
          GROUP BY substr(occurred_at, 1, 10) ORDER BY date ASC",
     )
-    .bind(project_id)
     .bind(from)
     .bind(to)
     .fetch_all(connection)

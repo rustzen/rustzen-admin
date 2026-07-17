@@ -1,19 +1,6 @@
 use sqlx::SqliteConnection;
 
-use super::types::{NewEvent, ProjectCredential};
-
-pub async fn find_project_by_key(
-    connection: &mut SqliteConnection,
-    project_key_hash: &str,
-) -> Result<Option<ProjectCredential>, sqlx::Error> {
-    sqlx::query_as(
-        "SELECT id, allowed_origins FROM insights_projects
-         WHERE project_key_hash = ? AND archived_at IS NULL",
-    )
-    .bind(project_key_hash)
-    .fetch_optional(connection)
-    .await
-}
+use super::types::NewEvent;
 
 pub async fn insert_event(
     connection: &mut SqliteConnection,

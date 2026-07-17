@@ -264,10 +264,7 @@ pub(crate) async fn unhealthy_count(pool: &SqlitePool) -> Result<i64, AppError> 
 mod tests {
     use tokio::net::TcpListener;
 
-    use crate::{
-        features::incidents::{self, types::IncidentQuery},
-        infra::db::migrated_test_pool,
-    };
+    use crate::{features::incidents, infra::db::migrated_test_pool};
 
     use super::{
         MAX_CHECK_CONCURRENCY, ResultQuery, SaveCheck, TestCheck, create, results, run_once, test,
@@ -308,35 +305,13 @@ mod tests {
             make_due(&pool, &check.id).await;
             assert_eq!(run_once(&pool).await.expect("down run"), 1);
         }
-        let active = incidents::service::list(
-            &pool,
-            IncidentQuery {
-                current: None,
-                page_size: None,
-                status: Some("open".to_string()),
-                source_type: Some("check".to_string()),
-            },
-        )
-        .await
-        .expect("active incidents");
-        assert_eq!(active.total, 1);
+        assert_eq!(incidents::service::active_count(&pool).await.expect("active incidents"), 1);
 
         let listener = TcpListener::bind(("127.0.0.1", port as u16)).await.expect("rebind fixture");
         make_due(&pool, &check.id).await;
         assert_eq!(run_once(&pool).await.expect("recovery run"), 1);
         drop(listener);
-        let resolved = incidents::service::list(
-            &pool,
-            IncidentQuery {
-                current: None,
-                page_size: None,
-                status: Some("resolved".to_string()),
-                source_type: Some("check".to_string()),
-            },
-        )
-        .await
-        .expect("resolved incidents");
-        assert_eq!(resolved.total, 1);
+        assert_eq!(incidents::service::active_count(&pool).await.expect("resolved incidents"), 0);
         assert_eq!(
             results(&pool, &check.id, ResultQuery { current: None, page_size: None },)
                 .await

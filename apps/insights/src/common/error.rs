@@ -17,18 +17,6 @@ impl AppError {
         Self::new(StatusCode::BAD_REQUEST, message)
     }
 
-    pub fn unauthorized(message: impl Into<String>) -> Self {
-        Self::new(StatusCode::UNAUTHORIZED, message)
-    }
-
-    pub fn forbidden(message: impl Into<String>) -> Self {
-        Self::new(StatusCode::FORBIDDEN, message)
-    }
-
-    pub fn not_found(resource: &str) -> Self {
-        Self::new(StatusCode::NOT_FOUND, format!("{resource} not found"))
-    }
-
     pub fn input_rejection(status: StatusCode, message: impl Into<String>) -> Self {
         Self::new(status, message)
     }

@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::FromRow;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -28,17 +27,6 @@ pub struct TrackInput {
 
 fn empty_properties() -> Value {
     Value::Object(Default::default())
-}
-
-pub struct DomainCredentials {
-    pub project_key: String,
-    pub origin: Option<String>,
-}
-
-#[derive(FromRow)]
-pub struct ProjectCredential {
-    pub id: String,
-    pub allowed_origins: String,
 }
 
 pub struct NewEvent {

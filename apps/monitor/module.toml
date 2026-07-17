@@ -22,24 +22,8 @@ permission = "monitor:node:view"
 
 [[menus]]
 code = "checks"
-title = "Checks"
+title = "Service Monitoring"
 path = "/monitoring/checks"
 icon = "monitor"
 sort_order = 30
 permission = "monitor:check:view"
-
-[[menus]]
-code = "incidents"
-title = "Incidents"
-path = "/monitoring/incidents"
-icon = "monitor"
-sort_order = 40
-permission = "monitor:incident:view"
-
-[[menus]]
-code = "settings"
-title = "Settings"
-path = "/monitoring/settings"
-icon = "monitor"
-sort_order = 50
-permission = "monitor:settings:view"

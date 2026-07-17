@@ -5,30 +5,7 @@ use sqlx::FromRow;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PageQuery {
-    pub project_id: String,
-    pub from: Option<DateTime<Utc>>,
-    pub to: Option<DateTime<Utc>>,
-    pub path: Option<String>,
-    pub current: Option<i64>,
-    pub page_size: Option<i64>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ApiQuery {
-    pub project_id: String,
-    pub from: Option<DateTime<Utc>>,
-    pub to: Option<DateTime<Utc>>,
-    pub path: Option<String>,
-    pub current: Option<i64>,
-    pub page_size: Option<i64>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct EventQuery {
-    pub project_id: String,
     pub from: Option<DateTime<Utc>>,
     pub to: Option<DateTime<Utc>>,
     pub event_name: Option<String>,
@@ -36,61 +13,6 @@ pub struct EventQuery {
     pub platform: Option<String>,
     pub current: Option<i64>,
     pub page_size: Option<i64>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UserQuery {
-    pub project_id: String,
-    pub from: Option<DateTime<Utc>>,
-    pub to: Option<DateTime<Utc>>,
-    pub keyword: Option<String>,
-    pub current: Option<i64>,
-    pub page_size: Option<i64>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UserEventQuery {
-    pub project_id: String,
-    pub from: Option<DateTime<Utc>>,
-    pub to: Option<DateTime<Utc>>,
-    pub current: Option<i64>,
-    pub page_size: Option<i64>,
-}
-
-#[derive(Debug, FromRow, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PageStat {
-    pub page_path: String,
-    pub pv: i64,
-    pub uv: i64,
-    pub average_duration_ms: f64,
-    pub last_seen_at: String,
-}
-
-#[derive(Debug, FromRow)]
-pub struct ApiStatRow {
-    pub api_path: String,
-    pub api_method: Option<String>,
-    pub request_count: i64,
-    pub error_count: i64,
-    pub average_duration_ms: f64,
-    pub p95_duration_ms: i64,
-    pub last_seen_at: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ApiStat {
-    pub api_path: String,
-    pub api_method: Option<String>,
-    pub request_count: i64,
-    pub error_count: i64,
-    pub error_rate: f64,
-    pub average_duration_ms: f64,
-    pub p95_duration_ms: u64,
-    pub last_seen_at: String,
 }
 
 #[derive(Debug, FromRow)]
@@ -157,15 +79,4 @@ impl TryFrom<EventRow> for Event {
             received_at: row.received_at,
         })
     }
-}
-
-#[derive(Debug, FromRow, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UserStat {
-    pub visitor_id: String,
-    pub user_id: Option<String>,
-    pub platform: Option<String>,
-    pub event_count: i64,
-    pub first_seen_at: String,
-    pub last_seen_at: String,
 }

@@ -23,15 +23,13 @@ impl OverviewService {
         let from = from.to_rfc3339();
         let to = to.to_rfc3339();
         let mut transaction = pool.begin().await.map_err(AppError::internal)?;
-        let totals = repo::totals(&mut transaction, &query.project_id, &from, &to)
+        let totals =
+            repo::totals(&mut transaction, "", &from, &to).await.map_err(AppError::internal)?;
+        let p95_duration = repo::p95_duration(&mut transaction, "", &from, &to)
             .await
             .map_err(AppError::internal)?;
-        let p95_duration = repo::p95_duration(&mut transaction, &query.project_id, &from, &to)
-            .await
-            .map_err(AppError::internal)?;
-        let trend = repo::trend(&mut transaction, &query.project_id, &from, &to)
-            .await
-            .map_err(AppError::internal)?;
+        let trend =
+            repo::trend(&mut transaction, "", &from, &to).await.map_err(AppError::internal)?;
         transaction.commit().await.map_err(AppError::internal)?;
 
         Ok(Overview {

@@ -9,10 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MonitoringRouteImport } from './routes/monitoring'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as AutomationRouteImport } from './routes/automation'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as R404RouteImport } from './routes/404'
 import { Route as R403RouteImport } from './routes/403'
@@ -22,28 +22,23 @@ import { Route as SystemStatusRouteImport } from './routes/system/status'
 import { Route as SystemRoleRouteImport } from './routes/system/role'
 import { Route as SystemModuleRouteImport } from './routes/system/module'
 import { Route as SystemMenuRouteImport } from './routes/system/menu'
-import { Route as MonitoringSettingsRouteImport } from './routes/monitoring/settings'
+import { Route as ReportsTemplatesRouteImport } from './routes/reports/templates'
+import { Route as ReportsRunsRouteImport } from './routes/reports/runs'
 import { Route as MonitoringOverviewRouteImport } from './routes/monitoring/overview'
 import { Route as MonitoringNodesRouteImport } from './routes/monitoring/nodes'
-import { Route as MonitoringIncidentsRouteImport } from './routes/monitoring/incidents'
 import { Route as MonitoringChecksRouteImport } from './routes/monitoring/checks'
 import { Route as ManageTaskRouteImport } from './routes/manage/task'
 import { Route as ManageLogRouteImport } from './routes/manage/log'
 import { Route as ManageDictRouteImport } from './routes/manage/dict'
 import { Route as ManageDeployRouteImport } from './routes/manage/deploy'
-import { Route as AutomationSystemsRouteImport } from './routes/automation/systems'
-import { Route as AutomationSettingsRouteImport } from './routes/automation/settings'
-import { Route as AutomationSchedulesRouteImport } from './routes/automation/schedules'
-import { Route as AutomationRunsRouteImport } from './routes/automation/runs'
-import { Route as AutomationFlowsRouteImport } from './routes/automation/flows'
-import { Route as AnalyticsUsersRouteImport } from './routes/analytics/users'
-import { Route as AnalyticsSettingsRouteImport } from './routes/analytics/settings'
-import { Route as AnalyticsProjectsRouteImport } from './routes/analytics/projects'
-import { Route as AnalyticsPagesRouteImport } from './routes/analytics/pages'
 import { Route as AnalyticsOverviewRouteImport } from './routes/analytics/overview'
-import { Route as AnalyticsEventsRouteImport } from './routes/analytics/events'
-import { Route as AnalyticsApisRouteImport } from './routes/analytics/apis'
+import { Route as AnalyticsDetailsRouteImport } from './routes/analytics/details'
 
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -57,11 +52,6 @@ const MonitoringRoute = MonitoringRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AutomationRoute = AutomationRouteImport.update({
-  id: '/automation',
-  path: '/automation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -109,10 +99,15 @@ const SystemMenuRoute = SystemMenuRouteImport.update({
   path: '/system/menu',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MonitoringSettingsRoute = MonitoringSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => MonitoringRoute,
+const ReportsTemplatesRoute = ReportsTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsRunsRoute = ReportsRunsRouteImport.update({
+  id: '/runs',
+  path: '/runs',
+  getParentRoute: () => ReportsRoute,
 } as any)
 const MonitoringOverviewRoute = MonitoringOverviewRouteImport.update({
   id: '/overview',
@@ -122,11 +117,6 @@ const MonitoringOverviewRoute = MonitoringOverviewRouteImport.update({
 const MonitoringNodesRoute = MonitoringNodesRouteImport.update({
   id: '/nodes',
   path: '/nodes',
-  getParentRoute: () => MonitoringRoute,
-} as any)
-const MonitoringIncidentsRoute = MonitoringIncidentsRouteImport.update({
-  id: '/incidents',
-  path: '/incidents',
   getParentRoute: () => MonitoringRoute,
 } as any)
 const MonitoringChecksRoute = MonitoringChecksRouteImport.update({
@@ -154,64 +144,14 @@ const ManageDeployRoute = ManageDeployRouteImport.update({
   path: '/manage/deploy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AutomationSystemsRoute = AutomationSystemsRouteImport.update({
-  id: '/systems',
-  path: '/systems',
-  getParentRoute: () => AutomationRoute,
-} as any)
-const AutomationSettingsRoute = AutomationSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AutomationRoute,
-} as any)
-const AutomationSchedulesRoute = AutomationSchedulesRouteImport.update({
-  id: '/schedules',
-  path: '/schedules',
-  getParentRoute: () => AutomationRoute,
-} as any)
-const AutomationRunsRoute = AutomationRunsRouteImport.update({
-  id: '/runs',
-  path: '/runs',
-  getParentRoute: () => AutomationRoute,
-} as any)
-const AutomationFlowsRoute = AutomationFlowsRouteImport.update({
-  id: '/flows',
-  path: '/flows',
-  getParentRoute: () => AutomationRoute,
-} as any)
-const AnalyticsUsersRoute = AnalyticsUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AnalyticsRoute,
-} as any)
-const AnalyticsSettingsRoute = AnalyticsSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AnalyticsRoute,
-} as any)
-const AnalyticsProjectsRoute = AnalyticsProjectsRouteImport.update({
-  id: '/projects',
-  path: '/projects',
-  getParentRoute: () => AnalyticsRoute,
-} as any)
-const AnalyticsPagesRoute = AnalyticsPagesRouteImport.update({
-  id: '/pages',
-  path: '/pages',
-  getParentRoute: () => AnalyticsRoute,
-} as any)
 const AnalyticsOverviewRoute = AnalyticsOverviewRouteImport.update({
   id: '/overview',
   path: '/overview',
   getParentRoute: () => AnalyticsRoute,
 } as any)
-const AnalyticsEventsRoute = AnalyticsEventsRouteImport.update({
-  id: '/events',
-  path: '/events',
-  getParentRoute: () => AnalyticsRoute,
-} as any)
-const AnalyticsApisRoute = AnalyticsApisRouteImport.update({
-  id: '/apis',
-  path: '/apis',
+const AnalyticsDetailsRoute = AnalyticsDetailsRouteImport.update({
+  id: '/details',
+  path: '/details',
   getParentRoute: () => AnalyticsRoute,
 } as any)
 
@@ -220,31 +160,21 @@ export interface FileRoutesByFullPath {
   '/403': typeof R403Route
   '/404': typeof R404Route
   '/analytics': typeof AnalyticsRouteWithChildren
-  '/automation': typeof AutomationRouteWithChildren
   '/login': typeof LoginRoute
   '/monitoring': typeof MonitoringRouteWithChildren
   '/profile': typeof ProfileRoute
-  '/analytics/apis': typeof AnalyticsApisRoute
-  '/analytics/events': typeof AnalyticsEventsRoute
+  '/reports': typeof ReportsRouteWithChildren
+  '/analytics/details': typeof AnalyticsDetailsRoute
   '/analytics/overview': typeof AnalyticsOverviewRoute
-  '/analytics/pages': typeof AnalyticsPagesRoute
-  '/analytics/projects': typeof AnalyticsProjectsRoute
-  '/analytics/settings': typeof AnalyticsSettingsRoute
-  '/analytics/users': typeof AnalyticsUsersRoute
-  '/automation/flows': typeof AutomationFlowsRoute
-  '/automation/runs': typeof AutomationRunsRoute
-  '/automation/schedules': typeof AutomationSchedulesRoute
-  '/automation/settings': typeof AutomationSettingsRoute
-  '/automation/systems': typeof AutomationSystemsRoute
   '/manage/deploy': typeof ManageDeployRoute
   '/manage/dict': typeof ManageDictRoute
   '/manage/log': typeof ManageLogRoute
   '/manage/task': typeof ManageTaskRoute
   '/monitoring/checks': typeof MonitoringChecksRoute
-  '/monitoring/incidents': typeof MonitoringIncidentsRoute
   '/monitoring/nodes': typeof MonitoringNodesRoute
   '/monitoring/overview': typeof MonitoringOverviewRoute
-  '/monitoring/settings': typeof MonitoringSettingsRoute
+  '/reports/runs': typeof ReportsRunsRoute
+  '/reports/templates': typeof ReportsTemplatesRoute
   '/system/menu': typeof SystemMenuRoute
   '/system/module': typeof SystemModuleRoute
   '/system/role': typeof SystemRoleRoute
@@ -256,31 +186,21 @@ export interface FileRoutesByTo {
   '/403': typeof R403Route
   '/404': typeof R404Route
   '/analytics': typeof AnalyticsRouteWithChildren
-  '/automation': typeof AutomationRouteWithChildren
   '/login': typeof LoginRoute
   '/monitoring': typeof MonitoringRouteWithChildren
   '/profile': typeof ProfileRoute
-  '/analytics/apis': typeof AnalyticsApisRoute
-  '/analytics/events': typeof AnalyticsEventsRoute
+  '/reports': typeof ReportsRouteWithChildren
+  '/analytics/details': typeof AnalyticsDetailsRoute
   '/analytics/overview': typeof AnalyticsOverviewRoute
-  '/analytics/pages': typeof AnalyticsPagesRoute
-  '/analytics/projects': typeof AnalyticsProjectsRoute
-  '/analytics/settings': typeof AnalyticsSettingsRoute
-  '/analytics/users': typeof AnalyticsUsersRoute
-  '/automation/flows': typeof AutomationFlowsRoute
-  '/automation/runs': typeof AutomationRunsRoute
-  '/automation/schedules': typeof AutomationSchedulesRoute
-  '/automation/settings': typeof AutomationSettingsRoute
-  '/automation/systems': typeof AutomationSystemsRoute
   '/manage/deploy': typeof ManageDeployRoute
   '/manage/dict': typeof ManageDictRoute
   '/manage/log': typeof ManageLogRoute
   '/manage/task': typeof ManageTaskRoute
   '/monitoring/checks': typeof MonitoringChecksRoute
-  '/monitoring/incidents': typeof MonitoringIncidentsRoute
   '/monitoring/nodes': typeof MonitoringNodesRoute
   '/monitoring/overview': typeof MonitoringOverviewRoute
-  '/monitoring/settings': typeof MonitoringSettingsRoute
+  '/reports/runs': typeof ReportsRunsRoute
+  '/reports/templates': typeof ReportsTemplatesRoute
   '/system/menu': typeof SystemMenuRoute
   '/system/module': typeof SystemModuleRoute
   '/system/role': typeof SystemRoleRoute
@@ -293,31 +213,21 @@ export interface FileRoutesById {
   '/403': typeof R403Route
   '/404': typeof R404Route
   '/analytics': typeof AnalyticsRouteWithChildren
-  '/automation': typeof AutomationRouteWithChildren
   '/login': typeof LoginRoute
   '/monitoring': typeof MonitoringRouteWithChildren
   '/profile': typeof ProfileRoute
-  '/analytics/apis': typeof AnalyticsApisRoute
-  '/analytics/events': typeof AnalyticsEventsRoute
+  '/reports': typeof ReportsRouteWithChildren
+  '/analytics/details': typeof AnalyticsDetailsRoute
   '/analytics/overview': typeof AnalyticsOverviewRoute
-  '/analytics/pages': typeof AnalyticsPagesRoute
-  '/analytics/projects': typeof AnalyticsProjectsRoute
-  '/analytics/settings': typeof AnalyticsSettingsRoute
-  '/analytics/users': typeof AnalyticsUsersRoute
-  '/automation/flows': typeof AutomationFlowsRoute
-  '/automation/runs': typeof AutomationRunsRoute
-  '/automation/schedules': typeof AutomationSchedulesRoute
-  '/automation/settings': typeof AutomationSettingsRoute
-  '/automation/systems': typeof AutomationSystemsRoute
   '/manage/deploy': typeof ManageDeployRoute
   '/manage/dict': typeof ManageDictRoute
   '/manage/log': typeof ManageLogRoute
   '/manage/task': typeof ManageTaskRoute
   '/monitoring/checks': typeof MonitoringChecksRoute
-  '/monitoring/incidents': typeof MonitoringIncidentsRoute
   '/monitoring/nodes': typeof MonitoringNodesRoute
   '/monitoring/overview': typeof MonitoringOverviewRoute
-  '/monitoring/settings': typeof MonitoringSettingsRoute
+  '/reports/runs': typeof ReportsRunsRoute
+  '/reports/templates': typeof ReportsTemplatesRoute
   '/system/menu': typeof SystemMenuRoute
   '/system/module': typeof SystemModuleRoute
   '/system/role': typeof SystemRoleRoute
@@ -331,31 +241,21 @@ export interface FileRouteTypes {
     | '/403'
     | '/404'
     | '/analytics'
-    | '/automation'
     | '/login'
     | '/monitoring'
     | '/profile'
-    | '/analytics/apis'
-    | '/analytics/events'
+    | '/reports'
+    | '/analytics/details'
     | '/analytics/overview'
-    | '/analytics/pages'
-    | '/analytics/projects'
-    | '/analytics/settings'
-    | '/analytics/users'
-    | '/automation/flows'
-    | '/automation/runs'
-    | '/automation/schedules'
-    | '/automation/settings'
-    | '/automation/systems'
     | '/manage/deploy'
     | '/manage/dict'
     | '/manage/log'
     | '/manage/task'
     | '/monitoring/checks'
-    | '/monitoring/incidents'
     | '/monitoring/nodes'
     | '/monitoring/overview'
-    | '/monitoring/settings'
+    | '/reports/runs'
+    | '/reports/templates'
     | '/system/menu'
     | '/system/module'
     | '/system/role'
@@ -367,31 +267,21 @@ export interface FileRouteTypes {
     | '/403'
     | '/404'
     | '/analytics'
-    | '/automation'
     | '/login'
     | '/monitoring'
     | '/profile'
-    | '/analytics/apis'
-    | '/analytics/events'
+    | '/reports'
+    | '/analytics/details'
     | '/analytics/overview'
-    | '/analytics/pages'
-    | '/analytics/projects'
-    | '/analytics/settings'
-    | '/analytics/users'
-    | '/automation/flows'
-    | '/automation/runs'
-    | '/automation/schedules'
-    | '/automation/settings'
-    | '/automation/systems'
     | '/manage/deploy'
     | '/manage/dict'
     | '/manage/log'
     | '/manage/task'
     | '/monitoring/checks'
-    | '/monitoring/incidents'
     | '/monitoring/nodes'
     | '/monitoring/overview'
-    | '/monitoring/settings'
+    | '/reports/runs'
+    | '/reports/templates'
     | '/system/menu'
     | '/system/module'
     | '/system/role'
@@ -403,31 +293,21 @@ export interface FileRouteTypes {
     | '/403'
     | '/404'
     | '/analytics'
-    | '/automation'
     | '/login'
     | '/monitoring'
     | '/profile'
-    | '/analytics/apis'
-    | '/analytics/events'
+    | '/reports'
+    | '/analytics/details'
     | '/analytics/overview'
-    | '/analytics/pages'
-    | '/analytics/projects'
-    | '/analytics/settings'
-    | '/analytics/users'
-    | '/automation/flows'
-    | '/automation/runs'
-    | '/automation/schedules'
-    | '/automation/settings'
-    | '/automation/systems'
     | '/manage/deploy'
     | '/manage/dict'
     | '/manage/log'
     | '/manage/task'
     | '/monitoring/checks'
-    | '/monitoring/incidents'
     | '/monitoring/nodes'
     | '/monitoring/overview'
-    | '/monitoring/settings'
+    | '/reports/runs'
+    | '/reports/templates'
     | '/system/menu'
     | '/system/module'
     | '/system/role'
@@ -440,10 +320,10 @@ export interface RootRouteChildren {
   R403Route: typeof R403Route
   R404Route: typeof R404Route
   AnalyticsRoute: typeof AnalyticsRouteWithChildren
-  AutomationRoute: typeof AutomationRouteWithChildren
   LoginRoute: typeof LoginRoute
   MonitoringRoute: typeof MonitoringRouteWithChildren
   ProfileRoute: typeof ProfileRoute
+  ReportsRoute: typeof ReportsRouteWithChildren
   ManageDeployRoute: typeof ManageDeployRoute
   ManageDictRoute: typeof ManageDictRoute
   ManageLogRoute: typeof ManageLogRoute
@@ -457,6 +337,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -476,13 +363,6 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/automation': {
-      id: '/automation'
-      path: '/automation'
-      fullPath: '/automation'
-      preLoaderRoute: typeof AutomationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -548,12 +428,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemMenuRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/monitoring/settings': {
-      id: '/monitoring/settings'
-      path: '/settings'
-      fullPath: '/monitoring/settings'
-      preLoaderRoute: typeof MonitoringSettingsRouteImport
-      parentRoute: typeof MonitoringRoute
+    '/reports/templates': {
+      id: '/reports/templates'
+      path: '/templates'
+      fullPath: '/reports/templates'
+      preLoaderRoute: typeof ReportsTemplatesRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/runs': {
+      id: '/reports/runs'
+      path: '/runs'
+      fullPath: '/reports/runs'
+      preLoaderRoute: typeof ReportsRunsRouteImport
+      parentRoute: typeof ReportsRoute
     }
     '/monitoring/overview': {
       id: '/monitoring/overview'
@@ -567,13 +454,6 @@ declare module '@tanstack/react-router' {
       path: '/nodes'
       fullPath: '/monitoring/nodes'
       preLoaderRoute: typeof MonitoringNodesRouteImport
-      parentRoute: typeof MonitoringRoute
-    }
-    '/monitoring/incidents': {
-      id: '/monitoring/incidents'
-      path: '/incidents'
-      fullPath: '/monitoring/incidents'
-      preLoaderRoute: typeof MonitoringIncidentsRouteImport
       parentRoute: typeof MonitoringRoute
     }
     '/monitoring/checks': {
@@ -611,69 +491,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManageDeployRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/automation/systems': {
-      id: '/automation/systems'
-      path: '/systems'
-      fullPath: '/automation/systems'
-      preLoaderRoute: typeof AutomationSystemsRouteImport
-      parentRoute: typeof AutomationRoute
-    }
-    '/automation/settings': {
-      id: '/automation/settings'
-      path: '/settings'
-      fullPath: '/automation/settings'
-      preLoaderRoute: typeof AutomationSettingsRouteImport
-      parentRoute: typeof AutomationRoute
-    }
-    '/automation/schedules': {
-      id: '/automation/schedules'
-      path: '/schedules'
-      fullPath: '/automation/schedules'
-      preLoaderRoute: typeof AutomationSchedulesRouteImport
-      parentRoute: typeof AutomationRoute
-    }
-    '/automation/runs': {
-      id: '/automation/runs'
-      path: '/runs'
-      fullPath: '/automation/runs'
-      preLoaderRoute: typeof AutomationRunsRouteImport
-      parentRoute: typeof AutomationRoute
-    }
-    '/automation/flows': {
-      id: '/automation/flows'
-      path: '/flows'
-      fullPath: '/automation/flows'
-      preLoaderRoute: typeof AutomationFlowsRouteImport
-      parentRoute: typeof AutomationRoute
-    }
-    '/analytics/users': {
-      id: '/analytics/users'
-      path: '/users'
-      fullPath: '/analytics/users'
-      preLoaderRoute: typeof AnalyticsUsersRouteImport
-      parentRoute: typeof AnalyticsRoute
-    }
-    '/analytics/settings': {
-      id: '/analytics/settings'
-      path: '/settings'
-      fullPath: '/analytics/settings'
-      preLoaderRoute: typeof AnalyticsSettingsRouteImport
-      parentRoute: typeof AnalyticsRoute
-    }
-    '/analytics/projects': {
-      id: '/analytics/projects'
-      path: '/projects'
-      fullPath: '/analytics/projects'
-      preLoaderRoute: typeof AnalyticsProjectsRouteImport
-      parentRoute: typeof AnalyticsRoute
-    }
-    '/analytics/pages': {
-      id: '/analytics/pages'
-      path: '/pages'
-      fullPath: '/analytics/pages'
-      preLoaderRoute: typeof AnalyticsPagesRouteImport
-      parentRoute: typeof AnalyticsRoute
-    }
     '/analytics/overview': {
       id: '/analytics/overview'
       path: '/overview'
@@ -681,96 +498,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AnalyticsOverviewRouteImport
       parentRoute: typeof AnalyticsRoute
     }
-    '/analytics/events': {
-      id: '/analytics/events'
-      path: '/events'
-      fullPath: '/analytics/events'
-      preLoaderRoute: typeof AnalyticsEventsRouteImport
-      parentRoute: typeof AnalyticsRoute
-    }
-    '/analytics/apis': {
-      id: '/analytics/apis'
-      path: '/apis'
-      fullPath: '/analytics/apis'
-      preLoaderRoute: typeof AnalyticsApisRouteImport
+    '/analytics/details': {
+      id: '/analytics/details'
+      path: '/details'
+      fullPath: '/analytics/details'
+      preLoaderRoute: typeof AnalyticsDetailsRouteImport
       parentRoute: typeof AnalyticsRoute
     }
   }
 }
 
 interface AnalyticsRouteChildren {
-  AnalyticsApisRoute: typeof AnalyticsApisRoute
-  AnalyticsEventsRoute: typeof AnalyticsEventsRoute
+  AnalyticsDetailsRoute: typeof AnalyticsDetailsRoute
   AnalyticsOverviewRoute: typeof AnalyticsOverviewRoute
-  AnalyticsPagesRoute: typeof AnalyticsPagesRoute
-  AnalyticsProjectsRoute: typeof AnalyticsProjectsRoute
-  AnalyticsSettingsRoute: typeof AnalyticsSettingsRoute
-  AnalyticsUsersRoute: typeof AnalyticsUsersRoute
 }
 
 const AnalyticsRouteChildren: AnalyticsRouteChildren = {
-  AnalyticsApisRoute: AnalyticsApisRoute,
-  AnalyticsEventsRoute: AnalyticsEventsRoute,
+  AnalyticsDetailsRoute: AnalyticsDetailsRoute,
   AnalyticsOverviewRoute: AnalyticsOverviewRoute,
-  AnalyticsPagesRoute: AnalyticsPagesRoute,
-  AnalyticsProjectsRoute: AnalyticsProjectsRoute,
-  AnalyticsSettingsRoute: AnalyticsSettingsRoute,
-  AnalyticsUsersRoute: AnalyticsUsersRoute,
 }
 
 const AnalyticsRouteWithChildren = AnalyticsRoute._addFileChildren(
   AnalyticsRouteChildren,
 )
 
-interface AutomationRouteChildren {
-  AutomationFlowsRoute: typeof AutomationFlowsRoute
-  AutomationRunsRoute: typeof AutomationRunsRoute
-  AutomationSchedulesRoute: typeof AutomationSchedulesRoute
-  AutomationSettingsRoute: typeof AutomationSettingsRoute
-  AutomationSystemsRoute: typeof AutomationSystemsRoute
-}
-
-const AutomationRouteChildren: AutomationRouteChildren = {
-  AutomationFlowsRoute: AutomationFlowsRoute,
-  AutomationRunsRoute: AutomationRunsRoute,
-  AutomationSchedulesRoute: AutomationSchedulesRoute,
-  AutomationSettingsRoute: AutomationSettingsRoute,
-  AutomationSystemsRoute: AutomationSystemsRoute,
-}
-
-const AutomationRouteWithChildren = AutomationRoute._addFileChildren(
-  AutomationRouteChildren,
-)
-
 interface MonitoringRouteChildren {
   MonitoringChecksRoute: typeof MonitoringChecksRoute
-  MonitoringIncidentsRoute: typeof MonitoringIncidentsRoute
   MonitoringNodesRoute: typeof MonitoringNodesRoute
   MonitoringOverviewRoute: typeof MonitoringOverviewRoute
-  MonitoringSettingsRoute: typeof MonitoringSettingsRoute
 }
 
 const MonitoringRouteChildren: MonitoringRouteChildren = {
   MonitoringChecksRoute: MonitoringChecksRoute,
-  MonitoringIncidentsRoute: MonitoringIncidentsRoute,
   MonitoringNodesRoute: MonitoringNodesRoute,
   MonitoringOverviewRoute: MonitoringOverviewRoute,
-  MonitoringSettingsRoute: MonitoringSettingsRoute,
 }
 
 const MonitoringRouteWithChildren = MonitoringRoute._addFileChildren(
   MonitoringRouteChildren,
 )
 
+interface ReportsRouteChildren {
+  ReportsRunsRoute: typeof ReportsRunsRoute
+  ReportsTemplatesRoute: typeof ReportsTemplatesRoute
+}
+
+const ReportsRouteChildren: ReportsRouteChildren = {
+  ReportsRunsRoute: ReportsRunsRoute,
+  ReportsTemplatesRoute: ReportsTemplatesRoute,
+}
+
+const ReportsRouteWithChildren =
+  ReportsRoute._addFileChildren(ReportsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   R403Route: R403Route,
   R404Route: R404Route,
   AnalyticsRoute: AnalyticsRouteWithChildren,
-  AutomationRoute: AutomationRouteWithChildren,
   LoginRoute: LoginRoute,
   MonitoringRoute: MonitoringRouteWithChildren,
   ProfileRoute: ProfileRoute,
+  ReportsRoute: ReportsRouteWithChildren,
   ManageDeployRoute: ManageDeployRoute,
   ManageDictRoute: ManageDictRoute,
   ManageLogRoute: ManageLogRoute,

@@ -14,7 +14,7 @@ use crate::{app::AppState, common::error::AppError};
 
 use super::{
     repo, service,
-    types::{AccountSecret, Flow, FlowStep, Run, System},
+    types::{Flow, FlowStep, Run, System},
 };
 
 struct ExecutionContext<'a> {
@@ -23,8 +23,6 @@ struct ExecutionContext<'a> {
     system: &'a System,
     page: &'a Page,
     input: &'a Value,
-    username: Option<&'a str>,
-    password: Option<&'a str>,
 }
 
 pub async fn execute(
@@ -32,7 +30,6 @@ pub async fn execute(
     run: &Run,
     flow: &Flow,
     system: &System,
-    account: Option<&AccountSecret>,
 ) -> Result<(), AppError> {
     let mut builder = BrowserConfig::builder();
     if let Some(path) = state.browser_path.as_deref() {
@@ -52,26 +49,17 @@ pub async fn execute(
     });
     let page = browser.new_page(&system.base_url).await.map_err(AppError::internal)?;
     let input: Value = serde_json::from_str(&run.input_json)?;
-    let password = account
-        .map(|value| state.cipher.decrypt(&value.secret_ciphertext, &value.secret_nonce))
-        .transpose()?;
-    let username = account.map(|value| value.username.as_str());
-    let context = ExecutionContext {
-        state,
-        run,
-        system,
-        page: &page,
-        input: &input,
-        username,
-        password: password.as_deref(),
-    };
+    let context = ExecutionContext { state, run, system, page: &page, input: &input };
+    if let Err(error) = save_live_frame(state, &page, &run.id).await {
+        tracing::warn!(run_id = %run.id, %error, "Initial live frame capture failed");
+    }
     let result = execute_steps(&context, flow).await;
     if result.is_err() {
         let _ = save_screenshot(state, &page, &run.id, "failure").await;
     }
     let _ = browser.close().await;
     let _ = handle.await;
-    result.map_err(|error| redact(error, username, password.as_deref()))
+    result
 }
 
 async fn execute_steps(context: &ExecutionContext<'_>, flow: &Flow) -> Result<(), AppError> {
@@ -93,10 +81,7 @@ async fn execute_steps(context: &ExecutionContext<'_>, flow: &Flow) -> Result<()
         };
         let (message, status) = match &outcome {
             Ok(()) => (None, "succeeded"),
-            Err(error) => (
-                Some(redact_message(&error.to_string(), context.username, context.password)),
-                "failed",
-            ),
+            Err(error) => (Some(error.to_string()), "failed"),
         };
         repo::insert_run_step(
             &context.state.pool,
@@ -109,24 +94,51 @@ async fn execute_steps(context: &ExecutionContext<'_>, flow: &Flow) -> Result<()
             &Utc::now().to_rfc3339(),
         )
         .await?;
+        if let Err(error) = save_live_frame(context.state, context.page, &context.run.id).await {
+            tracing::warn!(run_id = %context.run.id, %error, "Live frame capture failed");
+        }
         outcome?;
     }
+    Ok(())
+}
+
+async fn save_live_frame(state: &AppState, page: &Page, run_id: &str) -> Result<(), AppError> {
+    let artifact_id = format!("{run_id}-live");
+    let file_name = "live.png";
+    let dir = state.output_dir.join(run_id);
+    tokio::fs::create_dir_all(&dir).await?;
+    let bytes = page
+        .screenshot(ScreenshotParams::builder().format(CaptureScreenshotFormat::Png).build())
+        .await
+        .map_err(AppError::internal)?;
+    let temporary = dir.join(format!("live-{}.tmp", Uuid::new_v4()));
+    tokio::fs::write(&temporary, bytes).await?;
+    if let Err(error) = tokio::fs::rename(&temporary, dir.join(file_name)).await {
+        let _ = tokio::fs::remove_file(&temporary).await;
+        return Err(error.into());
+    }
+    repo::upsert_live_artifact(
+        &state.pool,
+        &artifact_id,
+        run_id,
+        file_name,
+        &Utc::now().to_rfc3339(),
+    )
+    .await?;
     Ok(())
 }
 
 async fn execute_step(context: &ExecutionContext<'_>, step: &FlowStep) -> Result<(), AppError> {
     match step {
         FlowStep::Goto { url } => {
-            let value =
-                service::substitute(url, context.input, context.username, context.password)?;
+            let value = service::substitute(url, context.input)?;
             let base = url::Url::parse(&context.system.base_url).map_err(AppError::internal)?;
             let target = service::goto_target(&base, &value)?;
             context.page.goto(target.as_str()).await.map_err(AppError::internal)?;
         }
         FlowStep::Fill { selector, value } => {
             let element = context.page.find_element(selector).await.map_err(AppError::internal)?;
-            let value =
-                service::substitute(value, context.input, context.username, context.password)?;
+            let value = service::substitute(value, context.input)?;
             let encoded = serde_json::to_string(&value)?;
             element
                 .call_js_fn(
@@ -158,8 +170,7 @@ async fn execute_step(context: &ExecutionContext<'_>, step: &FlowStep) -> Result
                 .inner_text()
                 .await
                 .map_err(AppError::internal)?;
-            let expected =
-                service::substitute(text, context.input, context.username, context.password)?;
+            let expected = service::substitute(text, context.input)?;
             if !actual.is_some_and(|actual| actual.contains(&expected)) {
                 return Err(AppError::Conflict("assertText did not match".into()));
             }
@@ -225,15 +236,4 @@ async fn save_screenshot(
     )
     .await?;
     Ok(())
-}
-
-fn redact(error: AppError, username: Option<&str>, password: Option<&str>) -> AppError {
-    AppError::Conflict(redact_message(&error.to_string(), username, password))
-}
-fn redact_message(value: &str, username: Option<&str>, password: Option<&str>) -> String {
-    let mut value = value.to_string();
-    for secret in [username, password].into_iter().flatten().filter(|v| !v.is_empty()) {
-        value = value.replace(secret, "***");
-    }
-    value
 }

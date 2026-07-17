@@ -58,7 +58,10 @@
 
     .dark .rz-shell {
         background-color: var(--background);
-        background-image: none;
+        background-image:
+            linear-gradient(rgba(5, 12, 28, 0.82), rgba(8, 18, 38, 0.9)),
+            url("/ui/admin-glass-background.png");
+        background-blend-mode: multiply, normal;
     }
 
     .white .rz-shell {
@@ -82,7 +85,10 @@
     }
 
     .dark .rz-topbar {
-        background: color-mix(in oklab, var(--background) 84%, transparent);
+        border-color: var(--border);
+        background: color-mix(in oklab, var(--background) 72%, transparent);
+        box-shadow: inset 0 -1px rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(28px) saturate(1.2);
     }
 
     .white .rz-sidebar [data-slot="sidebar-inner"],
@@ -109,7 +115,20 @@
 
     .dark .operations-ledger [data-slot="card"] {
         border-color: var(--border);
-        box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+        background: var(--card);
+        box-shadow:
+            0 16px 42px rgba(0, 0, 0, 0.28),
+            inset 0 1px rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(24px) saturate(1.15);
+    }
+
+    .dark .rz-sidebar [data-slot="sidebar-inner"] {
+        border-color: var(--sidebar-border);
+        background: var(--sidebar);
+        box-shadow:
+            12px 0 36px rgba(0, 0, 0, 0.24),
+            inset -1px 0 rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(30px) saturate(1.2);
     }
 
     .operations-ledger {

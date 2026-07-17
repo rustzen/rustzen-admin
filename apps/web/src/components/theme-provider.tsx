@@ -35,9 +35,9 @@ export function ThemeSwitch() {
     const nextTheme: Theme =
         context.theme === "light" ? "white" : context.theme === "white" ? "dark" : "light";
     const labels: Record<Theme, string> = {
-        light: "color glass",
-        white: "white",
-        dark: "dark",
+        light: "彩色玻璃",
+        white: "白色",
+        dark: "暗色",
     };
     const icon =
         context.theme === "light" ? (
@@ -53,7 +53,7 @@ export function ThemeSwitch() {
             type="button"
             variant="ghost"
             size="icon"
-            aria-label={`Current theme: ${labels[context.theme]}. Switch to ${labels[nextTheme]} theme`}
+            aria-label={`当前主题：${labels[context.theme]}。切换到${labels[nextTheme]}主题`}
             onClick={() => context.setTheme(nextTheme)}
         >
             {icon}

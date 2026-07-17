@@ -18,7 +18,7 @@ export async function apiRequest<T, P = Api.BaseParams>(
 
     const result = (await response.json()) as Api.ApiResponse<T>;
     if (result.code !== 0) {
-        appMessage.error(result.message || response.statusText || "Request failed");
+        appMessage.error(result.message || response.statusText || "请求失败");
         return Promise.reject(new Error(result.message || response.statusText));
     }
 
@@ -78,7 +78,7 @@ export const apiUpload = async <T>(url: string, formData: FormData): Promise<T> 
 
     const result = (await response.json()) as Api.ApiResponse<T>;
     if (result.code !== 0) {
-        appMessage.error(result.message || response.statusText || "Upload failed");
+        appMessage.error(result.message || response.statusText || "上传失败");
         return Promise.reject(new Error(result.message || response.statusText));
     }
     return result.data;
@@ -128,11 +128,11 @@ const handleError = async (error: unknown) => {
 
     const payload = await readErrorPayload(error);
     const requestUrl = error.url || "";
-    const message = payload?.message || error.statusText || "Request failed";
+    const message = payload?.message || error.statusText || "请求失败";
 
     if (error.status === 401) {
         if (requestUrl.includes("/api/auth/login")) {
-            appMessage.error(message || "Invalid username or password.");
+            appMessage.error(message || "用户名或密码错误。");
             return Promise.reject(error);
         }
 

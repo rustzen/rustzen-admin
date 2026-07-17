@@ -55,21 +55,21 @@ function MonitoringNodesPage() {
 
     return (
         <PageCard
-            title="Nodes"
-            description="Latest heartbeat and resource snapshot from each registered node."
+            title="节点"
+            description="查看每个已注册节点的最新心跳和资源快照。"
             actions={<AddNodeDialog />}
         >
             <DataTableShell>
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Node</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead>节点</TableHead>
+                            <TableHead>状态</TableHead>
                             <TableHead>CPU</TableHead>
-                            <TableHead>Memory</TableHead>
-                            <TableHead>Disk</TableHead>
-                            <TableHead>Last seen</TableHead>
-                            <TableHead className="text-right">Details</TableHead>
+                            <TableHead>内存</TableHead>
+                            <TableHead>磁盘</TableHead>
+                            <TableHead>最后在线</TableHead>
+                            <TableHead className="text-right">详情</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -121,9 +121,7 @@ function MonitoringNodesPage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={7} className="h-40 text-center">
-                                    {isFetching
-                                        ? "Loading nodes..."
-                                        : "No monitor nodes registered."}
+                                    {isFetching ? "正在加载节点..." : "暂无已注册的监控节点。"}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -146,7 +144,7 @@ function AddNodeDialog() {
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Add a monitoring node</DialogTitle>
+                    <DialogTitle>添加监控节点</DialogTitle>
                     <DialogDescription>
                         Start the bundled agent on the node. It is added to this list after its
                         first accepted heartbeat.
@@ -189,17 +187,17 @@ function NodeDetails({
         <Sheet open={Boolean(node)} onOpenChange={onOpenChange}>
             <SheetContent className="sm:max-w-3xl">
                 <SheetHeader>
-                    <SheetTitle>{node?.hostname ?? "Node details"}</SheetTitle>
+                    <SheetTitle>{node?.hostname ?? "节点详情"}</SheetTitle>
                     <SheetDescription>
                         {node ? `${node.agentId} · Agent ${node.agentVersion}` : ""}
                     </SheetDescription>
                 </SheetHeader>
                 <div className="grid gap-4 px-4">
                     <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-                        <Summary label="Status" value={node?.status ?? "-"} />
+                        <Summary label="状态" value={node?.status ?? "-"} />
                         <Summary label="CPU" value={formatPercent(node?.cpuPercent ?? null)} />
                         <Summary
-                            label="Memory"
+                            label="内存"
                             value={
                                 node?.memoryUsedBytes === null ||
                                 node?.memoryUsedBytes === undefined
@@ -208,7 +206,7 @@ function NodeDetails({
                             }
                         />
                         <Summary
-                            label="Disk"
+                            label="磁盘"
                             value={
                                 node?.diskUsedBytes === null || node?.diskUsedBytes === undefined
                                     ? "-"
@@ -240,14 +238,14 @@ function NodeDetails({
                                     <Line
                                         type="monotone"
                                         dataKey="memoryPercent"
-                                        name="Memory %"
+                                        name="内存 %"
                                         stroke="var(--chart-2)"
                                         dot={false}
                                     />
                                     <Line
                                         type="monotone"
                                         dataKey="diskPercent"
-                                        name="Disk %"
+                                        name="磁盘 %"
                                         stroke="var(--chart-3)"
                                         dot={false}
                                     />

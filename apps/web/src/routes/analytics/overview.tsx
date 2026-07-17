@@ -23,26 +23,23 @@ function AnalyticsOverviewPage() {
         refetchInterval: 30_000,
     });
     return (
-        <PageCard
-            title="Analytics overview"
-            description="Page, API, event, and visitor activity across the current instance."
-        >
+        <PageCard title="分析概览" description="查看当前实例的页面、接口、事件和访客活动。">
             <>
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <Metric label="Page views" value={overview?.pv ?? 0} />
-                    <Metric label="Unique visitors" value={overview?.uv ?? 0} />
-                    <Metric label="All events" value={overview?.eventCount ?? 0} />
-                    <Metric label="API requests" value={overview?.requestCount ?? 0} />
-                    <Metric label="Errors" value={overview?.errorCount ?? 0} />
+                    <Metric label="页面浏览量" value={overview?.pv ?? 0} />
+                    <Metric label="独立访客" value={overview?.uv ?? 0} />
+                    <Metric label="全部事件" value={overview?.eventCount ?? 0} />
+                    <Metric label="接口请求" value={overview?.requestCount ?? 0} />
+                    <Metric label="错误数" value={overview?.errorCount ?? 0} />
                     <Metric
-                        label="Average duration"
+                        label="平均耗时"
                         value={`${Math.round(overview?.averageDurationMs ?? 0)} ms`}
                     />
-                    <Metric label="P95 duration" value={`${overview?.p95DurationMs ?? 0} ms`} />
+                    <Metric label="P95 耗时" value={`${overview?.p95DurationMs ?? 0} ms`} />
                 </div>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Daily activity</CardTitle>
+                        <CardTitle>每日活动</CardTitle>
                     </CardHeader>
                     <CardContent className="h-72">
                         <ResponsiveContainer width="100%" height="100%">
@@ -66,7 +63,7 @@ function AnalyticsOverviewPage() {
                                 <Line
                                     type="monotone"
                                     dataKey="requestCount"
-                                    name="Requests"
+                                    name="请求数"
                                     stroke="var(--chart-3)"
                                 />
                             </LineChart>

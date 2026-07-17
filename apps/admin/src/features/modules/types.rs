@@ -16,9 +16,9 @@ pub struct ModuleSpec {
 impl ModuleSpec {
     pub fn fixed() -> Vec<Self> {
         vec![
-            Self { id: "monitor", name: "Monitoring", base_url: CONFIG.monitor_base_url() },
-            Self { id: "insights", name: "Analytics", base_url: CONFIG.insights_base_url() },
-            Self { id: "reports", name: "Automation", base_url: CONFIG.reports_base_url() },
+            Self { id: "monitor", name: "监控", base_url: CONFIG.monitor_base_url() },
+            Self { id: "insights", name: "分析", base_url: CONFIG.insights_base_url() },
+            Self { id: "reports", name: "报表", base_url: CONFIG.reports_base_url() },
         ]
     }
 }

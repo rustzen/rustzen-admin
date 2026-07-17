@@ -60,8 +60,8 @@ function DictPage() {
 
     return (
         <PageCard
-            title="Dictionary Management"
-            description="Manage reusable dictionary labels and values."
+            title="字典管理"
+            description="管理可复用的字典标签和值。"
             actions={
                 <AuthWrap code="manage:dict:create">
                     <DictDialog mode="create" onSuccess={refresh}>
@@ -78,11 +78,11 @@ function DictPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-20">ID</TableHead>
-                            <TableHead className="min-w-40">Dict Type</TableHead>
-                            <TableHead className="min-w-36">Label</TableHead>
-                            <TableHead className="min-w-32">Value</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead className="w-32 text-right">Actions</TableHead>
+                            <TableHead className="min-w-40">字典类型</TableHead>
+                            <TableHead className="min-w-36">标签</TableHead>
+                            <TableHead className="min-w-32">值</TableHead>
+                            <TableHead>描述</TableHead>
+                            <TableHead className="w-32 text-right">操作</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -110,7 +110,7 @@ function DictPage() {
                                                         type="button"
                                                         variant="ghost"
                                                         size="icon-sm"
-                                                        aria-label="Edit dictionary"
+                                                        aria-label="编辑字典"
                                                     >
                                                         <EditIcon />
                                                     </Button>
@@ -129,9 +129,7 @@ function DictPage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={6} className="h-40 text-center">
-                                    {isFetching
-                                        ? "Loading dictionaries..."
-                                        : "No dictionaries found."}
+                                    {isFetching ? "正在加载字典..." : "未找到字典。"}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -188,19 +186,19 @@ const DictDialog = ({ children, initialValues, mode = "create", onSuccess }: Dic
             description: description.trim() || undefined,
         };
         if (!payload.dictType) {
-            appMessage.error("Please enter dictionary type");
+            appMessage.error("请输入字典类型");
             return;
         }
         if (!/^[a-z_]+$/.test(payload.dictType)) {
-            appMessage.error("Dictionary type can only contain lowercase letters and underscores");
+            appMessage.error("字典类型只能包含小写字母和下划线");
             return;
         }
         if (!payload.label) {
-            appMessage.error("Please enter label");
+            appMessage.error("请输入标签");
             return;
         }
         if (!payload.value) {
-            appMessage.error("Please enter value");
+            appMessage.error("请输入值");
             return;
         }
 
@@ -208,10 +206,10 @@ const DictDialog = ({ children, initialValues, mode = "create", onSuccess }: Dic
         try {
             if (mode === "create") {
                 await manageAPI.dict.create(payload);
-                appMessage.success("Dictionary created");
+                appMessage.success("字典已创建");
             } else if (initialValues?.id) {
                 await manageAPI.dict.update(initialValues.id, payload);
-                appMessage.success("Dictionary updated");
+                appMessage.success("字典已更新");
             }
             onSuccess?.();
             setOpen(false);
@@ -225,9 +223,7 @@ const DictDialog = ({ children, initialValues, mode = "create", onSuccess }: Dic
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>
-                        {mode === "create" ? "Create Dictionary" : "Edit Dictionary"}
-                    </DialogTitle>
+                    <DialogTitle>{mode === "create" ? "创建字典" : "编辑字典"}</DialogTitle>
                     <DialogDescription>
                         Dictionary records provide reusable option labels across the admin.
                     </DialogDescription>
@@ -235,30 +231,30 @@ const DictDialog = ({ children, initialValues, mode = "create", onSuccess }: Dic
                 <form className="grid gap-4" onSubmit={submit}>
                     <TextField
                         id="dict-type"
-                        label="Dict Type"
+                        label="字典类型"
                         value={dictType}
-                        placeholder="Enter dictionary type (e.g., user_status)"
+                        placeholder="请输入字典类型（如 user_status）"
                         onChange={setDictType}
                     />
                     <TextField
                         id="dict-label"
-                        label="Label"
+                        label="标签"
                         value={label}
-                        placeholder="Enter display label (e.g., Active)"
+                        placeholder="请输入显示标签（如 启用）"
                         onChange={setLabel}
                     />
                     <TextField
                         id="dict-value"
-                        label="Value"
+                        label="值"
                         value={value}
-                        placeholder="Enter value (e.g., 1)"
+                        placeholder="请输入值（如 1）"
                         onChange={setValue}
                     />
                     <TextareaField
                         id="dict-description"
-                        label="Description"
+                        label="描述"
                         value={description}
-                        placeholder="Enter description"
+                        placeholder="请输入描述"
                         onChange={setDescription}
                     />
                     <DialogFooter>
@@ -266,7 +262,7 @@ const DictDialog = ({ children, initialValues, mode = "create", onSuccess }: Dic
                             Cancel
                         </Button>
                         <Button type="submit" disabled={submitting}>
-                            {mode === "create" ? "Create" : "Save"}
+                            {mode === "create" ? "创建" : "保存"}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -278,7 +274,7 @@ const DictDialog = ({ children, initialValues, mode = "create", onSuccess }: Dic
 const DeleteDictDialog = ({ record, onSuccess }: { record: Dict.Item; onSuccess?: () => void }) => {
     const confirm = async () => {
         await manageAPI.dict.delete(record.id);
-        appMessage.success("Dictionary deleted");
+        appMessage.success("字典已删除");
         onSuccess?.();
     };
 
@@ -289,14 +285,14 @@ const DeleteDictDialog = ({ record, onSuccess }: { record: Dict.Item; onSuccess?
                     type="button"
                     variant="ghost-destructive"
                     size="icon-sm"
-                    aria-label="Delete dictionary"
+                    aria-label="删除字典"
                 >
                     <TrashIcon />
                 </Button>
             }
-            title="Delete Dictionary"
+            title="删除字典"
             description={`This action cannot be undone. Delete \`${record.label}\` from \`${record.dictType}\`?`}
-            confirmLabel="Delete"
+            confirmLabel="删除"
             destructive
             onConfirm={confirm}
         />

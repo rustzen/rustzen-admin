@@ -59,13 +59,13 @@ export type SearchRouteItem = {
 
 const dashboardRoute: AppRouteItem = {
     path: "/",
-    name: "Dashboard",
+    name: "仪表盘",
     icon: <LayoutDashboardIcon />,
 };
 
 const profileRoute: AppRouteItem = {
     path: "/profile",
-    name: "Profile",
+    name: "个人资料",
     icon: <UserIcon />,
     requiresPermission: false,
 };
@@ -107,68 +107,68 @@ const getModuleRoutes = (navigation: SystemModule.NavigationItem[]): AppRouteIte
 };
 
 const systemRoutes: AppRouteItem = {
-    name: "System",
+    name: "系统",
     icon: <SettingsIcon />,
     path: "/system",
     children: [
         {
             path: "/system/user",
-            name: "User",
+            name: "用户",
             icon: <UserIcon />,
         },
         {
             path: "/system/role",
-            name: "Role",
+            name: "角色",
             icon: <UsersIcon />,
         },
         {
             path: "/system/menu",
-            name: "Menu",
+            name: "菜单",
             icon: <MenuIcon />,
         },
         {
             path: "/manage/dict",
-            name: "Dictionary",
+            name: "字典",
             icon: <BookOpenIcon />,
         },
         {
             path: "/manage/log",
-            name: "Log",
+            name: "日志",
             icon: <HistoryIcon />,
         },
     ],
 };
 
 const manageRoutes: AppRouteItem = {
-    name: "Manage",
+    name: "管理",
     icon: <CloudUploadIcon />,
     path: "/manage",
     children: [
         {
             path: "/system/module",
-            name: "System Modules",
+            name: "系统模块",
             icon: <BoxesIcon />,
         },
         {
             path: "/system/status",
-            name: "System Status",
+            name: "系统状态",
             icon: <MonitorIcon />,
         },
         {
             path: "/manage/task",
-            name: "Scheduled Task",
+            name: "定时任务",
             icon: <ClockIcon />,
         },
         {
             path: "/manage/deploy",
-            name: "Deploy Versions",
+            name: "部署版本",
             icon: <CloudUploadIcon />,
         },
     ],
 };
 
 const demoRoutes: AppRouteItem = {
-    name: "Demo",
+    name: "示例",
     icon: <GaugeIcon />,
     path: "/demo",
     children: [
@@ -266,7 +266,7 @@ export const getSearchRouteItems = (
         manageRoutes,
         demoRoutes,
     ];
-    const flattenRoutes = (routes: AppRouteItem[], groupLabel = "General"): SearchRouteItem[] => {
+    const flattenRoutes = (routes: AppRouteItem[], groupLabel = "通用"): SearchRouteItem[] => {
         return routes.flatMap((route) => {
             if (route.children) {
                 return flattenRoutes(route.children, route.name);

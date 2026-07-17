@@ -73,14 +73,14 @@ function RunsPage() {
         mutationFn: reportsAPI.cancelRun,
         onSuccess: async () => {
             await client.invalidateQueries({ queryKey: ["reports", "runs"] });
-            appMessage.success("Run cancelled");
+            appMessage.success("填报执行已取消");
         },
     });
     const runs = data?.data ?? [];
     return (
         <PageCard
-            title="Filling runs"
-            description="Write selected input data through a report template and inspect execution live."
+            title="填报执行"
+            description="通过报表模板写入所选数据，并实时查看执行过程。"
             actions={
                 <AuthWrap code="reports:run:manage">
                     <RunDialog flows={flows} />
@@ -91,12 +91,12 @@ function RunsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Run</TableHead>
-                            <TableHead>Flow</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Created</TableHead>
-                            <TableHead>Error</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>执行</TableHead>
+                            <TableHead>流程</TableHead>
+                            <TableHead>状态</TableHead>
+                            <TableHead>创建时间</TableHead>
+                            <TableHead>错误</TableHead>
+                            <TableHead className="text-right">操作</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -121,7 +121,7 @@ function RunsPage() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon-sm"
-                                                aria-label="View run"
+                                                aria-label="查看执行"
                                                 onClick={() => setSelected(run)}
                                             >
                                                 <EyeIcon />
@@ -130,7 +130,7 @@ function RunsPage() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon-sm"
-                                                    aria-label="Cancel run"
+                                                    aria-label="取消执行"
                                                     disabled={
                                                         !(
                                                             ["queued", "running"] as string[]
@@ -148,7 +148,7 @@ function RunsPage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={6} className="h-40 text-center">
-                                    {isFetching ? "Loading runs..." : "No runs created."}
+                                    {isFetching ? "正在加载执行记录..." : "暂无执行记录。"}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -175,7 +175,7 @@ function RunDialog({ flows }: { flows: Reports.Flow[] }) {
         mutationFn: reportsAPI.createRun,
         onSuccess: async () => {
             await client.invalidateQueries({ queryKey: ["reports", "runs"] });
-            appMessage.success("Run queued");
+            appMessage.success("填报执行已进入队列");
             setOpen(false);
         },
     });
@@ -184,7 +184,7 @@ function RunDialog({ flows }: { flows: Reports.Flow[] }) {
             const input = JSON.parse(json) as Record<string, unknown>;
             mutation.mutate({ flowId, input });
         } catch {
-            appMessage.error("Input must be valid JSON");
+            appMessage.error("输入内容必须是有效的 JSON");
         }
     };
     return (
@@ -197,20 +197,20 @@ function RunDialog({ flows }: { flows: Reports.Flow[] }) {
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Start run</DialogTitle>
+                    <DialogTitle>开始填报</DialogTitle>
                     <DialogDescription>
                         Choose a validated flow and the input object to write.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4">
                     <Choice
-                        label="Flow"
+                        label="流程"
                         value={flowId}
                         onChange={setFlowId}
                         items={flows.map((f) => ({ id: f.id, name: f.name }))}
                     />
                     <div className="grid gap-2">
-                        <Label>Input JSON</Label>
+                        <Label>输入 JSON</Label>
                         <Textarea
                             className="min-h-40 font-mono"
                             value={json}
@@ -256,7 +256,7 @@ function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }
         <Sheet open={Boolean(run)} onOpenChange={(open) => !open && onClose()}>
             <SheetContent className="overflow-y-auto sm:max-w-xl">
                 <SheetHeader>
-                    <SheetTitle>Run audit</SheetTitle>
+                    <SheetTitle>执行审计</SheetTitle>
                     <SheetDescription>{run?.id}</SheetDescription>
                 </SheetHeader>
                 <div className="space-y-5 p-4">
@@ -277,7 +277,7 @@ function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }
                     )}
                     <LiveFrame run={currentRun} />
                     <div>
-                        <h3 className="mb-2 font-medium">Steps</h3>
+                        <h3 className="mb-2 font-medium">步骤</h3>
                         {steps.map((step) => (
                             <div key={step.id} className="mb-2 rounded-md border p-3 text-sm">
                                 <div className="flex justify-between">
@@ -301,12 +301,12 @@ function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }
                             </div>
                         ))}
                         {!steps.length && (
-                            <p className="text-sm text-muted-foreground">No steps recorded.</p>
+                            <p className="text-sm text-muted-foreground">暂无步骤记录。</p>
                         )}
                     </div>
                     {artifacts.length > 0 && (
                         <div>
-                            <h3 className="mb-2 font-medium">Artifacts</h3>
+                            <h3 className="mb-2 font-medium">产物</h3>
                             {artifacts.map((a) => (
                                 <a
                                     key={a.id}
@@ -343,15 +343,15 @@ function LiveFrame({ run }: { run?: Reports.Run }) {
     }, [data]);
     return (
         <div>
-            <h3 className="mb-2 font-medium">Live view</h3>
+            <h3 className="mb-2 font-medium">实时画面</h3>
             <div className="flex h-80 items-center justify-center overflow-hidden rounded-md border bg-muted/30">
                 {source ? (
-                    <img src={source} className="h-full w-full object-contain" alt="Live run" />
+                    <img src={source} className="h-full w-full object-contain" alt="执行实时画面" />
                 ) : (
                     <p className="text-sm text-muted-foreground">
                         {run?.status === "queued" || run?.status === "running"
-                            ? "Waiting for the browser frame..."
-                            : "No live frame was captured."}
+                            ? "正在等待浏览器画面..."
+                            : "暂无实时画面。"}
                     </p>
                 )}
             </div>

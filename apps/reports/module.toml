@@ -1,12 +1,12 @@
 [module]
 id = "reports"
-name = "Reports"
+name = "报表"
 api_prefix = "/api/reports"
 contract_version = 1
 
 [[menus]]
 code = "templates"
-title = "Templates"
+title = "模板"
 path = "/reports/templates"
 icon = "file-text"
 sort_order = 210
@@ -14,7 +14,7 @@ permission = "reports:flow:view"
 
 [[menus]]
 code = "runs"
-title = "Filling Runs"
+title = "填报执行"
 path = "/reports/runs"
 icon = "file-text"
 sort_order = 220

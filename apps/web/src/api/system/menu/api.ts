@@ -41,7 +41,7 @@ export const menuAPI = {
         const res = await apiRequest<Menu.OptionItem[]>({
             url: "/api/system/menus/options",
         });
-        return [{ label: "Root", value: 0, code: "" }, ...res];
+        return [{ label: "根目录", value: 0, code: "" }, ...res];
     },
 };
 

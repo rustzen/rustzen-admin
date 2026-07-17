@@ -36,16 +36,13 @@ export const Route = createFileRoute("/")({
 function DashboardPage() {
     return (
         <div className="operations-ledger mx-auto flex h-full min-h-0 min-w-0 w-full flex-col gap-5 overflow-y-auto pr-1">
-            <PageHeader
-                title="Dashboard"
-                description="Operational overview for users, runtime health, and activity trends."
-            />
+            <PageHeader title="仪表盘" description="用户、运行健康和活动趋势的运维概览。" />
 
             <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col gap-4">
                 <div className="w-full overflow-x-auto pb-1">
                     <TabsList>
-                        <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                        <TabsTrigger value="overview">概览</TabsTrigger>
+                        <TabsTrigger value="analytics">分析</TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -84,7 +81,7 @@ const ModuleHealthCards = () => {
     return (
         <Card className="gap-0 overflow-hidden py-0">
             <CardHeader className="border-b py-4">
-                <CardTitle>Module availability</CardTitle>
+                <CardTitle>模块可用性</CardTitle>
                 <CardDescription>
                     Current release and reachability for each runtime module.
                 </CardDescription>
@@ -104,7 +101,7 @@ const ModuleHealthCards = () => {
                                 </div>
                             </div>
                             <Badge variant={health?.available ? "default" : "destructive"}>
-                                {health?.available ? "Available" : "Unavailable"}
+                                {health?.available ? "可用" : "不可用"}
                             </Badge>
                         </div>
                     );
@@ -122,27 +119,27 @@ const StatsCards = () => {
 
     const cards = [
         {
-            title: "Total Users",
+            title: "用户总数",
             value: stats?.totalUsers ?? 0,
-            description: "All registered accounts",
+            description: "全部已注册账号",
             icon: UsersIcon,
         },
         {
-            title: "Active Users",
+            title: "活跃用户",
             value: stats?.activeUsers ?? 0,
-            description: "Accounts currently enabled",
+            description: "当前已启用账号",
             icon: UserCheckIcon,
         },
         {
-            title: "Today Logins",
+            title: "今日登录",
             value: stats?.todayLogins ?? 0,
-            description: "Successful sessions today",
+            description: "今日成功会话",
             icon: ClockIcon,
         },
         {
-            title: "Pending Users",
+            title: "待审核用户",
             value: stats?.pendingUsers ?? 0,
-            description: "Waiting for approval",
+            description: "等待审核",
             icon: UserPlusIcon,
         },
     ];
@@ -150,8 +147,8 @@ const StatsCards = () => {
     return (
         <Card className="gap-0 overflow-hidden py-0">
             <CardHeader className="border-b py-4">
-                <CardTitle>Account ledger</CardTitle>
-                <CardDescription>Registered, active, recent, and pending access.</CardDescription>
+                <CardTitle>账号台账</CardTitle>
+                <CardDescription>注册、活跃、近期和待审核访问情况。</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-2 p-0">
                 {cards.map((item) => (
@@ -188,7 +185,7 @@ const HealthCard = () => {
             <CardHeader>
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                        <CardTitle>System Health</CardTitle>
+                        <CardTitle>系统健康</CardTitle>
                         <CardDescription>
                             Runtime pressure across memory, CPU, and disk.
                         </CardDescription>
@@ -199,21 +196,21 @@ const HealthCard = () => {
             <CardContent className="flex flex-col gap-5">
                 <ProgressRow
                     icon={ServerIcon}
-                    label="Memory usage"
+                    label="内存使用率"
                     value={memoryUsage}
                     detail={`${convertUnit(health?.memoryUsed)} / ${convertUnit(health?.memoryTotal)}`}
                     warning={memoryUsage > 80}
                 />
                 <ProgressRow
                     icon={ActivityIcon}
-                    label="CPU usage"
+                    label="CPU 使用率"
                     value={cpuUsage}
                     detail={`${cpuUsage.toFixed(1)}% / ${health?.cpuTotal ?? 0}`}
                     warning={cpuUsage > 80}
                 />
                 <ProgressRow
                     icon={HardDriveIcon}
-                    label="Disk usage"
+                    label="磁盘使用率"
                     value={diskUsage}
                     detail={`${convertUnit(health?.diskUsed)} / ${convertUnit(health?.diskTotal)}`}
                     warning={diskUsage > 90}
@@ -232,19 +229,13 @@ const MetricsCard = () => {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Performance Metrics</CardTitle>
-                <CardDescription>Seven-day request performance summary.</CardDescription>
+                <CardTitle>性能指标</CardTitle>
+                <CardDescription>近七天请求性能摘要。</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-3">
-                <MetricBlock
-                    label="Average response"
-                    value={`${metrics?.avgResponseTime ?? 0}ms`}
-                />
-                <MetricBlock
-                    label="Error rate"
-                    value={`${(metrics?.errorRate ?? 0).toFixed(1)}%`}
-                />
-                <MetricBlock label="Total requests" value={`${metrics?.totalRequests ?? 0}`} />
+                <MetricBlock label="平均响应" value={`${metrics?.avgResponseTime ?? 0}ms`} />
+                <MetricBlock label="错误率" value={`${(metrics?.errorRate ?? 0).toFixed(1)}%`} />
+                <MetricBlock label="请求总数" value={`${metrics?.totalRequests ?? 0}`} />
             </CardContent>
         </Card>
     );
@@ -261,8 +252,8 @@ const ActivityTrendCard = () => {
     return (
         <Card className="lg:col-span-4">
             <CardHeader>
-                <CardTitle>Overview</CardTitle>
-                <CardDescription>User login trend and active-user pulse.</CardDescription>
+                <CardTitle>概览</CardTitle>
+                <CardDescription>用户登录趋势和活跃用户动态。</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 xl:grid-cols-2">
                 <div className="h-60 min-w-0">

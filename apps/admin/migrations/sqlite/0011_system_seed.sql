@@ -7,7 +7,7 @@ VALUES (
     'superadmin',
     'superadmin@example.com',
     '$argon2id$v=19$m=19456,t=2,p=1$i2SSaoqEMMwYzJQPXhVHfg$k1Y5bZ/k5SxEoEroG+UFzCW8aKzK1o/DWKKDU34FiPI',
-    'Super Administrator',
+    '超级管理员',
     1,
     1
 )
@@ -16,25 +16,25 @@ ON CONFLICT DO NOTHING;
 INSERT INTO roles (name, code, description, status, is_system, sort_order)
 VALUES
     (
-        'Owner',
+        '所有者',
         'owner',
-        'Built-in owner role with the full wildcard grant.',
+        '内置所有者角色，拥有全部权限。',
         1,
         1,
         1
     ),
     (
-        'Admin',
+        '管理员',
         'admin',
-        'Built-in administrator role with deploy view-only access.',
+        '内置管理员角色，拥有日常管理权限。',
         1,
         1,
         2
     ),
     (
-        'Viewer',
+        '查看者',
         'viewer',
-        'Built-in viewer role with read-only capabilities.',
+        '内置查看者角色，仅拥有只读权限。',
         1,
         1,
         3
@@ -44,7 +44,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO menus (parent_id, name, code, menu_type, sort_order, status, is_system, is_manual)
 VALUES (
     0,
-    'All Capabilities',
+    '全部权限',
     '*',
     1,
     1,
@@ -72,10 +72,10 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO dicts (dict_type, label, value, status, sort_order)
 VALUES
-    ('user_status', 'Active', '1', 1, 1),
-    ('user_status', 'Disabled', '2', 1, 2),
-    ('user_status', 'Pending', '3', 1, 3),
-    ('user_status', 'Locked', '4', 1, 4),
-    ('role_type', 'System Role', '1', 1, 1),
-    ('role_type', 'Custom Role', '2', 1, 2)
+    ('user_status', '启用', '1', 1, 1),
+    ('user_status', '禁用', '2', 1, 2),
+    ('user_status', '待审核', '3', 1, 3),
+    ('user_status', '已锁定', '4', 1, 4),
+    ('role_type', '系统角色', '1', 1, 1),
+    ('role_type', '自定义角色', '2', 1, 2)
 ON CONFLICT DO NOTHING;

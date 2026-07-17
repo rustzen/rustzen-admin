@@ -32,20 +32,20 @@ struct BuiltinRoleSeed {
 const BUILTIN_ROLE_SEEDS: &[BuiltinRoleSeed] = &[
     BuiltinRoleSeed {
         code: BUILTIN_OWNER_ROLE_CODE,
-        name: "Owner",
-        description: "Built-in owner role with the full wildcard grant.",
+        name: "所有者",
+        description: "内置所有者角色，拥有全部权限。",
         sort_order: 1,
     },
     BuiltinRoleSeed {
         code: BUILTIN_ADMIN_ROLE_CODE,
-        name: "Admin",
-        description: "Built-in administrator role with deploy view-only access.",
+        name: "管理员",
+        description: "内置管理员角色，拥有日常管理权限。",
         sort_order: 2,
     },
     BuiltinRoleSeed {
         code: BUILTIN_VIEWER_ROLE_CODE,
-        name: "Viewer",
-        description: "Built-in viewer role with read-only capabilities.",
+        name: "查看者",
+        description: "内置查看者角色，仅拥有只读权限。",
         sort_order: 3,
     },
 ];

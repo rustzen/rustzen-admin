@@ -30,13 +30,13 @@ function AnalyticsEventsPage() {
     });
     return (
         <PageCard
-            title="Analytics details"
-            description="Raw page, API, user, and business events across the current instance."
+            title="分析明细"
+            description="查看当前实例的页面、接口、用户和业务原始事件。"
             toolbar={
                 <div className="flex flex-wrap gap-3">
                     <Input
                         className="mt-auto w-64"
-                        placeholder="Exact event name"
+                        placeholder="输入完整事件名称"
                         value={eventName}
                         onChange={(event) => {
                             setEventName(event.target.value);
@@ -50,12 +50,12 @@ function AnalyticsEventsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Event</TableHead>
-                            <TableHead>Visitor / User</TableHead>
-                            <TableHead>Location</TableHead>
-                            <TableHead>Platform</TableHead>
-                            <TableHead>Duration</TableHead>
-                            <TableHead>Occurred</TableHead>
+                            <TableHead>事件</TableHead>
+                            <TableHead>访客 / 用户</TableHead>
+                            <TableHead>位置</TableHead>
+                            <TableHead>平台</TableHead>
+                            <TableHead>耗时</TableHead>
+                            <TableHead>发生时间</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -85,7 +85,7 @@ function AnalyticsEventsPage() {
                         {!data?.data.length && (
                             <TableRow>
                                 <TableCell colSpan={6} className="h-40 text-center">
-                                    {isFetching ? "Loading events..." : "No events found."}
+                                    {isFetching ? "正在加载事件..." : "未找到事件。"}
                                 </TableCell>
                             </TableRow>
                         )}

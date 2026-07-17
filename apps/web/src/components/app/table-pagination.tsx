@@ -18,7 +18,7 @@ export function TablePagination({
     return (
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
             <span>
-                Page {currentPage} of {totalPages} · {total} records
+                第 {currentPage} / {totalPages} 页 · 共 {total} 条
             </span>
             <div className="flex gap-2">
                 <Button
@@ -27,7 +27,7 @@ export function TablePagination({
                     disabled={currentPage <= 1 || disabled}
                     onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                 >
-                    Previous
+                    上一页
                 </Button>
                 <Button
                     type="button"
@@ -35,7 +35,7 @@ export function TablePagination({
                     disabled={currentPage >= totalPages || disabled}
                     onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
                 >
-                    Next
+                    下一页
                 </Button>
             </div>
         </div>

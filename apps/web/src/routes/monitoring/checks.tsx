@@ -49,14 +49,14 @@ function MonitoringChecksPage() {
             monitorAPI.setCheckEnabled(id, enabled),
         onSuccess: async () => {
             await refresh();
-            appMessage.success("Check status updated");
+            appMessage.success("检查状态已更新");
         },
     });
     const deleteMutation = useMutation({
         mutationFn: monitorAPI.deleteCheck,
         onSuccess: async () => {
             await refresh();
-            appMessage.success("Check deleted");
+            appMessage.success("检查已删除");
         },
     });
 
@@ -64,8 +64,8 @@ function MonitoringChecksPage() {
     const total = data?.total ?? 0;
     return (
         <PageCard
-            title="Service monitoring"
-            description="Probe TCP services on a fixed interval and inspect durable results."
+            title="服务监控"
+            description="按固定间隔探测 TCP 服务并查看留存结果。"
             actions={
                 <AuthWrap code="monitor:check:manage">
                     <CheckDialog onSaved={refresh} />
@@ -76,13 +76,13 @@ function MonitoringChecksPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Target</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Interval</TableHead>
-                            <TableHead>Failures</TableHead>
-                            <TableHead>Last checked</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>名称</TableHead>
+                            <TableHead>目标</TableHead>
+                            <TableHead>状态</TableHead>
+                            <TableHead>间隔</TableHead>
+                            <TableHead>失败次数</TableHead>
+                            <TableHead>最后检查</TableHead>
+                            <TableHead className="text-right">操作</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -125,9 +125,7 @@ function MonitoringChecksPage() {
                                                     variant="ghost"
                                                     size="icon-sm"
                                                     aria-label={
-                                                        check.enabled
-                                                            ? "Disable check"
-                                                            : "Enable check"
+                                                        check.enabled ? "禁用检查" : "启用检查"
                                                     }
                                                     onClick={() =>
                                                         enabledMutation.mutate({
@@ -143,14 +141,14 @@ function MonitoringChecksPage() {
                                                         <Button
                                                             variant="ghost-destructive"
                                                             size="icon-sm"
-                                                            aria-label="Delete check"
+                                                            aria-label="删除检查"
                                                         >
                                                             <Trash2Icon />
                                                         </Button>
                                                     }
-                                                    title="Delete TCP check?"
-                                                    description="Its retained check results will also be deleted."
-                                                    confirmLabel="Delete"
+                                                    title="删除 TCP 检查？"
+                                                    description="已留存的检查结果也会一并删除。"
+                                                    confirmLabel="删除"
                                                     destructive
                                                     onConfirm={() =>
                                                         deleteMutation
@@ -166,7 +164,7 @@ function MonitoringChecksPage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={7} className="h-40 text-center">
-                                    {isFetching ? "Loading checks..." : "No TCP checks configured."}
+                                    {isFetching ? "正在加载检查..." : "暂无 TCP 检查。"}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -203,7 +201,7 @@ function CheckDialog({
             check ? monitorAPI.updateCheck(check.id, input) : monitorAPI.createCheck(input),
         onSuccess: async () => {
             await onSaved();
-            appMessage.success(check ? "Check updated" : "Check created");
+            appMessage.success(check ? "检查已更新" : "检查已创建");
             setOpen(false);
         },
     });
@@ -213,7 +211,7 @@ function CheckDialog({
             if (result.status === "up") {
                 appMessage.success(`Connection succeeded in ${result.latencyMs ?? 0} ms`);
             } else {
-                appMessage.error(result.error ?? "Connection failed");
+                appMessage.error(result.error ?? "连接失败");
             }
         },
     });
@@ -238,7 +236,7 @@ function CheckDialog({
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 {check ? (
-                    <Button variant="ghost" size="icon-sm" aria-label="Edit check">
+                    <Button variant="ghost" size="icon-sm" aria-label="编辑检查">
                         <PencilIcon />
                     </Button>
                 ) : (
@@ -249,29 +247,24 @@ function CheckDialog({
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{check ? "Edit TCP check" : "New TCP check"}</DialogTitle>
+                    <DialogTitle>{check ? "编辑 TCP 检查" : "新建 TCP 检查"}</DialogTitle>
                     <DialogDescription>
                         The target is tested from the Monitoring service host.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Name" value={name} onChange={setName} className="sm:col-span-2" />
-                    <Field label="Host" value={host} onChange={setHost} />
-                    <Field label="Port" value={port} onChange={setPort} type="number" />
+                    <Field label="名称" value={name} onChange={setName} className="sm:col-span-2" />
+                    <Field label="主机" value={host} onChange={setHost} />
+                    <Field label="端口" value={port} onChange={setPort} type="number" />
+                    <Field label="间隔秒数" value={interval} onChange={setInterval} type="number" />
                     <Field
-                        label="Interval seconds"
-                        value={interval}
-                        onChange={setInterval}
-                        type="number"
-                    />
-                    <Field
-                        label="Timeout ms"
+                        label="超时毫秒数"
                         value={timeout}
                         onChange={setTimeoutValue}
                         type="number"
                     />
                     <Field
-                        label="Failure threshold"
+                        label="失败阈值"
                         value={threshold}
                         onChange={setThreshold}
                         type="number"

@@ -39,8 +39,8 @@ function SystemStatusPage() {
     return (
         <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto">
             <PageHeader
-                title="System Status"
-                description="Storage and local resource telemetry refreshed every 30 seconds."
+                title="系统状态"
+                description="存储和本地资源遥测数据每 30 秒刷新一次。"
                 actions={
                     <span className="text-sm text-muted-foreground">
                         Collected at: {data?.collectedAt ? formatDateTime(data.collectedAt) : "-"}
@@ -56,7 +56,7 @@ function SystemStatusPage() {
             ) : isError ? (
                 <Alert variant="destructive">
                     <AlertCircleIcon />
-                    <AlertTitle>Failed to load system status</AlertTitle>
+                    <AlertTitle>系统状态加载失败</AlertTitle>
                     <AlertDescription>
                         Please retry later or check the server logs.
                     </AlertDescription>
@@ -72,7 +72,7 @@ function StorageCard({ storage }: { storage: SystemStatus.StorageStatus }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Storage</CardTitle>
+                <CardTitle>存储</CardTitle>
                 <CardDescription>
                     SQLite storage and runtime directory distribution.
                 </CardDescription>
@@ -82,7 +82,7 @@ function StorageCard({ storage }: { storage: SystemStatus.StorageStatus }) {
                     <div className="rounded-lg border bg-muted/40 p-5">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <DatabaseIcon />
-                            <span>SQLite total</span>
+                            <span>SQLite 总计</span>
                         </div>
                         <div className="mt-3 text-4xl font-semibold">
                             {formatBytes(storage.database.totalBytes)}
@@ -144,7 +144,7 @@ function StorageCard({ storage }: { storage: SystemStatus.StorageStatus }) {
 
                 <div className="grid grid-cols-1 gap-5 border-t pt-5 md:grid-cols-3">
                     <StorageBreakdownItem
-                        label="Main"
+                        label="主服务"
                         value={storage.database.mainBytes}
                         total={storage.database.totalBytes}
                     />
@@ -190,7 +190,7 @@ function ResourceCard({ resource }: { resource: SystemStatus.LocalResourceStatus
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Local Resources</CardTitle>
+                <CardTitle>本地资源</CardTitle>
                 <CardDescription>
                     CPU, memory, and disk utilization on the current host.
                 </CardDescription>
@@ -204,13 +204,13 @@ function ResourceCard({ resource }: { resource: SystemStatus.LocalResourceStatus
                 />
                 <ResourceMetric
                     icon={MemoryStickIcon}
-                    title="Memory"
+                    title="内存"
                     detail={`${formatBytes(resource.memory.usedBytes)} / ${formatBytes(resource.memory.totalBytes)}`}
                     percent={resource.memory.usagePercent}
                 />
                 <ResourceMetric
                     icon={HardDriveIcon}
-                    title="Disk"
+                    title="磁盘"
                     detail={`${formatBytes(resource.disk.usedBytes)} / ${formatBytes(resource.disk.totalBytes)}`}
                     percent={resource.disk.usagePercent}
                 />

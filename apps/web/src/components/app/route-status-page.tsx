@@ -19,9 +19,9 @@ export function RouteStatusPage({ code, title, description }: RouteStatusPagePro
             <p className="max-w-md text-muted-foreground">{description}</p>
             <div className="mt-6 flex flex-wrap justify-center gap-4">
                 <Button variant="outline" onClick={() => history.go(-1)}>
-                    Go Back
+                    返回上一页
                 </Button>
-                <Button onClick={() => void navigate({ to: "/" })}>Back to Home</Button>
+                <Button onClick={() => void navigate({ to: "/" })}>返回首页</Button>
             </div>
         </section>
     );

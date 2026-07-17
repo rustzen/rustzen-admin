@@ -39,11 +39,11 @@ const taskStatusMeta: Record<
     Task.RunStatus | "never",
     { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
 > = {
-    running: { label: "Running", variant: "default" },
-    success: { label: "Success", variant: "secondary" },
-    failed: { label: "Failed", variant: "destructive" },
-    skipped: { label: "Skipped", variant: "outline" },
-    never: { label: "Never Run", variant: "outline" },
+    running: { label: "运行中", variant: "default" },
+    success: { label: "成功", variant: "secondary" },
+    failed: { label: "失败", variant: "destructive" },
+    skipped: { label: "已跳过", variant: "outline" },
+    never: { label: "从未运行", variant: "outline" },
 };
 
 function TaskPage() {
@@ -54,22 +54,19 @@ function TaskPage() {
     const rows = data?.data ?? [];
 
     return (
-        <PageCard
-            title="Scheduled Tasks"
-            description="Review scheduler status and manually run maintenance jobs."
-        >
+        <PageCard title="定时任务" description="查看调度状态并手动运行维护任务。">
             <DataTableShell>
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="min-w-48">Name</TableHead>
-                            <TableHead className="min-w-64">Description</TableHead>
+                            <TableHead className="min-w-48">名称</TableHead>
+                            <TableHead className="min-w-64">描述</TableHead>
                             <TableHead className="min-w-36">Cron</TableHead>
-                            <TableHead className="min-w-28">Status</TableHead>
-                            <TableHead className="min-w-44">Next Run</TableHead>
-                            <TableHead className="min-w-44">Last Finished</TableHead>
-                            <TableHead className="min-w-56">Last Error</TableHead>
-                            <TableHead className="w-28 text-right">Actions</TableHead>
+                            <TableHead className="min-w-28">状态</TableHead>
+                            <TableHead className="min-w-44">下次运行</TableHead>
+                            <TableHead className="min-w-44">上次完成</TableHead>
+                            <TableHead className="min-w-56">上次错误</TableHead>
+                            <TableHead className="w-28 text-right">操作</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -114,7 +111,7 @@ function TaskPage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={8} className="h-40 text-center">
-                                    {isFetching ? "Loading tasks..." : "No scheduled tasks found."}
+                                    {isFetching ? "正在加载任务..." : "未找到定时任务。"}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -141,25 +138,25 @@ function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: st
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button type="button" variant="ghost" size="icon-sm" aria-label="Task logs">
+                <Button type="button" variant="ghost" size="icon-sm" aria-label="任务日志">
                     <HistoryIcon />
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-5xl">
                 <DialogHeader>
                     <DialogTitle>Task Logs - {taskName}</DialogTitle>
-                    <DialogDescription>Recent scheduler runs for this task.</DialogDescription>
+                    <DialogDescription>该任务最近的调度执行记录。</DialogDescription>
                 </DialogHeader>
                 <div className="max-h-120 overflow-auto rounded-md border">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="min-w-28">Trigger</TableHead>
-                                <TableHead className="min-w-28">Status</TableHead>
-                                <TableHead className="min-w-44">Scheduled For</TableHead>
-                                <TableHead className="min-w-44">Started At</TableHead>
-                                <TableHead className="min-w-44">Finished At</TableHead>
-                                <TableHead className="min-w-56">Error</TableHead>
+                                <TableHead className="min-w-28">触发方式</TableHead>
+                                <TableHead className="min-w-28">状态</TableHead>
+                                <TableHead className="min-w-44">计划时间</TableHead>
+                                <TableHead className="min-w-44">开始时间</TableHead>
+                                <TableHead className="min-w-44">完成时间</TableHead>
+                                <TableHead className="min-w-56">错误</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -167,9 +164,7 @@ function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: st
                                 rows.map((record) => (
                                     <TableRow key={record.id}>
                                         <TableCell>
-                                            {record.triggerType === "manual"
-                                                ? "Manual"
-                                                : "Scheduled"}
+                                            {record.triggerType === "manual" ? "手动" : "定时"}
                                         </TableCell>
                                         <TableCell>
                                             <TaskStatusBadge status={record.status} />
@@ -185,9 +180,7 @@ function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: st
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={6} className="h-32 text-center">
-                                        {isFetching
-                                            ? "Loading task logs..."
-                                            : "No task runs found."}
+                                        {isFetching ? "正在加载任务日志..." : "暂无任务执行记录。"}
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -211,7 +204,7 @@ function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: st
 function RunTaskDialog({ record, onSuccess }: { record: Task.Item; onSuccess: () => void }) {
     const submit = async () => {
         await manageAPI.task.run(record.taskKey);
-        appMessage.success("Task execution submitted");
+        appMessage.success("任务执行已提交");
         onSuccess();
     };
 
@@ -223,14 +216,14 @@ function RunTaskDialog({ record, onSuccess }: { record: Task.Item; onSuccess: ()
                     variant="ghost"
                     size="icon-sm"
                     disabled={record.running}
-                    aria-label={record.running ? "Executing" : "Execute task"}
+                    aria-label={record.running ? "执行中" : "执行任务"}
                 >
                     <PlayCircleIcon />
                 </Button>
             }
             title={`Execute ${record.name}?`}
-            description={record.description || "Submit this task immediately."}
-            confirmLabel="Execute"
+            description={record.description || "立即提交此任务。"}
+            confirmLabel="执行"
             disabled={record.running}
             onConfirm={submit}
         />

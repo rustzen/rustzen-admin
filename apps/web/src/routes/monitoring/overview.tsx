@@ -16,33 +16,26 @@ function MonitoringOverviewPage() {
     });
 
     return (
-        <PageCard
-            title="Monitoring overview"
-            description="Current node availability and the latest infrastructure heartbeat."
-        >
+        <PageCard title="监控概览" description="查看当前节点可用性和最新基础设施心跳。">
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 <Metric
-                    label="Registered nodes"
+                    label="已注册节点"
                     value={data?.registeredNodes ?? 0}
                     icon={<ServerIcon />}
                 />
+                <Metric label="在线节点" value={data?.onlineNodes ?? 0} icon={<ActivityIcon />} />
                 <Metric
-                    label="Online nodes"
-                    value={data?.onlineNodes ?? 0}
-                    icon={<ActivityIcon />}
-                />
-                <Metric
-                    label="Offline nodes"
+                    label="离线节点"
                     value={data?.offlineNodes ?? 0}
                     icon={<ClockAlertIcon />}
                 />
                 <Metric
-                    label="Unhealthy checks"
+                    label="异常检查"
                     value={data?.unhealthyChecks ?? 0}
                     icon={<ActivityIcon />}
                 />
                 <Metric
-                    label="Active incidents"
+                    label="活动事件"
                     value={data?.activeIncidents ?? 0}
                     icon={<ShieldAlertIcon />}
                 />

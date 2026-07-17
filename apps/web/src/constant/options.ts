@@ -1,10 +1,10 @@
 export const ENABLE_OPTIONS = [
-    { label: "Enabled", value: 1 },
-    { label: "Disabled", value: 2 },
+    { label: "启用", value: 1 },
+    { label: "禁用", value: 2 },
 ];
 
 export const MENU_TYPE_OPTIONS = [
-    { label: "Directory", value: 1 },
-    { label: "Menu", value: 2 },
-    { label: "Button", value: 3 },
+    { label: "目录", value: 1 },
+    { label: "菜单", value: 2 },
+    { label: "按钮", value: 3 },
 ];

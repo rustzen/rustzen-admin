@@ -8,10 +8,6 @@ export const Route = createFileRoute("/403")({
 
 function RouteComponent() {
     return (
-        <RouteStatusPage
-            code="403"
-            title="Access Forbidden"
-            description="You do not have the necessary permission to view this resource."
-        />
+        <RouteStatusPage code="403" title="禁止访问" description="你没有查看此资源所需的权限。" />
     );
 }

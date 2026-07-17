@@ -66,13 +66,13 @@ function FlowsPage() {
             }),
         onSuccess: async () => {
             await refresh();
-            appMessage.success("Flow cloned");
+            appMessage.success("流程已复制");
         },
     });
     return (
         <PageCard
-            title="Report templates"
-            description="Define the target and validated steps used by each filling workflow."
+            title="报表模板"
+            description="定义每个填报流程使用的目标系统和已验证步骤。"
             actions={
                 <div className="flex gap-2">
                     <AuthWrap code="reports:system:manage">
@@ -88,11 +88,11 @@ function FlowsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>System</TableHead>
-                            <TableHead>Steps</TableHead>
-                            <TableHead>Updated</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>名称</TableHead>
+                            <TableHead>系统</TableHead>
+                            <TableHead>步骤</TableHead>
+                            <TableHead>更新时间</TableHead>
+                            <TableHead className="text-right">操作</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -119,7 +119,7 @@ function FlowsPage() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon-sm"
-                                                    aria-label="Clone flow"
+                                                    aria-label="复制流程"
                                                     onClick={() => clone.mutate(flow)}
                                                 >
                                                     <CopyIcon />
@@ -129,14 +129,14 @@ function FlowsPage() {
                                                         <Button
                                                             variant="ghost-destructive"
                                                             size="icon-sm"
-                                                            aria-label="Delete flow"
+                                                            aria-label="删除流程"
                                                         >
                                                             <Trash2Icon />
                                                         </Button>
                                                     }
-                                                    title="Delete flow?"
-                                                    description="Existing filling runs must no longer reference it."
-                                                    confirmLabel="Delete"
+                                                    title="删除流程？"
+                                                    description="已有填报执行必须不再引用该流程。"
+                                                    confirmLabel="删除"
                                                     destructive
                                                     onConfirm={() =>
                                                         reportsAPI
@@ -153,7 +153,7 @@ function FlowsPage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={5} className="h-40 text-center">
-                                    {isFetching ? "Loading flows..." : "No flows configured."}
+                                    {isFetching ? "正在加载流程..." : "暂无流程。"}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -173,7 +173,7 @@ function TargetDialog({ onSaved }: { onSaved: () => Promise<unknown> }) {
             reportsAPI.createSystem({ name: name.trim(), baseUrl: baseUrl.trim(), enabled: true }),
         onSuccess: async () => {
             await onSaved();
-            appMessage.success("Target added");
+            appMessage.success("目标系统已添加");
             setOpen(false);
         },
     });
@@ -187,18 +187,18 @@ function TargetDialog({ onSaved }: { onSaved: () => Promise<unknown> }) {
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Add report target</DialogTitle>
+                    <DialogTitle>添加报表目标</DialogTitle>
                     <DialogDescription>
                         Templates can only navigate within this trusted origin.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4">
                     <div className="grid gap-2">
-                        <Label>Name</Label>
+                        <Label>名称</Label>
                         <Input value={name} onChange={(event) => setName(event.target.value)} />
                     </div>
                     <div className="grid gap-2">
-                        <Label>Base URL</Label>
+                        <Label>基础地址</Label>
                         <Input
                             value={baseUrl}
                             placeholder="https://example.com"
@@ -243,7 +243,7 @@ function FlowDialog({
             flow ? reportsAPI.updateFlow(flow.id, input) : reportsAPI.createFlow(input),
         onSuccess: async () => {
             await onSaved();
-            appMessage.success(flow ? "Flow updated" : "Flow created");
+            appMessage.success(flow ? "流程已更新" : "流程已创建");
             setOpen(false);
         },
     });
@@ -253,7 +253,7 @@ function FlowDialog({
             if (!Array.isArray(steps)) throw new Error();
             mutation.mutate({ name, systemId, steps });
         } catch {
-            appMessage.error("Steps must be a valid JSON array");
+            appMessage.error("步骤必须是有效的 JSON 数组");
         }
     };
     return (
@@ -276,7 +276,7 @@ function FlowDialog({
             </DialogTrigger>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>{flow ? "Edit template" : "New report template"}</DialogTitle>
+                    <DialogTitle>{flow ? "编辑模板" : "新建报表模板"}</DialogTitle>
                     <DialogDescription>
                         Supported actions: goto, fill, click, waitFor, assertText, screenshot.
                     </DialogDescription>
@@ -284,11 +284,11 @@ function FlowDialog({
                 <div className="grid gap-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="grid gap-2">
-                            <Label>Name</Label>
+                            <Label>名称</Label>
                             <Input value={name} onChange={(e) => setName(e.target.value)} />
                         </div>
                         <div className="grid gap-2">
-                            <Label>System</Label>
+                            <Label>系统</Label>
                             <Select value={systemId} onValueChange={setSystemId}>
                                 <SelectTrigger className="w-full">
                                     <SelectValue />
@@ -304,7 +304,7 @@ function FlowDialog({
                         </div>
                     </div>
                     <div className="grid gap-2">
-                        <Label>Steps JSON</Label>
+                        <Label>步骤 JSON</Label>
                         <Textarea
                             className="min-h-80 font-mono text-xs"
                             value={json}

@@ -48,20 +48,20 @@ const menuTypeMeta: Record<
     number,
     { label: string; variant: "default" | "secondary" | "outline" }
 > = {
-    1: { label: "Directory", variant: "secondary" },
-    2: { label: "Menu", variant: "default" },
-    3: { label: "Button", variant: "outline" },
+    1: { label: "目录", variant: "secondary" },
+    2: { label: "菜单", variant: "default" },
+    3: { label: "按钮", variant: "outline" },
 };
 
 const statusMeta: Record<number, { label: string; variant: "secondary" | "outline" }> = {
-    1: { label: "Enabled", variant: "secondary" },
-    2: { label: "Disabled", variant: "outline" },
+    1: { label: "启用", variant: "secondary" },
+    2: { label: "禁用", variant: "outline" },
 };
 
 const MODULE_ICON_OPTIONS = [
-    { label: "Monitor", value: "monitor" },
-    { label: "Insights", value: "chart-no-axes-combined" },
-    { label: "Reports", value: "file-text" },
+    { label: "监控", value: "monitor" },
+    { label: "分析", value: "chart-no-axes-combined" },
+    { label: "报表", value: "file-text" },
 ] as const;
 
 type FlatMenuItem = Menu.Item & {
@@ -81,8 +81,8 @@ function MenuPage() {
 
     return (
         <PageCard
-            title="Menu Management"
-            description="Manage route menus, permission codes, and button actions."
+            title="菜单管理"
+            description="管理路由菜单、权限编码和按钮操作。"
             actions={
                 <AuthWrap code="system:menu:create">
                     <MenuDialog mode="create" onSuccess={refresh}>
@@ -98,13 +98,13 @@ function MenuPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="min-w-64">Name</TableHead>
-                            <TableHead className="min-w-64">Code</TableHead>
-                            <TableHead className="min-w-32">Menu Type</TableHead>
-                            <TableHead className="min-w-28">Status</TableHead>
-                            <TableHead className="min-w-28">Sort Order</TableHead>
-                            <TableHead className="min-w-44">Updated At</TableHead>
-                            <TableHead className="w-24 text-right">Actions</TableHead>
+                            <TableHead className="min-w-64">名称</TableHead>
+                            <TableHead className="min-w-64">编码</TableHead>
+                            <TableHead className="min-w-32">菜单类型</TableHead>
+                            <TableHead className="min-w-28">状态</TableHead>
+                            <TableHead className="min-w-28">排序</TableHead>
+                            <TableHead className="min-w-44">更新时间</TableHead>
+                            <TableHead className="w-24 text-right">操作</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -143,7 +143,7 @@ function MenuPage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={7} className="h-40 text-center">
-                                    {isFetching ? "Loading menus..." : "No menus found."}
+                                    {isFetching ? "正在加载菜单..." : "未找到菜单。"}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -162,7 +162,7 @@ function MenuActions({ record, onSuccess }: { record: Menu.Item; onSuccess: () =
             {canEdit ? (
                 <AuthWrap code="system:menu:update">
                     <MenuDialog mode="edit" initialValues={record} onSuccess={onSuccess}>
-                        <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit menu">
+                        <Button type="button" variant="ghost" size="icon-sm" aria-label="编辑菜单">
                             <EditIcon />
                         </Button>
                     </MenuDialog>
@@ -225,15 +225,15 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
         const parsedSortOrder = Number(sortOrder);
 
         if (!trimmedName) {
-            appMessage.error("Please enter menu name");
+            appMessage.error("请输入菜单名称");
             return;
         }
         if (!trimmedCode) {
-            appMessage.error("Please enter permission code");
+            appMessage.error("请输入权限编码");
             return;
         }
         if (!Number.isInteger(parsedSortOrder) || parsedSortOrder < 0) {
-            appMessage.error("Sort order must be a non-negative integer");
+            appMessage.error("排序必须是非负整数");
             return;
         }
 
@@ -251,10 +251,10 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
         try {
             if (mode === "create") {
                 await systemAPI.menu.create(payload);
-                appMessage.success("Menu created");
+                appMessage.success("菜单已创建");
             } else if (initialValues?.id) {
                 await systemAPI.menu.update(initialValues.id, payload);
-                appMessage.success("Menu updated");
+                appMessage.success("菜单已更新");
             }
             if (isModuleOwned) {
                 await queryClient.invalidateQueries({
@@ -273,23 +273,23 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>{mode === "create" ? "Create Menu" : "Edit Menu"}</DialogTitle>
+                    <DialogTitle>{mode === "create" ? "创建菜单" : "编辑菜单"}</DialogTitle>
                     <DialogDescription>
                         {isModuleOwned
-                            ? "Override title, icon, sort order, and visibility. Module identity stays synchronized from its Manifest."
-                            : "Configure menu hierarchy, permission code, and display order."}
+                            ? "覆盖标题、图标、排序和可见性。模块标识仍与清单保持同步。"
+                            : "配置菜单层级、权限编码和显示顺序。"}
                     </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <div className="grid gap-2">
-                        <Label htmlFor="menu-parent">Parent Menu</Label>
+                        <Label htmlFor="menu-parent">上级菜单</Label>
                         <Select
                             value={parentId}
                             onValueChange={setParentId}
                             disabled={isModuleOwned}
                         >
                             <SelectTrigger id="menu-parent" className="w-full">
-                                <SelectValue placeholder="Select parent menu" />
+                                <SelectValue placeholder="请选择上级菜单" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
@@ -304,35 +304,35 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                     </div>
                     <TextField
                         id="menu-name"
-                        label={isModuleOwned ? "Menu Title" : "Menu Name"}
+                        label={isModuleOwned ? "菜单标题" : "菜单名称"}
                         value={name}
-                        placeholder="Enter menu name"
+                        placeholder="请输入菜单名称"
                         onChange={setName}
                     />
                     <TextField
                         id="menu-code"
-                        label="Permission Code"
+                        label="权限编码"
                         value={code}
-                        placeholder="Enter permission code (e.g., system:menu:list)"
+                        placeholder="请输入权限编码（如 system:menu:list）"
                         onChange={setCode}
                         disabled={isModuleOwned}
                     />
                     {isModuleOwned && initialValues?.path ? (
                         <div className="grid gap-2">
-                            <Label htmlFor="menu-path">Route Path</Label>
+                            <Label htmlFor="menu-path">路由路径</Label>
                             <Input id="menu-path" value={initialValues.path} disabled />
                         </div>
                     ) : null}
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="grid gap-2">
-                            <Label htmlFor="menu-type">Type</Label>
+                            <Label htmlFor="menu-type">类型</Label>
                             <Select
                                 value={menuType}
                                 onValueChange={setMenuType}
                                 disabled={isModuleOwned}
                             >
                                 <SelectTrigger id="menu-type" className="w-full">
-                                    <SelectValue placeholder="Select menu type" />
+                                    <SelectValue placeholder="请选择菜单类型" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
@@ -346,10 +346,10 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                             </Select>
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="menu-status">Status</Label>
+                            <Label htmlFor="menu-status">状态</Label>
                             <Select value={status} onValueChange={setStatus}>
                                 <SelectTrigger id="menu-status" className="w-full">
-                                    <SelectValue placeholder="Select status" />
+                                    <SelectValue placeholder="请选择状态" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
@@ -365,10 +365,10 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                     </div>
                     {isModuleOwned ? (
                         <div className="grid gap-2">
-                            <Label htmlFor="menu-icon">Icon</Label>
+                            <Label htmlFor="menu-icon">图标</Label>
                             <Select value={icon || undefined} onValueChange={setIcon}>
                                 <SelectTrigger id="menu-icon" className="w-full">
-                                    <SelectValue placeholder="Select icon" />
+                                    <SelectValue placeholder="请选择图标" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
@@ -384,12 +384,12 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                     ) : null}
                     <TextField
                         id="menu-sort-order"
-                        label="Sort Order"
+                        label="排序"
                         value={sortOrder}
                         type="number"
                         min={0}
                         step={1}
-                        placeholder="Enter sort order"
+                        placeholder="请输入排序"
                         onChange={setSortOrder}
                     />
                     <DialogFooter>
@@ -397,7 +397,7 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                             Cancel
                         </Button>
                         <Button type="submit" disabled={submitting}>
-                            {mode === "create" ? "Create" : "Save"}
+                            {mode === "create" ? "创建" : "保存"}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -409,7 +409,7 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
 function DisableMenuDialog({ record, onSuccess }: { record: Menu.Item; onSuccess: () => void }) {
     const submit = async () => {
         await systemAPI.menu.delete(record.id);
-        appMessage.success("Menu disabled");
+        appMessage.success("菜单已禁用");
         onSuccess();
     };
 
@@ -420,14 +420,14 @@ function DisableMenuDialog({ record, onSuccess }: { record: Menu.Item; onSuccess
                     type="button"
                     variant="ghost-destructive"
                     size="icon-sm"
-                    aria-label="Disable menu"
+                    aria-label="禁用菜单"
                 >
                     <StopCircleIcon />
                 </Button>
             }
-            title="Disable Menu"
+            title="禁用菜单"
             description={`This menu will be disabled. Disable ${record.name}?`}
-            confirmLabel="Disable"
+            confirmLabel="禁用"
             destructive
             onConfirm={submit}
         />
@@ -435,12 +435,12 @@ function DisableMenuDialog({ record, onSuccess }: { record: Menu.Item; onSuccess
 }
 
 function MenuTypeBadge({ menuType }: { menuType: number }) {
-    const meta = menuTypeMeta[menuType] ?? { label: "Unknown", variant: "outline" as const };
+    const meta = menuTypeMeta[menuType] ?? { label: "未知", variant: "outline" as const };
     return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 
 function MenuStatusBadge({ status }: { status: number }) {
-    const meta = statusMeta[status] ?? { label: "Unknown", variant: "outline" as const };
+    const meta = statusMeta[status] ?? { label: "未知", variant: "outline" as const };
     return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 

@@ -121,10 +121,10 @@ impl UserService {
     /// Get user status options
     pub fn get_user_status_options() -> Vec<UserOptionResp> {
         vec![
-            UserOptionResp { label: "Normal".to_string(), value: 1 },
-            UserOptionResp { label: "Disabled".to_string(), value: 2 },
-            UserOptionResp { label: "Pending".to_string(), value: 3 },
-            UserOptionResp { label: "Locked".to_string(), value: 4 },
+            UserOptionResp { label: "启用".to_string(), value: 1 },
+            UserOptionResp { label: "禁用".to_string(), value: 2 },
+            UserOptionResp { label: "待审核".to_string(), value: 3 },
+            UserOptionResp { label: "已锁定".to_string(), value: 4 },
         ]
     }
 

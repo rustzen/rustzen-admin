@@ -22,11 +22,11 @@ export const UserAvatar = () => {
         }
 
         if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
-            appMessage.error("You can only upload JPG/JPEG/PNG file!");
+            appMessage.error("只能上传 JPG/JPEG/PNG 文件！");
             return;
         }
         if (file.size > MAX_AVATAR_SIZE) {
-            appMessage.error("Image must be smaller than 1MB!");
+            appMessage.error("图片必须小于 1MB！");
             return;
         }
 
@@ -34,7 +34,7 @@ export const UserAvatar = () => {
         try {
             const avatarUrl = await accountAPI.updateAvatar({ file });
             updateAvatar(avatarUrl);
-            appMessage.success("Avatar updated");
+            appMessage.success("头像已更新");
         } finally {
             setUploading(false);
         }
@@ -63,11 +63,11 @@ export const UserAvatar = () => {
                 onClick={() => inputRef.current?.click()}
             >
                 <UploadIcon data-icon="inline-start" />
-                {uploading ? "Uploading" : "Upload avatar"}
+                {uploading ? "正在上传" : "上传头像"}
             </Button>
             <div className="text-sm text-muted-foreground">
-                <div>Format: JPG, PNG, JPEG</div>
-                <div>Size: under 1 MB</div>
+                <div>格式：JPG、PNG、JPEG</div>
+                <div>大小：小于 1 MB</div>
             </div>
         </div>
     );

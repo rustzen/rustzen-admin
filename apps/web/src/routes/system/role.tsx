@@ -52,8 +52,8 @@ export const Route = createFileRoute("/system/role")({
 });
 
 const statusMeta: Record<number, { label: string; variant: "secondary" | "outline" }> = {
-    1: { label: "Enabled", variant: "secondary" },
-    2: { label: "Disabled", variant: "outline" },
+    1: { label: "启用", variant: "secondary" },
+    2: { label: "禁用", variant: "outline" },
 };
 
 function RolePage() {
@@ -108,8 +108,8 @@ function RolePage() {
 
     return (
         <PageCard
-            title="Role Management"
-            description="Manage role definitions and permission assignments."
+            title="角色管理"
+            description="管理角色定义和权限分配。"
             actions={
                 <AuthWrap code="system:role:create">
                     <RoleDialog mode="create" onSuccess={refresh}>
@@ -124,21 +124,21 @@ function RolePage() {
                 <form className="grid gap-3 md:grid-cols-4" onSubmit={search}>
                     <Input
                         value={roleName}
-                        placeholder="Role Name"
+                        placeholder="角色名称"
                         onChange={(event) => setRoleName(event.target.value)}
                     />
                     <Input
                         value={roleCode}
-                        placeholder="Role Code"
+                        placeholder="角色编码"
                         onChange={(event) => setRoleCode(event.target.value)}
                     />
                     <Select value={status} onValueChange={setStatus}>
                         <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Status" />
+                            <SelectValue placeholder="状态" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                <SelectItem value="all">All Statuses</SelectItem>
+                                <SelectItem value="all">全部状态</SelectItem>
                                 {ENABLE_OPTIONS.map((item) => (
                                     <SelectItem key={item.value} value={String(item.value)}>
                                         {item.label}
@@ -168,13 +168,13 @@ function RolePage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-16">ID</TableHead>
-                            <TableHead className="min-w-48">Role Name</TableHead>
-                            <TableHead className="min-w-48">Role Code</TableHead>
-                            <TableHead className="min-w-64">Description</TableHead>
-                            <TableHead className="min-w-28">Status</TableHead>
-                            <TableHead className="min-w-40">Permissions</TableHead>
-                            <TableHead className="min-w-44">Updated At</TableHead>
-                            <TableHead className="w-24 text-right">Actions</TableHead>
+                            <TableHead className="min-w-48">角色名称</TableHead>
+                            <TableHead className="min-w-48">角色编码</TableHead>
+                            <TableHead className="min-w-64">描述</TableHead>
+                            <TableHead className="min-w-28">状态</TableHead>
+                            <TableHead className="min-w-40">权限</TableHead>
+                            <TableHead className="min-w-44">更新时间</TableHead>
+                            <TableHead className="w-24 text-right">操作</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -216,7 +216,7 @@ function RolePage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={8} className="h-40 text-center">
-                                    {isFetching ? "Loading roles..." : "No roles found."}
+                                    {isFetching ? "正在加载角色..." : "未找到角色。"}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -243,7 +243,7 @@ function RoleActions({ record, onSuccess }: { record: Role.Item; onSuccess: () =
         <div className="flex justify-end gap-2">
             <AuthWrap code="system:role:update">
                 <RoleDialog mode="edit" record={record} onSuccess={onSuccess}>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit role">
+                    <Button type="button" variant="ghost" size="icon-sm" aria-label="编辑角色">
                         <EditIcon />
                     </Button>
                 </RoleDialog>
@@ -321,19 +321,19 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
         };
 
         if (payload.name.length < 2 || payload.name.length > 50) {
-            appMessage.error("Role name must be 2-50 characters");
+            appMessage.error("角色名称必须为 2-50 个字符");
             return;
         }
         if (payload.code.length < 2 || payload.code.length > 50) {
-            appMessage.error("Role code must be 2-50 characters");
+            appMessage.error("角色编码必须为 2-50 个字符");
             return;
         }
         if (!/^[a-zA-Z_]+$/.test(payload.code)) {
-            appMessage.error("Role code can only contain letters and underscores");
+            appMessage.error("角色编码只能包含字母和下划线");
             return;
         }
         if (payload.menuIds.length === 0) {
-            appMessage.error("Please select at least one permission");
+            appMessage.error("请至少选择一个权限");
             return;
         }
 
@@ -341,10 +341,10 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
         try {
             if (mode === "create") {
                 await systemAPI.role.create(payload);
-                appMessage.success("Role created");
+                appMessage.success("角色已创建");
             } else if (record?.id) {
                 await systemAPI.role.update(record.id, payload);
-                appMessage.success("Role updated");
+                appMessage.success("角色已更新");
             }
             onSuccess?.();
             setOpen(false);
@@ -358,7 +358,7 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>{mode === "create" ? "Create Role" : "Edit Role"}</DialogTitle>
+                    <DialogTitle>{mode === "create" ? "创建角色" : "编辑角色"}</DialogTitle>
                     <DialogDescription>
                         Configure role identity, status, and allowed permissions.
                     </DialogDescription>
@@ -367,24 +367,24 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
                     <div className="grid gap-4 md:grid-cols-2">
                         <TextField
                             id="role-name"
-                            label="Role Name"
+                            label="角色名称"
                             value={name}
-                            placeholder="Enter role name"
+                            placeholder="请输入角色名称"
                             onChange={setName}
                         />
                         <TextField
                             id="role-code"
-                            label="Role Code"
+                            label="角色编码"
                             value={code}
-                            placeholder="Enter role code"
+                            placeholder="请输入角色编码"
                             onChange={setCode}
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="role-status">Status</Label>
+                        <Label htmlFor="role-status">状态</Label>
                         <Select value={status} onValueChange={setStatus}>
                             <SelectTrigger id="role-status" className="w-full">
-                                <SelectValue placeholder="Select status" />
+                                <SelectValue placeholder="请选择状态" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
@@ -408,10 +408,10 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
                     <div className="grid gap-1">
                         <TextareaField
                             id="role-description"
-                            label="Description"
+                            label="描述"
                             value={description}
                             maxLength={200}
-                            placeholder="Enter role description"
+                            placeholder="请输入角色描述"
                             onChange={setDescription}
                         />
                         <div className="text-xs text-muted-foreground">
@@ -423,7 +423,7 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
                             Cancel
                         </Button>
                         <Button type="submit" disabled={submitting}>
-                            {mode === "create" ? "Create" : "Save"}
+                            {mode === "create" ? "创建" : "保存"}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -458,12 +458,12 @@ function PermissionPicker({
     return (
         <div className="grid gap-2">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <Label>Permissions</Label>
+                <Label>权限</Label>
                 <span className="text-sm text-muted-foreground">{selectedCount} selected</span>
             </div>
             <Input
                 value={search}
-                placeholder="Search permissions"
+                placeholder="搜索权限"
                 onChange={(event) => onSearchChange(event.target.value)}
             />
             <div className="max-h-72 overflow-auto rounded-md border p-3">
@@ -499,7 +499,7 @@ function PermissionPicker({
 function DeleteRoleDialog({ record, onSuccess }: { record: Role.Item; onSuccess: () => void }) {
     const submit = async () => {
         await systemAPI.role.delete(record.id);
-        appMessage.success("Role deleted");
+        appMessage.success("角色已删除");
         onSuccess();
     };
 
@@ -510,14 +510,14 @@ function DeleteRoleDialog({ record, onSuccess }: { record: Role.Item; onSuccess:
                     type="button"
                     variant="ghost-destructive"
                     size="icon-sm"
-                    aria-label="Delete role"
+                    aria-label="删除角色"
                 >
                     <TrashIcon />
                 </Button>
             }
-            title="Delete Role"
+            title="删除角色"
             description={`This action cannot be undone. Delete ${record.name}?`}
-            confirmLabel="Delete"
+            confirmLabel="删除"
             destructive
             onConfirm={submit}
         />
@@ -525,7 +525,7 @@ function DeleteRoleDialog({ record, onSuccess }: { record: Role.Item; onSuccess:
 }
 
 function RoleStatusBadge({ status }: { status: number }) {
-    const meta = statusMeta[status] ?? { label: "Unknown", variant: "outline" as const };
+    const meta = statusMeta[status] ?? { label: "未知", variant: "outline" as const };
     return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 

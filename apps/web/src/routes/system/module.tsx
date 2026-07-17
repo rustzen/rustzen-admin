@@ -40,18 +40,15 @@ function SystemModulePage() {
     };
 
     return (
-        <PageCard
-            title="System Modules"
-            description="Enable built-in modules and review their current runtime health."
-        >
+        <PageCard title="系统模块" description="启用内置模块并查看当前运行状态。">
             <DataTableShell>
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Module</TableHead>
-                            <TableHead className="w-32">Enabled</TableHead>
-                            <TableHead className="w-36">Health</TableHead>
-                            <TableHead className="w-28 text-right">Actions</TableHead>
+                            <TableHead>模块</TableHead>
+                            <TableHead className="w-32">启用状态</TableHead>
+                            <TableHead className="w-36">健康状态</TableHead>
+                            <TableHead className="w-28 text-right">操作</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -66,7 +63,7 @@ function SystemModulePage() {
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={module.enabled ? "secondary" : "outline"}>
-                                            {module.enabled ? "Enabled" : "Disabled"}
+                                            {module.enabled ? "已启用" : "已禁用"}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
@@ -83,16 +80,16 @@ function SystemModulePage() {
                                                             module.enabled ? "outline" : "default"
                                                         }
                                                     >
-                                                        {module.enabled ? "Disable" : "Enable"}
+                                                        {module.enabled ? "禁用" : "启用"}
                                                     </Button>
                                                 }
-                                                title={`${module.enabled ? "Disable" : "Enable"} ${module.name}`}
+                                                title={`${module.enabled ? "禁用" : "启用"}${module.name}`}
                                                 description={
                                                     module.enabled
                                                         ? `Disable ${module.name} and remove its navigation entry?`
                                                         : `Enable ${module.name} and resume Manifest synchronization?`
                                                 }
-                                                confirmLabel={module.enabled ? "Disable" : "Enable"}
+                                                confirmLabel={module.enabled ? "禁用" : "启用"}
                                                 destructive={module.enabled}
                                                 onConfirm={() => updateEnabled(module)}
                                             />
@@ -103,7 +100,7 @@ function SystemModulePage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={4} className="h-40 text-center">
-                                    {isFetching ? "Loading modules..." : "No modules found."}
+                                    {isFetching ? "正在加载模块..." : "未找到模块。"}
                                 </TableCell>
                             </TableRow>
                         )}
@@ -116,13 +113,13 @@ function SystemModulePage() {
 
 function ModuleHealthBadge({ module }: { module: SystemModule.Item }) {
     if (!module.enabled) {
-        return <Badge variant="outline">Disabled</Badge>;
+        return <Badge variant="outline">已禁用</Badge>;
     }
     if (module.available) {
-        return <Badge>Available</Badge>;
+        return <Badge>可用</Badge>;
     }
     if (module.compatible) {
-        return <Badge variant="secondary">Unavailable</Badge>;
+        return <Badge variant="secondary">不可用</Badge>;
     }
     if (module.releaseVersion) {
         return (

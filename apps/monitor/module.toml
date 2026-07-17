@@ -1,12 +1,12 @@
 [module]
 id = "monitor"
-name = "Monitoring"
+name = "监控"
 api_prefix = "/api/monitor"
 contract_version = 1
 
 [[menus]]
 code = "overview"
-title = "Overview"
+title = "概览"
 path = "/monitoring/overview"
 icon = "monitor"
 sort_order = 10
@@ -14,7 +14,7 @@ permission = "monitor:overview:view"
 
 [[menus]]
 code = "nodes"
-title = "Nodes"
+title = "节点"
 path = "/monitoring/nodes"
 icon = "monitor"
 sort_order = 20
@@ -22,7 +22,7 @@ permission = "monitor:node:view"
 
 [[menus]]
 code = "checks"
-title = "Service Monitoring"
+title = "服务监控"
 path = "/monitoring/checks"
 icon = "monitor"
 sort_order = 30

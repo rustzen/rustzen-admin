@@ -53,7 +53,7 @@ export function ConfirmDialog({
                 </DialogHeader>
                 <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                        Cancel
+                        取消
                     </Button>
                     <Button
                         type="button"

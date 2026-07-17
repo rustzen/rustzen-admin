@@ -64,22 +64,22 @@ enum TaskKind {
 const TASK_SPECS: [TaskSpec; 3] = [
     TaskSpec {
         task_key: "cleanup-operation-logs-retention",
-        name: "Cleanup Operation Logs",
-        description: "Delete operation logs older than the configured retention days.",
+        name: "清理操作日志",
+        description: "删除超过配置保留天数的操作日志。",
         expression: "0 20 1 * * * *",
         kind: TaskKind::CleanupOperationLogs,
     },
     TaskSpec {
         task_key: "cleanup-task-runs-retention",
-        name: "Cleanup Task Runs",
-        description: "Delete scheduled task run records older than the configured retention days.",
+        name: "清理任务记录",
+        description: "删除超过配置保留天数的定时任务执行记录。",
         expression: "0 30 1 * * * *",
         kind: TaskKind::CleanupTaskRuns,
     },
     TaskSpec {
         task_key: "sqlite-storage-maintenance",
-        name: "SQLite Storage Maintenance",
-        description: "Checkpoint WAL, optimize SQLite planner statistics, and reclaim reusable pages.",
+        name: "SQLite 存储维护",
+        description: "执行 WAL 检查点、优化 SQLite 查询规划统计并回收可复用页面。",
         expression: "0 0 2 * * * *",
         kind: TaskKind::SqliteMaintenance,
     },

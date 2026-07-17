@@ -52,10 +52,10 @@ export const AppSearch = ({ routes, onSelect }: AppSearchProps) => {
                 variant="outline"
                 className="h-9 w-45 justify-start gap-2 px-3 text-muted-foreground xl:w-90"
                 onClick={() => setOpen(true)}
-                aria-label="Open page search"
+                aria-label="打开页面搜索"
             >
                 <SearchIcon data-icon="inline-start" />
-                <span className="min-w-0 flex-1 truncate text-left">Search</span>
+                <span className="min-w-0 flex-1 truncate text-left">搜索</span>
                 <kbd className="rounded border bg-muted px-1.5 py-0.5 text-xs leading-none text-muted-foreground">
                     ⌘ K
                 </kbd>
@@ -64,12 +64,12 @@ export const AppSearch = ({ routes, onSelect }: AppSearchProps) => {
             <CommandDialog
                 open={open}
                 onOpenChange={setOpen}
-                title="Search pages"
-                description="Type a page name or path to navigate."
+                title="搜索页面"
+                description="输入页面名称或路径进行跳转。"
             >
-                <CommandInput placeholder="Type a page name or path..." />
+                <CommandInput placeholder="输入页面名称或路径..." />
                 <CommandList>
-                    <CommandEmpty>No pages found.</CommandEmpty>
+                    <CommandEmpty>未找到页面。</CommandEmpty>
                     {Object.entries(groupedRoutes).map(([groupLabel, groupRoutes]) => (
                         <CommandGroup key={groupLabel} heading={groupLabel}>
                             {groupRoutes.map((route) => (

@@ -32,7 +32,7 @@ const PAGE_SIZE = 20;
 
 const actionOptions: Array<{ label: string; value: string }> = [
     { label: "All", value: ALL_ACTION },
-    { label: "Login", value: DEFAULT_ACTION },
+    { label: "登录", value: DEFAULT_ACTION },
     { label: "GET", value: "HTTP_GET" },
     { label: "POST", value: "HTTP_POST" },
     { label: "PUT", value: "HTTP_PUT" },
@@ -81,8 +81,8 @@ function LogPage() {
 
     return (
         <PageCard
-            title="Log"
-            description="Audit login and HTTP operation records across the admin service."
+            title="日志"
+            description="审计管理服务中的登录和 HTTP 操作记录。"
             actions={
                 <AuthWrap code="manage:log:export">
                     <Button
@@ -111,7 +111,7 @@ function LogPage() {
                             <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 value={searchInput}
-                                placeholder="Search user or IP"
+                                placeholder="搜索用户或 IP"
                                 className="pl-9"
                                 onChange={(event) => {
                                     const value = event.target.value;
@@ -144,13 +144,13 @@ function LogPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-20">ID</TableHead>
-                            <TableHead className="w-36">User</TableHead>
-                            <TableHead className="w-36">Action</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead className="w-28">Status</TableHead>
-                            <TableHead className="w-36">IP Address</TableHead>
-                            <TableHead className="w-28">Duration</TableHead>
-                            <TableHead className="w-44">Created At</TableHead>
+                            <TableHead className="w-36">用户</TableHead>
+                            <TableHead className="w-36">操作</TableHead>
+                            <TableHead>描述</TableHead>
+                            <TableHead className="w-28">状态</TableHead>
+                            <TableHead className="w-36">IP 地址</TableHead>
+                            <TableHead className="w-28">耗时</TableHead>
+                            <TableHead className="w-44">创建时间</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -158,7 +158,7 @@ function LogPage() {
                             rows.map((record) => (
                                 <TableRow key={record.id}>
                                     <TableCell className="font-medium">{record.id}</TableCell>
-                                    <TableCell>{record.username || "Anonymous User"}</TableCell>
+                                    <TableCell>{record.username || "匿名用户"}</TableCell>
                                     <TableCell>
                                         <ActionBadge action={record.action} />
                                     </TableCell>
@@ -178,7 +178,7 @@ function LogPage() {
                         ) : (
                             <TableRow>
                                 <TableCell colSpan={8} className="h-40 text-center">
-                                    {isFetching ? "Loading logs..." : "No logs found."}
+                                    {isFetching ? "正在加载日志..." : "未找到日志。"}
                                 </TableCell>
                             </TableRow>
                         )}

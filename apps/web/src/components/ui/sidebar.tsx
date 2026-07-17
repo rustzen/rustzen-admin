@@ -186,8 +186,8 @@ function Sidebar({
                     side={side}
                 >
                     <SheetHeader className="sr-only">
-                        <SheetTitle>Sidebar</SheetTitle>
-                        <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+                        <SheetTitle>侧边栏</SheetTitle>
+                        <SheetDescription>显示移动端侧边栏。</SheetDescription>
                     </SheetHeader>
                     <div className="flex h-full w-full flex-col">{children}</div>
                 </SheetContent>
@@ -260,7 +260,7 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
             {...props}
         >
             <PanelLeftIcon />
-            <span className="sr-only">Toggle Sidebar</span>
+            <span className="sr-only">切换侧边栏</span>
         </Button>
     );
 }
@@ -272,10 +272,10 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
         <button
             data-sidebar="rail"
             data-slot="sidebar-rail"
-            aria-label="Toggle Sidebar"
+            aria-label="切换侧边栏"
             tabIndex={-1}
             onClick={toggleSidebar}
-            title="Toggle Sidebar"
+            title="切换侧边栏"
             className={cn(
                 "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-inset-e-4 group-data-[side=right]:inset-s-0 after:absolute after:inset-y-0 after:inset-s-1/2 after:w-0.5 hover:after:bg-sidebar-border sm:flex",
                 "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",

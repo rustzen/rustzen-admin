@@ -10,8 +10,8 @@ function RouteComponent() {
     return (
         <RouteStatusPage
             code="404"
-            title="Page Not Found"
-            description="The page you are looking for does not exist or might have been removed."
+            title="页面不存在"
+            description="你访问的页面不存在或已被移除。"
         />
     );
 }

@@ -81,7 +81,7 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
     const handleLogout = async () => {
         await authAPI.logout();
         clearAuth();
-        appMessage.success("Logout successful");
+        appMessage.success("退出登录成功");
         void router.navigate({ to: "/login" });
     };
 
@@ -101,7 +101,7 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
                         <div className="grid min-w-0 text-left leading-tight group-data-[collapsible=icon]:hidden">
                             <span className="truncate text-sm font-semibold">{APP_BRAND_NAME}</span>
                             <span className="truncate text-xs text-muted-foreground">
-                                Admin Console
+                                管理控制台
                             </span>
                         </div>
                     </Link>
@@ -213,10 +213,10 @@ const UserMenu = ({
                         <UserAvatar userInfo={userInfo} />
                         <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
                             <span className="truncate font-medium">
-                                {userInfo?.realName || userInfo?.username || "Account"}
+                                {userInfo?.realName || userInfo?.username || "账号"}
                             </span>
                             <span className="truncate text-xs text-muted-foreground">
-                                {userInfo?.username || "Profile"}
+                                {userInfo?.username || "个人资料"}
                             </span>
                         </div>
                     </SidebarMenuButton>
@@ -238,7 +238,7 @@ const UserMenuTrigger = ({
         <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="size-9 rounded-full p-0">
                 <UserAvatar userInfo={userInfo} />
-                <span className="sr-only">Open account menu</span>
+                <span className="sr-only">打开账号菜单</span>
             </Button>
         </DropdownMenuTrigger>
         <UserMenuContent userInfo={userInfo} onLogout={onLogout} />
@@ -256,10 +256,10 @@ const UserMenuContent = ({
         <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col gap-1">
                 <p className="text-sm font-medium leading-none">
-                    {userInfo?.realName || userInfo?.username || "Account"}
+                    {userInfo?.realName || userInfo?.username || "账号"}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
-                    {userInfo?.username || "Profile"}
+                    {userInfo?.username || "个人资料"}
                 </p>
             </div>
         </DropdownMenuLabel>
@@ -268,14 +268,14 @@ const UserMenuContent = ({
             <DropdownMenuItem asChild>
                 <Link to="/profile">
                     <UserIcon />
-                    Profile
+                    个人资料
                 </Link>
             </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onLogout} variant="destructive">
             <LogOutIcon />
-            Logout
+            退出登录
         </DropdownMenuItem>
     </DropdownMenuContent>
 );

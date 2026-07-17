@@ -30,8 +30,8 @@ function ProfilePage() {
             <Card>
                 <CardHeader className="flex flex-row items-start justify-between gap-4">
                     <div>
-                        <CardTitle>User Profile</CardTitle>
-                        <CardDescription>Manage your personal account information.</CardDescription>
+                        <CardTitle>个人资料</CardTitle>
+                        <CardDescription>管理你的个人账号信息。</CardDescription>
                     </div>
                     <div className="flex gap-2">
                         <EditProfileDialog userInfo={userInfo} onUpdated={updateUserInfo} />
@@ -40,9 +40,9 @@ function ProfilePage() {
                 </CardHeader>
                 <CardContent className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_220px]">
                     <div className="grid gap-4">
-                        <ProfileField label="Username" value={userInfo?.username} />
-                        <ProfileField label="Email" value={userInfo?.email} />
-                        <ProfileField label="Real Name" value={userInfo?.realName} />
+                        <ProfileField label="用户名" value={userInfo?.username} />
+                        <ProfileField label="邮箱" value={userInfo?.email} />
+                        <ProfileField label="真实姓名" value={userInfo?.realName} />
                     </div>
                     <div className="flex flex-col items-center">
                         <UserAvatar />
@@ -75,7 +75,7 @@ function EditProfileDialog({
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!email.trim()) {
-            appMessage.error("Please enter email");
+            appMessage.error("请输入邮箱");
             return;
         }
 
@@ -86,7 +86,7 @@ function EditProfileDialog({
                 realName: realName.trim() || null,
             });
             onUpdated(nextUserInfo);
-            appMessage.success("Profile updated");
+            appMessage.success("个人资料已更新");
             setOpen(false);
         } finally {
             setSubmitting(false);
@@ -96,14 +96,14 @@ function EditProfileDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Edit profile">
+                <Button variant="ghost" size="icon" aria-label="编辑个人资料">
                     <EditIcon />
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Edit Profile</DialogTitle>
-                    <DialogDescription>Update your email and display name.</DialogDescription>
+                    <DialogTitle>编辑个人资料</DialogTitle>
+                    <DialogDescription>更新邮箱和显示名称。</DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <div className="grid gap-2">
@@ -156,11 +156,11 @@ function ChangePasswordDialog() {
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!currentPassword || !newPassword || !confirmPassword) {
-            appMessage.error("Please fill all password fields");
+            appMessage.error("请填写全部密码字段");
             return;
         }
         if (newPassword !== confirmPassword) {
-            appMessage.error("The two passwords do not match");
+            appMessage.error("两次输入的密码不一致");
             return;
         }
 
@@ -171,7 +171,7 @@ function ChangePasswordDialog() {
                 newPassword,
                 confirmPassword,
             });
-            appMessage.success("Password changed");
+            appMessage.success("密码已修改");
             reset();
             setOpen(false);
         } finally {
@@ -190,13 +190,13 @@ function ChangePasswordDialog() {
             }}
         >
             <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Change password">
+                <Button variant="ghost" size="icon" aria-label="修改密码">
                     <LockIcon />
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Change Password</DialogTitle>
+                    <DialogTitle>修改密码</DialogTitle>
                     <DialogDescription>
                         Use a new password that is not used elsewhere.
                     </DialogDescription>
@@ -204,19 +204,19 @@ function ChangePasswordDialog() {
                 <form className="grid gap-4" onSubmit={submit}>
                     <PasswordField
                         id="current-password"
-                        label="Current Password"
+                        label="当前密码"
                         value={currentPassword}
                         onChange={setCurrentPassword}
                     />
                     <PasswordField
                         id="new-password"
-                        label="New Password"
+                        label="新密码"
                         value={newPassword}
                         onChange={setNewPassword}
                     />
                     <PasswordField
                         id="confirm-password"
-                        label="Confirm Password"
+                        label="确认密码"
                         value={confirmPassword}
                         onChange={setConfirmPassword}
                     />

@@ -1,12 +1,12 @@
 [module]
 id = "insights"
-name = "Analytics"
+name = "分析"
 api_prefix = "/api/insights"
 contract_version = 1
 
 [[menus]]
 code = "overview"
-title = "Overview"
+title = "概览"
 path = "/analytics/overview"
 icon = "chart-no-axes-combined"
 sort_order = 110
@@ -14,7 +14,7 @@ permission = "insights:overview:view"
 
 [[menus]]
 code = "details"
-title = "Details"
+title = "明细"
 path = "/analytics/details"
 icon = "chart-no-axes-combined"
 sort_order = 120

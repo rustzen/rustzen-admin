@@ -127,14 +127,14 @@ const systemRoutes: AppRouteItem = {
             icon: <MenuIcon />,
         },
         {
-            path: "/system/module",
-            name: "System Modules",
-            icon: <BoxesIcon />,
+            path: "/manage/dict",
+            name: "Dictionary",
+            icon: <BookOpenIcon />,
         },
         {
-            path: "/system/status",
-            name: "System Status",
-            icon: <MonitorIcon />,
+            path: "/manage/log",
+            name: "Log",
+            icon: <HistoryIcon />,
         },
     ],
 };
@@ -145,14 +145,14 @@ const manageRoutes: AppRouteItem = {
     path: "/manage",
     children: [
         {
-            path: "/manage/dict",
-            name: "Dictionary",
-            icon: <BookOpenIcon />,
+            path: "/system/module",
+            name: "System Modules",
+            icon: <BoxesIcon />,
         },
         {
-            path: "/manage/log",
-            name: "Log",
-            icon: <HistoryIcon />,
+            path: "/system/status",
+            name: "System Status",
+            icon: <MonitorIcon />,
         },
         {
             path: "/manage/task",

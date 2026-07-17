@@ -20,7 +20,7 @@ const MENU_STATUS_VISIBLE: i16 = 1;
 const MENU_TYPE_DIRECTORY: i16 = 1;
 const MENU_TYPE_MENU: i16 = 2;
 const MENU_TYPE_BUTTON: i16 = 3;
-const DEFAULT_OWNER_USERNAME: &str = "superadmin";
+const DEFAULT_OWNER_USERNAME: &str = "owner";
 
 struct BuiltinRoleSeed {
     code: &'static str,
@@ -1000,16 +1000,17 @@ mod tests {
         assert_eq!(owner_codes, vec!["*".to_string()]);
 
         assert!(admin_codes.contains(&"system:user:create".to_string()));
-        assert!(admin_codes.contains(&"manage:task:run".to_string()));
         assert!(admin_codes.contains(&"manage:log:export".to_string()));
-        assert!(admin_codes.contains(&"manage:deploy:list".to_string()));
+        assert!(!admin_codes.contains(&"manage:task:list".to_string()));
+        assert!(!admin_codes.contains(&"manage:task:run".to_string()));
+        assert!(!admin_codes.contains(&"manage:deploy:list".to_string()));
         assert!(!admin_codes.iter().any(|code| code == "*" || code.ends_with(":*")));
         assert!(!admin_codes.contains(&"manage:deploy:run".to_string()));
 
         assert!(viewer_codes.contains(&"system:user:list".to_string()));
         assert!(viewer_codes.contains(&"dashboard:view".to_string()));
         assert!(viewer_codes.contains(&"manage:dict:options".to_string()));
-        assert!(viewer_codes.contains(&"manage:deploy:list".to_string()));
+        assert!(!viewer_codes.contains(&"manage:deploy:list".to_string()));
         assert!(!viewer_codes.contains(&"system:user:create".to_string()));
         assert!(!viewer_codes.contains(&"manage:task:run".to_string()));
         assert!(!viewer_codes.contains(&"manage:log:export".to_string()));
@@ -1025,6 +1026,26 @@ mod tests {
             .await
             .expect("in-memory sqlite pool");
         crate::infra::db::run_migrations(&pool).await.expect("migrations");
+
+        let seeded_accounts = sqlx::query_as::<_, (String, String)>(
+            "SELECT u.username, r.code
+             FROM users u
+             INNER JOIN user_roles ur ON ur.user_id = u.id
+             INNER JOIN roles r ON r.id = ur.role_id
+             WHERE u.is_system = TRUE
+             ORDER BY u.username",
+        )
+        .fetch_all(&pool)
+        .await
+        .expect("seeded accounts");
+        assert_eq!(
+            seeded_accounts,
+            vec![
+                ("admin".to_string(), "admin".to_string()),
+                ("owner".to_string(), "owner".to_string()),
+                ("viewer".to_string(), "viewer".to_string()),
+            ]
+        );
 
         rustzen_auth::permission::register_permission_codes([
             "dashboard:view",
@@ -1045,21 +1066,22 @@ mod tests {
 
         assert_eq!(owner_permissions, vec!["*".to_string()]);
         assert!(admin_permissions.contains(&"system:user:create".to_string()));
-        assert!(admin_permissions.contains(&"manage:task:run".to_string()));
-        assert!(admin_permissions.contains(&"manage:deploy:list".to_string()));
+        assert!(!admin_permissions.contains(&"manage:task:list".to_string()));
+        assert!(!admin_permissions.contains(&"manage:task:run".to_string()));
+        assert!(!admin_permissions.contains(&"manage:deploy:list".to_string()));
         assert!(!admin_permissions.contains(&"manage:deploy:run".to_string()));
         assert!(!admin_permissions.iter().any(|code| code == "*" || code.ends_with(":*")));
 
         assert!(viewer_permissions.contains(&"dashboard:view".to_string()));
         assert!(viewer_permissions.contains(&"system:user:list".to_string()));
         assert!(viewer_permissions.contains(&"manage:dict:options".to_string()));
-        assert!(viewer_permissions.contains(&"manage:deploy:list".to_string()));
+        assert!(!viewer_permissions.contains(&"manage:deploy:list".to_string()));
         assert!(!viewer_permissions.contains(&"system:user:create".to_string()));
         assert!(!viewer_permissions.contains(&"manage:task:run".to_string()));
         assert!(!viewer_permissions.contains(&"manage:deploy:run".to_string()));
         assert!(!viewer_permissions.iter().any(|code| code == "*" || code.ends_with(":*")));
 
-        let superadmin_wildcard_count: i64 = sqlx::query_scalar(
+        let owner_wildcard_count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*)
              FROM user_permissions
              WHERE username = ? AND menu_code = ?",
@@ -1068,8 +1090,8 @@ mod tests {
         .bind(SYSTEM_WILDCARD)
         .fetch_one(&pool)
         .await
-        .expect("superadmin permissions");
-        assert_eq!(superadmin_wildcard_count, 1);
+        .expect("owner permissions");
+        assert_eq!(owner_wildcard_count, 1);
     }
 
     async fn role_permission_codes(pool: &SqlitePool, role_code: &str) -> Vec<String> {

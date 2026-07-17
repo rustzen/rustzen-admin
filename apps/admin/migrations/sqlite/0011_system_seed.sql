@@ -3,14 +3,31 @@
 -- ============================================================================
 
 INSERT INTO users (username, email, password_hash, real_name, status, is_system)
-VALUES (
-    'superadmin',
-    'superadmin@example.com',
-    '$argon2id$v=19$m=19456,t=2,p=1$i2SSaoqEMMwYzJQPXhVHfg$k1Y5bZ/k5SxEoEroG+UFzCW8aKzK1o/DWKKDU34FiPI',
-    '超级管理员',
-    1,
-    1
-)
+VALUES
+    (
+        'owner',
+        'owner@example.com',
+        '$argon2id$v=19$m=19456,t=2,p=1$i2SSaoqEMMwYzJQPXhVHfg$k1Y5bZ/k5SxEoEroG+UFzCW8aKzK1o/DWKKDU34FiPI',
+        '所有者',
+        1,
+        1
+    ),
+    (
+        'admin',
+        'admin@example.com',
+        '$argon2id$v=19$m=19456,t=2,p=1$i2SSaoqEMMwYzJQPXhVHfg$k1Y5bZ/k5SxEoEroG+UFzCW8aKzK1o/DWKKDU34FiPI',
+        '管理员',
+        1,
+        1
+    ),
+    (
+        'viewer',
+        'viewer@example.com',
+        '$argon2id$v=19$m=19456,t=2,p=1$i2SSaoqEMMwYzJQPXhVHfg$k1Y5bZ/k5SxEoEroG+UFzCW8aKzK1o/DWKKDU34FiPI',
+        '查看者',
+        1,
+        1
+    )
 ON CONFLICT DO NOTHING;
 
 INSERT INTO roles (name, code, description, status, is_system, sort_order)
@@ -65,9 +82,8 @@ ON CONFLICT DO NOTHING;
 INSERT INTO user_roles (user_id, role_id, created_at)
 SELECT u.id, r.id, CURRENT_TIMESTAMP
 FROM users u
-CROSS JOIN roles r
-WHERE u.username = 'superadmin'
-  AND r.code = 'owner'
+INNER JOIN roles r ON r.code = u.username
+WHERE u.username IN ('owner', 'admin', 'viewer')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO dicts (dict_type, label, value, status, sort_order)

@@ -79,7 +79,7 @@ If startup succeeds, the database will be recreated automatically.
 ## Demo
 
 - Local demo URL: [https://admin.rustzen.dev](https://admin.rustzen.dev)
-- Demo username: `superadmin`
+- Demo username: `owner`
 - Demo password: `rustzen@123`
 
 ## Notes

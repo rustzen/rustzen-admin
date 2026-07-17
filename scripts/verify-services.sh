@@ -247,7 +247,7 @@ assert_module_gateways_healthy_except() {
 PHASE="admin-alone"
 start_service admin
 wait_for_health admin
-owner_login="$(login superadmin 'rustzen@123')"
+owner_login="$(login owner 'rustzen@123')"
 RUSTZEN_ADMIN_TOKEN="$(printf '%s' "$owner_login" | parse_json 'value.data.token')"
 RUSTZEN_ADMIN_USER_ID="$(printf '%s' "$owner_login" | parse_json 'value.data.userInfo.id')"
 export RUSTZEN_ADMIN_TOKEN RUSTZEN_ADMIN_USER_ID
@@ -304,7 +304,7 @@ for service in admin monitor insights reports; do
     wait_for_health "$service"
 done
 
-owner_login="$(login superadmin 'rustzen@123')"
+owner_login="$(login owner 'rustzen@123')"
 RUSTZEN_ADMIN_TOKEN="$(printf '%s' "$owner_login" | parse_json 'value.data.token')"
 RUSTZEN_ADMIN_USER_ID="$(printf '%s' "$owner_login" | parse_json 'value.data.userInfo.id')"
 export RUSTZEN_ADMIN_TOKEN RUSTZEN_ADMIN_USER_ID
@@ -318,7 +318,7 @@ wait_for_status 401 "http://127.0.0.1:$RUSTZEN_MONITOR_PORT/api/monitor/nodes"
 wait_for_status 404 "http://127.0.0.1:$RUSTZEN_ADMIN_PORT/api/unknown/path"
 
 sqlite3 "$ROOT/data/db/admin.db" \
-    "INSERT INTO users (username, email, password_hash, real_name, status, is_system) SELECT 'verify-denied', 'verify-denied@example.com', password_hash, 'Verify Denied', 1, 0 FROM users WHERE username = 'superadmin';"
+    "INSERT INTO users (username, email, password_hash, real_name, status, is_system) SELECT 'verify-denied', 'verify-denied@example.com', password_hash, 'Verify Denied', 1, 0 FROM users WHERE username = 'owner';"
 denied_login="$(login verify-denied 'rustzen@123')"
 denied_token="$(printf '%s' "$denied_login" | parse_json 'value.data.token')"
 wait_for_status 403 "http://127.0.0.1:$RUSTZEN_ADMIN_PORT/api/monitor/nodes" "$denied_token"

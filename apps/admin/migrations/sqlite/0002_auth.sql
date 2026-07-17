@@ -1,6 +1,0 @@
--- ============================================================================
--- Module: Compatibility anchor for auth-related migrations.
---
--- The auth/view and role/query projections are now managed in:
--- 0010_system_view.sql
--- ============================================================================

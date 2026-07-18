@@ -18,10 +18,9 @@ Current backend files with `#[serde(rename_all = "camelCase")]` include:
   status, and user contracts
 - Monitor boundary types under `apps/monitor/src/features/heartbeat/` and
   `apps/monitor/src/features/nodes/`
-- Insights boundary types under `apps/insights/src/features/overview/`,
-  `projects/`, and `tracking/`
-- Reports boundary types under `apps/reports/src/features/jobs/` and
-  `templates/`
+- Insights boundary types under `apps/insights/src/features/overview/` and
+  `tracking/`
+- Reports boundary types under `apps/reports/src/features/automation/`
 
 ## Current Frontend Boundary
 

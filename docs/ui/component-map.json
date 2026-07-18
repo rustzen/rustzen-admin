@@ -1,10 +1,17 @@
 {
   "version": 1,
-  "revision": 1,
+  "revision": 2,
   "components": {
-    "application-shell": {"decision": "adapt", "source": "apps/web/src/components/base-layout/index.tsx", "reason": "Existing route, permission, search, theme, and account owner."},
+    "application-shell": {"decision": "adapt", "source": "apps/web/src/components/layout/index.tsx", "reason": "Existing route, permission, search, theme, and account owner."},
     "sidebar": {"decision": "reuse", "source": "apps/web/src/components/ui/sidebar.tsx", "reason": "Existing shadcn-compatible responsive and collapse behavior."},
-    "page-header": {"decision": "reuse", "source": "apps/web/src/components/app/page-header.tsx", "reason": "Existing page heading owner."},
+    "page-card": {"decision": "adapt", "source": "apps/web/src/components/page/page-card.tsx", "reason": "Standard page title, action, toolbar, and content hierarchy for list and management routes."},
+    "page-header": {"decision": "adapt", "source": "apps/web/src/components/page/page-header.tsx", "reason": "Standard heading owner for dashboard, overview, status, profile, and route-status surfaces."},
+    "metric-card": {"decision": "create", "source": "apps/web/src/components/page/metric-card.tsx", "reason": "Monitoring and analytics had duplicated metric presentation with two real consumers."},
+    "data-state": {"decision": "adapt", "source": "apps/web/src/components/feedback/data-state.tsx", "reason": "Single loading, empty, error, permission, and processing vocabulary for pages and tables."},
+    "data-table-shell": {"decision": "adapt", "source": "apps/web/src/components/table/data-table-shell.tsx", "reason": "Shared readable table surface across all three themes."},
+    "table-pagination": {"decision": "adapt", "source": "apps/web/src/components/table/table-pagination.tsx", "reason": "Shared pagination layout and navigation semantics."},
+    "form-fields": {"decision": "reuse", "source": "apps/web/src/components/form", "reason": "Existing label, error, input, and description ownership."},
+    "theme-system": {"decision": "adapt", "source": "apps/web/src/styles/theme.css", "reason": "Preserve colorful glass, white, and dark themes while separating decorative shell from readable panels."},
     "dashboard": {"decision": "adapt", "source": "apps/web/src/routes/index.tsx", "reason": "Existing real dashboard API and loading/error states."},
     "cards-and-tables": {"decision": "reuse", "source": "apps/web/src/components/ui", "reason": "Existing component and token system."}
   }

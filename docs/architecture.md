@@ -86,8 +86,8 @@ authorization use the same boundary.
 
 - `owner` receives `*` and is the only built-in role allowed to mutate
   releases.
-- `admin` receives concrete Monitor, Insights, and Reports capabilities plus
-  deploy view access.
+- `admin` receives concrete Monitor, Insights, and Reports capabilities, but no
+  owner-only system or management capabilities.
 - `viewer` receives concrete read-only capabilities.
 
 Admin persists mutable grants, module enabled state, menu overrides, and
@@ -151,6 +151,11 @@ The root `justfile` is the command authority. `just verify-services` uses
 release binaries to test all 24 startup orders, independent termination, four
 database corruption/restore boundaries, gateway and delegation contracts, and
 the Manifest restart/change contract.
+
+The same service verification reads each live module Manifest and checks every
+method/path consumed by the Web API clients. A frontend route that is renamed,
+removed, or assigned a different HTTP method therefore fails verification
+without introducing another backend route source of truth.
 
 The 2026-07-15 same-host gateway comparison used
 `GET /api/monitor/nodes`, release binaries, concurrency 32, 128 warm-up

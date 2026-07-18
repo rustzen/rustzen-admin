@@ -4,11 +4,12 @@ import { EditIcon, PlusIcon, StopCircleIcon } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import { appMessage, systemAPI } from "@/api";
-import { ConfirmDialog } from "@/components/app/confirm-dialog";
-import { DataTableShell } from "@/components/app/data-table-shell";
-import { PageCard } from "@/components/app/page-card";
-import { AuthWrap } from "@/components/base-auth";
+import { AuthWrap } from "@/components/auth";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
+import { DataTableState } from "@/components/feedback/data-state";
 import { TextField } from "@/components/form/text-field";
+import { PageCard } from "@/components/page/page-card";
+import { DataTableShell } from "@/components/table/data-table-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,7 +70,7 @@ type FlatMenuItem = Menu.Item & {
 };
 
 function MenuPage() {
-    const { data, isFetching, refetch } = useQuery({
+    const { data, error, isPending, refetch } = useQuery({
         queryKey: ["system", "menu"],
         queryFn: () => systemAPI.menu.list({}),
     });
@@ -88,7 +89,7 @@ function MenuPage() {
                     <MenuDialog mode="create" onSuccess={refresh}>
                         <Button>
                             <PlusIcon data-icon="inline-start" />
-                            Create Menu
+                            新建菜单
                         </Button>
                     </MenuDialog>
                 </AuthWrap>
@@ -140,12 +141,20 @@ function MenuPage() {
                                     </TableCell>
                                 </TableRow>
                             ))
+                        ) : isPending ? (
+                            <DataTableState colSpan={7} kind="loading" title="正在加载菜单" />
+                        ) : error ? (
+                            <DataTableState
+                                colSpan={7}
+                                kind="error"
+                                title="菜单加载失败"
+                                description={
+                                    error instanceof Error ? error.message : "请稍后重试。"
+                                }
+                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                            />
                         ) : (
-                            <TableRow>
-                                <TableCell colSpan={7} className="h-40 text-center">
-                                    {isFetching ? "正在加载菜单..." : "未找到菜单。"}
-                                </TableCell>
-                            </TableRow>
+                            <DataTableState colSpan={7} kind="empty" title="暂无菜单" />
                         )}
                     </TableBody>
                 </Table>
@@ -394,7 +403,7 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                     />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            Cancel
+                            取消
                         </Button>
                         <Button type="submit" disabled={submitting}>
                             {mode === "create" ? "创建" : "保存"}
@@ -426,7 +435,7 @@ function DisableMenuDialog({ record, onSuccess }: { record: Menu.Item; onSuccess
                 </Button>
             }
             title="禁用菜单"
-            description={`This menu will be disabled. Disable ${record.name}?`}
+            description={`菜单 ${record.name} 将被禁用，是否继续？`}
             confirmLabel="禁用"
             destructive
             onConfirm={submit}

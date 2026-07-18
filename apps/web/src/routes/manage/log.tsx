@@ -4,10 +4,11 @@ import { DownloadIcon, SearchIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { manageAPI } from "@/api";
-import { DataTableShell } from "@/components/app/data-table-shell";
-import { PageCard } from "@/components/app/page-card";
-import { TablePagination } from "@/components/app/table-pagination";
-import { AuthWrap } from "@/components/base-auth";
+import { AuthWrap } from "@/components/auth";
+import { DataTableState } from "@/components/feedback/data-state";
+import { PageCard } from "@/components/page/page-card";
+import { DataTableShell } from "@/components/table/data-table-shell";
+import { TablePagination } from "@/components/table/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +32,7 @@ const ALL_ACTION = "all";
 const PAGE_SIZE = 20;
 
 const actionOptions: Array<{ label: string; value: string }> = [
-    { label: "All", value: ALL_ACTION },
+    { label: "全部", value: ALL_ACTION },
     { label: "登录", value: DEFAULT_ACTION },
     { label: "GET", value: "HTTP_GET" },
     { label: "POST", value: "HTTP_POST" },
@@ -55,7 +56,7 @@ function LogPage() {
         }),
         [currentPage, searchKeyword, selectedAction],
     );
-    const { data, isFetching } = useQuery({
+    const { data, error, isFetching, isPending, refetch } = useQuery({
         queryKey: ["manage", "log", params],
         queryFn: () => manageAPI.log.list(params),
     });
@@ -91,7 +92,7 @@ function LogPage() {
                         }}
                     >
                         <DownloadIcon data-icon="inline-start" />
-                        Export
+                        导出
                     </Button>
                 </AuthWrap>
             }
@@ -110,6 +111,7 @@ function LogPage() {
                         <div className="relative min-w-0 flex-1 sm:w-64">
                             <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                             <Input
+                                aria-label="搜索用户或 IP"
                                 value={searchInput}
                                 placeholder="搜索用户或 IP"
                                 className="pl-9"
@@ -128,11 +130,11 @@ function LogPage() {
                             />
                         </div>
                         <Button type="button" variant="outline" onClick={submitSearch}>
-                            Search
+                            查询
                         </Button>
                         {searchKeyword ? (
                             <Button type="button" variant="ghost" onClick={clearSearch}>
-                                Clear
+                                清除
                             </Button>
                         ) : null}
                     </div>
@@ -163,7 +165,7 @@ function LogPage() {
                                         <ActionBadge action={record.action} />
                                     </TableCell>
                                     <TableCell className="max-w-80 truncate">
-                                        {record.description || "-"}
+                                        {operationDescription(record.description)}
                                     </TableCell>
                                     <TableCell>
                                         <StatusBadge status={record.status} />
@@ -175,12 +177,20 @@ function LogPage() {
                                     </TableCell>
                                 </TableRow>
                             ))
+                        ) : isPending ? (
+                            <DataTableState colSpan={8} kind="loading" title="正在加载日志" />
+                        ) : error ? (
+                            <DataTableState
+                                colSpan={8}
+                                kind="error"
+                                title="日志加载失败"
+                                description={
+                                    error instanceof Error ? error.message : "请稍后重试。"
+                                }
+                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                            />
                         ) : (
-                            <TableRow>
-                                <TableCell colSpan={8} className="h-40 text-center">
-                                    {isFetching ? "正在加载日志..." : "未找到日志。"}
-                                </TableCell>
-                            </TableRow>
+                            <DataTableState colSpan={8} kind="empty" title="暂无日志" />
                         )}
                     </TableBody>
                 </Table>
@@ -203,10 +213,17 @@ const ActionBadge = ({ action }: { action: string }) => {
 
 const StatusBadge = ({ status }: { status: string }) => {
     const isSuccess = status === "SUCCESS";
-    return <Badge variant={isSuccess ? "default" : "destructive"}>{status}</Badge>;
+    return (
+        <Badge variant={isSuccess ? "default" : "destructive"}>{isSuccess ? "成功" : "失败"}</Badge>
+    );
 };
 
 const formatDuration = (durationMs?: number) => {
     if (!durationMs) return "-";
     return `${durationMs}ms`;
+};
+
+const operationDescription = (description?: string | null) => {
+    if (!description) return "-";
+    return description === "User login successful" ? "用户登录成功" : description;
 };

@@ -123,7 +123,9 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
                     <Separator orientation="vertical" className="h-6" />
                     <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium">
-                            {currentPageTitle(menuData, currentPath) ?? APP_BRAND_NAME}
+                            {currentPath === "/profile"
+                                ? "个人资料"
+                                : (currentPageTitle(menuData, currentPath) ?? APP_BRAND_NAME)}
                         </div>
                     </div>
                     <AppSearch routes={searchRoutes} onSelect={handleSearchSelect} />
@@ -132,7 +134,9 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
                 </header>
 
                 <main className="rz-content min-h-0 min-w-0 flex-1 overflow-hidden p-5 xl:p-6">
-                    {children}
+                    <div className="rz-page mx-auto h-full min-h-0 w-full max-w-400 overflow-hidden">
+                        {children}
+                    </div>
                 </main>
             </SidebarInset>
         </SidebarProvider>

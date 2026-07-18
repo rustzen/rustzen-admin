@@ -4,13 +4,14 @@ import { EditIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import { appMessage, systemAPI } from "@/api";
-import { ConfirmDialog } from "@/components/app/confirm-dialog";
-import { DataTableShell } from "@/components/app/data-table-shell";
-import { PageCard } from "@/components/app/page-card";
-import { TablePagination } from "@/components/app/table-pagination";
-import { AuthWrap } from "@/components/base-auth";
+import { AuthWrap } from "@/components/auth";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
+import { DataTableState } from "@/components/feedback/data-state";
 import { TextField } from "@/components/form/text-field";
 import { TextareaField } from "@/components/form/textarea-field";
+import { PageCard } from "@/components/page/page-card";
+import { DataTableShell } from "@/components/table/data-table-shell";
+import { TablePagination } from "@/components/table/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -76,7 +77,7 @@ function RolePage() {
         }),
         [currentPage, filters],
     );
-    const { data, isFetching, refetch } = useQuery({
+    const { data, error, isFetching, isPending, refetch } = useQuery({
         queryKey: ["system", "role", params],
         queryFn: () => systemAPI.role.list(params),
     });
@@ -115,7 +116,7 @@ function RolePage() {
                     <RoleDialog mode="create" onSuccess={refresh}>
                         <Button>
                             <PlusIcon data-icon="inline-start" />
-                            Create Role
+                            新建角色
                         </Button>
                     </RoleDialog>
                 </AuthWrap>
@@ -123,17 +124,19 @@ function RolePage() {
             toolbar={
                 <form className="grid gap-3 md:grid-cols-4" onSubmit={search}>
                     <Input
+                        aria-label="角色名称"
                         value={roleName}
                         placeholder="角色名称"
                         onChange={(event) => setRoleName(event.target.value)}
                     />
                     <Input
+                        aria-label="角色编码"
                         value={roleCode}
                         placeholder="角色编码"
                         onChange={(event) => setRoleCode(event.target.value)}
                     />
                     <Select value={status} onValueChange={setStatus}>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full" aria-label="角色状态">
                             <SelectValue placeholder="状态" />
                         </SelectTrigger>
                         <SelectContent>
@@ -149,7 +152,7 @@ function RolePage() {
                     </Select>
                     <div className="flex gap-2">
                         <Button type="submit" disabled={isFetching}>
-                            Search
+                            查询
                         </Button>
                         <Button
                             type="button"
@@ -157,7 +160,7 @@ function RolePage() {
                             disabled={isFetching}
                             onClick={reset}
                         >
-                            Reset
+                            重置
                         </Button>
                     </div>
                 </form>
@@ -199,12 +202,10 @@ function RolePage() {
                                                     .map((menu) => menu.label)
                                                     .join(", ")}
                                             >
-                                                {record.menus.length} permission(s)
+                                                {record.menus.length} 项权限
                                             </span>
                                         ) : (
-                                            <span className="text-muted-foreground">
-                                                No permissions
-                                            </span>
+                                            <span className="text-muted-foreground">暂无权限</span>
                                         )}
                                     </TableCell>
                                     <TableCell>{formatDateTime(record.updatedAt)}</TableCell>
@@ -213,12 +214,20 @@ function RolePage() {
                                     </TableCell>
                                 </TableRow>
                             ))
+                        ) : isPending ? (
+                            <DataTableState colSpan={8} kind="loading" title="正在加载角色" />
+                        ) : error ? (
+                            <DataTableState
+                                colSpan={8}
+                                kind="error"
+                                title="角色加载失败"
+                                description={
+                                    error instanceof Error ? error.message : "请稍后重试。"
+                                }
+                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                            />
                         ) : (
-                            <TableRow>
-                                <TableCell colSpan={8} className="h-40 text-center">
-                                    {isFetching ? "正在加载角色..." : "未找到角色。"}
-                                </TableCell>
-                            </TableRow>
+                            <DataTableState colSpan={8} kind="empty" title="暂无角色" />
                         )}
                     </TableBody>
                 </Table>
@@ -359,9 +368,7 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{mode === "create" ? "创建角色" : "编辑角色"}</DialogTitle>
-                    <DialogDescription>
-                        Configure role identity, status, and allowed permissions.
-                    </DialogDescription>
+                    <DialogDescription>配置角色标识、状态和可分配权限。</DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <div className="grid gap-4 md:grid-cols-2">
@@ -420,7 +427,7 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
                     </div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            Cancel
+                            取消
                         </Button>
                         <Button type="submit" disabled={submitting}>
                             {mode === "create" ? "创建" : "保存"}
@@ -459,7 +466,7 @@ function PermissionPicker({
         <div className="grid gap-2">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <Label>权限</Label>
-                <span className="text-sm text-muted-foreground">{selectedCount} selected</span>
+                <span className="text-sm text-muted-foreground">已选择 {selectedCount} 项</span>
             </div>
             <Input
                 value={search}
@@ -487,9 +494,7 @@ function PermissionPicker({
                         ))}
                     </div>
                 ) : (
-                    <div className="text-sm text-muted-foreground">
-                        No assignable permissions found.
-                    </div>
+                    <div className="text-sm text-muted-foreground">未找到可分配权限。</div>
                 )}
             </div>
         </div>
@@ -516,7 +521,7 @@ function DeleteRoleDialog({ record, onSuccess }: { record: Role.Item; onSuccess:
                 </Button>
             }
             title="删除角色"
-            description={`This action cannot be undone. Delete ${record.name}?`}
+            description={`此操作无法撤销。确定删除角色 ${record.name}？`}
             confirmLabel="删除"
             destructive
             onConfirm={submit}
@@ -534,19 +539,18 @@ function isBuiltInRoleCode(code: string) {
 }
 
 function isAssignableRolePermission(code: string) {
-    return code !== "*" && !isDeployPermission(code) && !wildcardCoversDeploy(code);
-}
-
-function isDeployPermission(code: string) {
-    return code === "manage:deploy:*" || code.startsWith("manage:deploy:");
-}
-
-function wildcardCoversDeploy(code: string) {
-    if (!code.endsWith(":*")) {
+    const ownerOnlyRoots = ["system:module", "system:status", "manage:task", "manage:deploy"];
+    if (code === "*") {
         return false;
     }
-
-    return "manage:deploy:".startsWith(code.slice(0, -1));
+    if (ownerOnlyRoots.some((root) => code === root || code.startsWith(`${root}:`))) {
+        return false;
+    }
+    if (!code.endsWith(":*")) {
+        return true;
+    }
+    const wildcardPrefix = code.slice(0, -1);
+    return !ownerOnlyRoots.some((root) => `${root}:`.startsWith(wildcardPrefix));
 }
 
 function formatDateTime(value?: string | null) {

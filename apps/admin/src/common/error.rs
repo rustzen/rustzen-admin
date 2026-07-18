@@ -132,15 +132,11 @@ impl From<ServiceError> for AppError {
                 10012,
                 "New password confirmation does not match.",
             ),
-            ServiceError::UserIsDisabled => {
-                app_error(StatusCode::FORBIDDEN, 10004, "User account is disabled.")
-            }
+            ServiceError::UserIsDisabled => app_error(StatusCode::FORBIDDEN, 10004, "账号已禁用。"),
             ServiceError::UserIsPending => {
-                app_error(StatusCode::BAD_REQUEST, 10005, "User account is pending approval.")
+                app_error(StatusCode::BAD_REQUEST, 10005, "账号正在等待审核。")
             }
-            ServiceError::UserIsLocked => {
-                app_error(StatusCode::BAD_REQUEST, 10006, "User account is locked.")
-            }
+            ServiceError::UserIsLocked => app_error(StatusCode::BAD_REQUEST, 10006, "账号已锁定。"),
             ServiceError::InvalidUserStatus => {
                 app_error(StatusCode::BAD_REQUEST, 10007, "User status is invalid.")
             }
@@ -154,7 +150,7 @@ impl From<ServiceError> for AppError {
                 app_error(StatusCode::BAD_REQUEST, 10010, "Cannot modify system built-in menu.")
             }
             ServiceError::InvalidCredentials => {
-                app_error(StatusCode::UNAUTHORIZED, 10101, "Invalid username or password.")
+                app_error(StatusCode::UNAUTHORIZED, 10101, "用户名或密码错误。")
             }
             ServiceError::TokenCreationFailed => app_error(
                 StatusCode::INTERNAL_SERVER_ERROR,

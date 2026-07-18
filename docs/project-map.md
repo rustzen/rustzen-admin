@@ -62,7 +62,7 @@ Rust route registration, not in `module.toml`.
 | `apps/web/package.json` and `apps/web/bun.lock` | Bun package and dependency lock. | You change frontend dependencies or scripts. |
 | `apps/web/src/routes/` | File-based pages and route guards. | You add or change pages. |
 | `apps/web/src/api/` | Typed API modules and request wrapper. | You change HTTP contracts or data access. |
-| `apps/web/src/components/base-layout/` | Admin shell and runtime navigation. | You change menus, header, or layout. |
+| `apps/web/src/components/layout/` | Admin shell and runtime navigation. | You change menus, header, or layout. |
 | `apps/web/src/store/` | Shared frontend state. | You change auth or persisted cross-page state. |
 
 ## Deployment and verification

@@ -1,5 +1,9 @@
 import { createHmac, randomUUID } from "node:crypto";
 
+import { insightsAPIContract } from "../apps/web/src/api/insights/contract.ts";
+import { monitorAPIContract } from "../apps/web/src/api/monitor/contract.ts";
+import { reportsAPIContract } from "../apps/web/src/api/reports/contract.ts";
+
 const ipcToken = required("RUSTZEN_IPC_TOKEN");
 const agentToken = required("RUSTZEN_MONITOR_AGENT_TOKEN");
 const adminToken = required("RUSTZEN_ADMIN_TOKEN");
@@ -79,6 +83,41 @@ async function responseData(response, label) {
   }
   return payload.data;
 }
+
+async function verifyFrontendAPIContract(module, base, clientContract) {
+  const response = await expectStatus(
+    await fetch(`${base}/internal/v1/manifest`),
+    200,
+    `${module} runtime Manifest`,
+  );
+  const manifest = await response.json();
+  if (manifest.module !== module || typeof manifest.apiPrefix !== "string") {
+    throw new Error(`${module}: invalid runtime Manifest identity`);
+  }
+
+  const runtimeRoutes = new Set(
+    manifest.routes.map(
+      (route) => `${route.method} ${manifest.apiPrefix}${route.path}`,
+    ),
+  );
+  const missing = Object.entries(clientContract)
+    .map(([name, route]) => ({ name, key: `${route.method} ${route.path}` }))
+    .filter(({ key }) => !runtimeRoutes.has(key));
+
+  if (missing.length > 0) {
+    throw new Error(
+      `${module}: frontend API contract drifted from runtime Manifest: ${missing
+        .map(({ name, key }) => `${name} (${key})`)
+        .join(", ")}`,
+    );
+  }
+}
+
+await Promise.all([
+  verifyFrontendAPIContract("monitor", monitorBase, monitorAPIContract),
+  verifyFrontendAPIContract("insights", insightsBase, insightsAPIContract),
+  verifyFrontendAPIContract("reports", reportsBase, reportsAPIContract),
+]);
 
 const heartbeat = {
   agentId: "verify-agent",
@@ -405,4 +444,6 @@ if (overhead.p95Ms > latencyBudgetMs) {
   );
 }
 
-console.log("Local Monitor, Insights, Reports, delegation, and gateway contracts verified");
+console.log(
+  "Frontend API, Monitor, Insights, Reports, delegation, and gateway contracts verified",
+);

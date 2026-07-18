@@ -1,39 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-    AlertCircleIcon,
-    CpuIcon,
-    DatabaseIcon,
-    HardDriveIcon,
-    MemoryStickIcon,
-} from "lucide-react";
+import { CpuIcon, DatabaseIcon, HardDriveIcon, MemoryStickIcon } from "lucide-react";
 
 import { systemAPI } from "@/api";
-import { PageHeader } from "@/components/app/page-header";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { DataState } from "@/components/feedback/data-state";
+import { PageHeader } from "@/components/page/page-header";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/system/status")({
     component: SystemStatusPage,
 });
 
 function SystemStatusPage() {
-    const { data, isError, isLoading } = useQuery({
+    const { data, isError, isLoading, refetch } = useQuery({
         queryKey: ["system", "status"],
         queryFn: systemAPI.status.overview,
         refetchInterval: 30 * 1000,
     });
 
     if (isLoading && !data) {
-        return (
-            <div className="flex h-full flex-col gap-4">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-80 w-full" />
-                <Skeleton className="h-48 w-full" />
-            </div>
-        );
+        return <DataState kind="loading" title="正在加载系统状态" />;
     }
 
     return (
@@ -43,7 +31,7 @@ function SystemStatusPage() {
                 description="存储和本地资源遥测数据每 30 秒刷新一次。"
                 actions={
                     <span className="text-sm text-muted-foreground">
-                        Collected at: {data?.collectedAt ? formatDateTime(data.collectedAt) : "-"}
+                        采集时间：{data?.collectedAt ? formatDateTime(data.collectedAt) : "-"}
                     </span>
                 }
             />
@@ -54,13 +42,12 @@ function SystemStatusPage() {
                     <ResourceCard resource={data.resource} />
                 </>
             ) : isError ? (
-                <Alert variant="destructive">
-                    <AlertCircleIcon />
-                    <AlertTitle>系统状态加载失败</AlertTitle>
-                    <AlertDescription>
-                        Please retry later or check the server logs.
-                    </AlertDescription>
-                </Alert>
+                <DataState
+                    kind="error"
+                    title="系统状态加载失败"
+                    description="请检查 Admin 服务日志和本地资源读取权限后重试。"
+                    action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                />
             ) : null}
         </div>
     );
@@ -73,9 +60,7 @@ function StorageCard({ storage }: { storage: SystemStatus.StorageStatus }) {
         <Card>
             <CardHeader>
                 <CardTitle>存储</CardTitle>
-                <CardDescription>
-                    SQLite storage and runtime directory distribution.
-                </CardDescription>
+                <CardDescription>SQLite 存储及运行目录分布。</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_1fr]">
@@ -88,11 +73,11 @@ function StorageCard({ storage }: { storage: SystemStatus.StorageStatus }) {
                             {formatBytes(storage.database.totalBytes)}
                         </div>
                         <div className="mt-5 inline-flex rounded-md border bg-background px-3 py-1 text-sm text-muted-foreground">
-                            SQLite database
+                            SQLite 数据库
                         </div>
                         <Progress className="mt-5" value={100} />
                         <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-                            <span>Main {formatBytes(storage.database.mainBytes)}</span>
+                            <span>主库 {formatBytes(storage.database.mainBytes)}</span>
                             <span className="text-right">
                                 WAL {formatBytes(storage.database.walBytes)}
                             </span>
@@ -102,15 +87,13 @@ function StorageCard({ storage }: { storage: SystemStatus.StorageStatus }) {
                     <div>
                         <div className="mb-5 flex items-start justify-between gap-4">
                             <div>
-                                <div className="text-base font-semibold">
-                                    Directory Distribution
-                                </div>
+                                <div className="text-base font-semibold">目录分布</div>
                                 <div className="mt-1 text-sm text-muted-foreground">
-                                    Compared by current directory usage
+                                    按当前目录占用空间对比
                                 </div>
                             </div>
                             <div className="text-sm text-muted-foreground">
-                                {storage.directories.length} items
+                                {storage.directories.length} 项
                             </div>
                         </div>
                         <div className="grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
@@ -191,15 +174,13 @@ function ResourceCard({ resource }: { resource: SystemStatus.LocalResourceStatus
         <Card>
             <CardHeader>
                 <CardTitle>本地资源</CardTitle>
-                <CardDescription>
-                    CPU, memory, and disk utilization on the current host.
-                </CardDescription>
+                <CardDescription>当前主机的 CPU、内存和磁盘使用情况。</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-7 lg:grid-cols-3">
                 <ResourceMetric
                     icon={CpuIcon}
                     title="CPU"
-                    detail={`${resource.cpu.cores} cores`}
+                    detail={`${resource.cpu.cores} 核`}
                     percent={resource.cpu.usagePercent}
                 />
                 <ResourceMetric

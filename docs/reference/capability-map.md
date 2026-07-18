@@ -7,7 +7,7 @@ This is a short orientation map for current capability ownership. Source code, `
 | Capability | Backend owner | Frontend owner |
 | --- | --- | --- |
 | Auth | `apps/admin/src/features/auth/` | `apps/web/src/api/auth/`, `apps/web/src/routes/login.tsx`, `apps/web/src/routes/__root.tsx` |
-| Account | `apps/admin/src/features/account/` | `apps/web/src/api/account/`, `apps/web/src/routes/profile.tsx`, `apps/web/src/components/base-user/` |
+| Account | `apps/admin/src/features/account/` | `apps/web/src/api/account/`, `apps/web/src/routes/profile.tsx`, `apps/web/src/components/user/` |
 | Dashboard | `apps/admin/src/features/dashboard/` | `apps/web/src/api/dashboard/`, `apps/web/src/routes/index.tsx` |
 | Module registry and gateway | `apps/admin/src/features/modules/`, `crates/ipc/` | `apps/web/src/api/system/module/`, `apps/web/src/routes/system/module.tsx` |
 | Monitoring | `apps/monitor/src/features/`, `apps/monitor/src/app.rs` | `apps/web/src/api/monitor/`, `apps/web/src/routes/monitoring/` |
@@ -18,7 +18,7 @@ This is a short orientation map for current capability ownership. Source code, `
 | Dictionary | `apps/admin/src/features/manage/dict/` | `apps/web/src/api/manage/dict/`, `apps/web/src/routes/manage/dict.tsx` |
 | Scheduled tasks | `apps/admin/src/features/manage/task/` | `apps/web/src/api/manage/task/`, `apps/web/src/routes/manage/task.tsx` |
 | Deploy versions | `apps/admin/src/features/manage/deploy/` | `apps/web/src/api/manage/deploy/`, `apps/web/src/routes/manage/deploy.tsx` |
-| Runtime files | `apps/admin/src/common/files.rs`, `apps/admin/src/infra/app.rs`, `crates/config/`, `crates/runtime/` | avatar upload UI under `apps/web/src/components/base-user/` |
+| Runtime files | `apps/admin/src/common/files.rs`, `apps/admin/src/infra/app.rs`, `crates/config/`, `crates/runtime/` | avatar upload UI under `apps/web/src/components/user/` |
 
 ## Rules
 

@@ -4,10 +4,11 @@ import { BanIcon, EyeIcon, PlayIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { appMessage, reportsAPI } from "@/api";
-import { DataTableShell } from "@/components/app/data-table-shell";
-import { PageCard } from "@/components/app/page-card";
-import { TablePagination } from "@/components/app/table-pagination";
-import { AuthWrap } from "@/components/base-auth";
+import { AuthWrap } from "@/components/auth";
+import { DataState, DataTableState } from "@/components/feedback/data-state";
+import { PageCard } from "@/components/page/page-card";
+import { DataTableShell } from "@/components/table/data-table-shell";
+import { TablePagination } from "@/components/table/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +54,19 @@ const variants: Record<Reports.Run["status"], "default" | "secondary" | "destruc
         failed: "destructive",
         cancelled: "outline",
     };
+const runStatusLabels: Record<Reports.Run["status"], string> = {
+    queued: "排队中",
+    running: "执行中",
+    succeeded: "已成功",
+    failed: "失败",
+    cancelled: "已取消",
+};
+const stepStatusLabels: Record<Reports.RunStep["status"], string> = {
+    running: "执行中",
+    succeeded: "已成功",
+    failed: "失败",
+};
+const defaultRunInput = JSON.stringify({ username: "", password: "" }, null, 2);
 function RunsPage() {
     const [current, setCurrent] = useState(1),
         [selected, setSelected] = useState<Reports.Run>();
@@ -61,7 +75,7 @@ function RunsPage() {
         queryKey: ["reports", "flows"],
         queryFn: () => reportsAPI.flows(),
     });
-    const { data, isFetching } = useQuery({
+    const { data, error, isFetching, isPending, refetch } = useQuery({
         queryKey: ["reports", "runs", current],
         queryFn: () => reportsAPI.runs({ current, pageSize: size }),
         refetchInterval: (q) =>
@@ -110,7 +124,9 @@ function RunsPage() {
                                         {flows.find((f) => f.id === run.flowId)?.name ?? run.flowId}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={variants[run.status]}>{run.status}</Badge>
+                                        <Badge variant={variants[run.status]}>
+                                            {runStatusLabels[run.status]}
+                                        </Badge>
                                     </TableCell>
                                     <TableCell>{date(run.createdAt)}</TableCell>
                                     <TableCell className="max-w-80 truncate text-muted-foreground">
@@ -145,12 +161,23 @@ function RunsPage() {
                                     </TableCell>
                                 </TableRow>
                             ))
+                        ) : isPending ? (
+                            <DataTableState colSpan={6} kind="loading" title="正在加载填报执行" />
+                        ) : error ? (
+                            <DataTableState
+                                colSpan={6}
+                                kind="error"
+                                title="填报执行加载失败"
+                                description="无法读取执行记录，请检查 Reports 服务后重试。"
+                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                            />
                         ) : (
-                            <TableRow>
-                                <TableCell colSpan={6} className="h-40 text-center">
-                                    {isFetching ? "正在加载执行记录..." : "暂无执行记录。"}
-                                </TableCell>
-                            </TableRow>
+                            <DataTableState
+                                colSpan={6}
+                                kind="empty"
+                                title="暂无填报执行"
+                                description="选择一个报表模板并提交输入数据后，执行过程会显示在这里。"
+                            />
                         )}
                     </TableBody>
                 </Table>
@@ -170,7 +197,7 @@ function RunDialog({ flows }: { flows: Reports.Flow[] }) {
     const client = useQueryClient();
     const [open, setOpen] = useState(false),
         [flowId, setFlowId] = useState(""),
-        [json, setJson] = useState("{}");
+        [json, setJson] = useState(defaultRunInput);
     const mutation = useMutation({
         mutationFn: reportsAPI.createRun,
         onSuccess: async () => {
@@ -192,14 +219,14 @@ function RunDialog({ flows }: { flows: Reports.Flow[] }) {
             <DialogTrigger asChild>
                 <Button disabled={!flows.length}>
                     <PlayIcon />
-                    New run
+                    新建填报
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>开始填报</DialogTitle>
                     <DialogDescription>
-                        Choose a validated flow and the input object to write.
+                        选择已校验的流程，并填写本次写入使用的输入数据。
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4">
@@ -220,7 +247,7 @@ function RunDialog({ flows }: { flows: Reports.Flow[] }) {
                 </div>
                 <DialogFooter>
                     <Button disabled={!flowId || mutation.isPending} onClick={save}>
-                        Queue run
+                        提交执行
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -228,7 +255,11 @@ function RunDialog({ flows }: { flows: Reports.Flow[] }) {
     );
 }
 function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }) {
-    const { data: currentRun = run } = useQuery({
+    const {
+        data: currentRun = run,
+        error: runError,
+        refetch: refetchRun,
+    } = useQuery({
         queryKey: ["reports", "run", run?.id],
         queryFn: () => reportsAPI.run(run!.id),
         enabled: Boolean(run),
@@ -260,14 +291,34 @@ function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }
                     <SheetDescription>{run?.id}</SheetDescription>
                 </SheetHeader>
                 <div className="space-y-5 p-4">
+                    {runError ? (
+                        <DataState
+                            kind="error"
+                            title="执行状态加载失败"
+                            description="实时刷新已暂停，请重新加载当前执行。"
+                            action={<Button onClick={() => void refetchRun()}>重新加载</Button>}
+                            compact
+                        />
+                    ) : currentRun?.status === "queued" || currentRun?.status === "running" ? (
+                        <DataState
+                            kind="processing"
+                            title={currentRun.status === "queued" ? "执行正在排队" : "填报正在执行"}
+                            description="页面会每秒刷新步骤、产物和实时画面。"
+                            compact
+                        />
+                    ) : null}
                     {run && (
                         <div className="rounded-md border p-3 text-sm">
-                            <p>Status: {currentRun?.status}</p>
                             <p>
-                                Started: {currentRun?.startedAt ? date(currentRun.startedAt) : "-"}
+                                状态：
+                                {currentRun ? runStatusLabels[currentRun.status] : "-"}
                             </p>
                             <p>
-                                Finished:{" "}
+                                开始时间：
+                                {currentRun?.startedAt ? date(currentRun.startedAt) : "-"}
+                            </p>
+                            <p>
+                                完成时间：
                                 {currentRun?.finishedAt ? date(currentRun.finishedAt) : "-"}
                             </p>
                             {currentRun?.error && (
@@ -291,7 +342,7 @@ function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }
                                                 : "destructive"
                                         }
                                     >
-                                        {step.status}
+                                        {stepStatusLabels[step.status]}
                                     </Badge>
                                 </div>
                                 <p className="text-muted-foreground">
@@ -300,21 +351,28 @@ function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }
                                 </p>
                             </div>
                         ))}
-                        {!steps.length && (
-                            <p className="text-sm text-muted-foreground">暂无步骤记录。</p>
-                        )}
+                        {!steps.length &&
+                            (currentRun?.status === "queued" || currentRun?.status === "running" ? (
+                                <DataState kind="processing" title="正在等待步骤结果" compact />
+                            ) : (
+                                <DataState kind="empty" title="暂无步骤记录" compact />
+                            ))}
                     </div>
                     {artifacts.length > 0 && (
                         <div>
                             <h3 className="mb-2 font-medium">产物</h3>
                             {artifacts.map((a) => (
-                                <a
+                                <Button
                                     key={a.id}
-                                    className="block text-sm text-primary underline"
-                                    href={`/api/reports/runs/${a.runId}/artifacts/${a.id}`}
+                                    type="button"
+                                    variant="link"
+                                    className="block h-auto p-0 text-sm"
+                                    onClick={() => {
+                                        void reportsAPI.downloadArtifact(a.runId, a.id, a.fileName);
+                                    }}
                                 >
                                     {a.fileName}
-                                </a>
+                                </Button>
                             ))}
                         </div>
                     )}
@@ -325,7 +383,7 @@ function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }
 }
 
 function LiveFrame({ run }: { run?: Reports.Run }) {
-    const { data } = useQuery({
+    const { data, error, refetch } = useQuery({
         queryKey: ["reports", "live-frame", run?.id],
         queryFn: ({ signal }) => reportsAPI.liveFrame(run!.id, signal),
         enabled: Boolean(run),
@@ -347,12 +405,29 @@ function LiveFrame({ run }: { run?: Reports.Run }) {
             <div className="flex h-80 items-center justify-center overflow-hidden rounded-md border bg-muted/30">
                 {source ? (
                     <img src={source} className="h-full w-full object-contain" alt="执行实时画面" />
+                ) : error ? (
+                    <DataState
+                        kind="error"
+                        title="实时画面加载失败"
+                        action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                        compact
+                        className="h-full min-h-0"
+                    />
                 ) : (
-                    <p className="text-sm text-muted-foreground">
-                        {run?.status === "queued" || run?.status === "running"
-                            ? "正在等待浏览器画面..."
-                            : "暂无实时画面。"}
-                    </p>
+                    <DataState
+                        kind={
+                            run?.status === "queued" || run?.status === "running"
+                                ? "processing"
+                                : "empty"
+                        }
+                        title={
+                            run?.status === "queued" || run?.status === "running"
+                                ? "正在等待浏览器画面"
+                                : "暂无实时画面"
+                        }
+                        compact
+                        className="h-full min-h-0"
+                    />
                 )}
             </div>
         </div>
@@ -374,7 +449,7 @@ function Choice({
             <Label>{label}</Label>
             <Select value={value} onValueChange={onChange}>
                 <SelectTrigger className="w-full">
-                    <SelectValue placeholder={`Select ${label.toLowerCase()}`} />
+                    <SelectValue placeholder={`请选择${label}`} />
                 </SelectTrigger>
                 <SelectContent>
                     {items.map((i) => (

@@ -4,12 +4,13 @@ import { EditIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import { appMessage, systemAPI } from "@/api";
-import { ConfirmDialog } from "@/components/app/confirm-dialog";
-import { DataTableShell } from "@/components/app/data-table-shell";
-import { PageCard } from "@/components/app/page-card";
-import { TablePagination } from "@/components/app/table-pagination";
-import { AuthWrap } from "@/components/base-auth";
+import { AuthWrap } from "@/components/auth";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
+import { DataTableState } from "@/components/feedback/data-state";
 import { TextField } from "@/components/form/text-field";
+import { PageCard } from "@/components/page/page-card";
+import { DataTableShell } from "@/components/table/data-table-shell";
+import { TablePagination } from "@/components/table/table-pagination";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,7 +110,7 @@ function UserPage() {
         }),
         [currentPage, filters],
     );
-    const { data, isFetching, refetch } = useQuery({
+    const { data, error, isFetching, isPending, refetch } = useQuery({
         queryKey: ["system", "user", params],
         queryFn: () => systemAPI.user.list(params),
     });
@@ -150,7 +151,7 @@ function UserPage() {
                     <UserDialog mode="create" onSuccess={refresh}>
                         <Button>
                             <PlusIcon data-icon="inline-start" />
-                            Create User
+                            新建用户
                         </Button>
                     </UserDialog>
                 </AuthWrap>
@@ -158,22 +159,25 @@ function UserPage() {
             toolbar={
                 <form className="grid gap-3 md:grid-cols-5" onSubmit={search}>
                     <Input
+                        aria-label="用户名"
                         value={username}
                         placeholder="用户名"
                         onChange={(event) => setUsername(event.target.value)}
                     />
                     <Input
+                        aria-label="邮箱"
                         value={email}
                         placeholder="邮箱"
                         onChange={(event) => setEmail(event.target.value)}
                     />
                     <Input
+                        aria-label="真实姓名"
                         value={realName}
                         placeholder="真实姓名"
                         onChange={(event) => setRealName(event.target.value)}
                     />
                     <Select value={status} onValueChange={setStatus}>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full" aria-label="账号状态">
                             <SelectValue placeholder="状态" />
                         </SelectTrigger>
                         <SelectContent>
@@ -189,7 +193,7 @@ function UserPage() {
                     </Select>
                     <div className="flex gap-2">
                         <Button type="submit" disabled={isFetching}>
-                            Search
+                            查询
                         </Button>
                         <Button
                             type="button"
@@ -197,7 +201,7 @@ function UserPage() {
                             disabled={isFetching}
                             onClick={reset}
                         >
-                            Reset
+                            重置
                         </Button>
                     </div>
                 </form>
@@ -255,12 +259,20 @@ function UserPage() {
                                     </TableCell>
                                 </TableRow>
                             ))
+                        ) : isPending ? (
+                            <DataTableState colSpan={10} kind="loading" title="正在加载用户" />
+                        ) : error ? (
+                            <DataTableState
+                                colSpan={10}
+                                kind="error"
+                                title="用户加载失败"
+                                description={
+                                    error instanceof Error ? error.message : "请稍后重试。"
+                                }
+                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                            />
                         ) : (
-                            <TableRow>
-                                <TableCell colSpan={10} className="h-40 text-center">
-                                    {isFetching ? "正在加载用户..." : "未找到用户。"}
-                                </TableCell>
-                            </TableRow>
+                            <DataTableState colSpan={10} kind="empty" title="暂无用户" />
                         )}
                     </TableBody>
                 </Table>
@@ -308,9 +320,7 @@ function UserActions({
                     <AuthWrap code="system:user:status">
                         <UserActionDialog
                             title={record.status === 1 ? "禁用用户" : "启用用户"}
-                            description={`Are you sure you want to ${
-                                record.status === 1 ? "disable" : "enable"
-                            } ${record.username}?`}
+                            description={`确定${record.status === 1 ? "禁用" : "启用"}用户 ${record.username}？`}
                             actionLabel={record.status === 1 ? "禁用" : "启用"}
                             onConfirm={async () => {
                                 await systemAPI.user.status(record.id, record.status === 1 ? 2 : 1);
@@ -321,12 +331,12 @@ function UserActions({
                     <AuthWrap code="system:user:password">
                         <UserActionDialog
                             title="重置密码"
-                            description={`Reset password for ${record.username}?`}
+                            description={`确定重置用户 ${record.username} 的密码吗？`}
                             actionLabel="重置密码"
                             onConfirm={async () => {
                                 const password = buildResetPassword(record.username);
                                 await systemAPI.user.password(record.id, password);
-                                appMessage.success(`Password reset to ${password}`);
+                                appMessage.success(`密码已重置为 ${password}`);
                                 onSuccess();
                             }}
                         />
@@ -334,7 +344,7 @@ function UserActions({
                     <AuthWrap code="system:user:delete">
                         <UserActionDialog
                             title="删除用户"
-                            description={`Are you sure you want to delete ${record.username}?`}
+                            description={`确定删除用户 ${record.username}？此操作无法撤销。`}
                             actionLabel="删除用户"
                             destructive
                             onConfirm={async () => {
@@ -502,7 +512,7 @@ const UserDialog = ({ children, initialValues, mode = "create", onSuccess }: Use
                     <RolePicker options={roleOptions} value={roleIds} onChange={setRoleIds} />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            Cancel
+                            取消
                         </Button>
                         <Button type="submit" disabled={submitting}>
                             {mode === "create" ? "创建" : "保存"}

@@ -1,5 +1,5 @@
 version: 1
-revision: 1
+revision: 2
 product:
   name: rustzen-admin
   type: operations-console
@@ -16,20 +16,26 @@ principles:
   - preserve-module-boundaries
 layout:
   shell: compact-sidebar-ledger
-  content_owner: route-page
+  content_owner: application-layout
   scroll_owner: route-content
   target_sizes:
     - 1920x1080
     - 1440x900
 surface:
-  theme: light-default-system-dark
-  material: solid-with-subtle-frost
+  themes:
+    - colorful-glass
+    - white
+    - dark
+  default_theme: colorful-glass
+  material: translucent-shell-with-readable-panels
 typography:
   display: inter-system
   body: inter-system
   utility: ui-monospace
 density: medium
 preferred_patterns:
+  - single-page-container
+  - page-header-or-page-card-title
   - status-ledger
   - filter-toolbar
   - compact-table
@@ -55,6 +61,8 @@ implementation:
   invented_capabilities: prohibited
 avoid:
   - duplicated-page-title
+  - mixed-chinese-english-copy
+  - placeholder-only-accessible-name
   - card-inside-card
   - dashboard-fill-metrics
   - horizontal-overflow

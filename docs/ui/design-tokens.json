@@ -1,10 +1,13 @@
 {
   "version": 1,
-  "revision": 2,
+  "revision": 3,
   "source": "apps/web/src/styles/theme.css",
   "color": {
     "paper": "#E8F3FC",
     "surface": "rgba(255,255,255,0.64)",
+    "panelColorful": "rgba(255,255,255,0.82)",
+    "panelWhite": "rgba(255,255,255,0.98)",
+    "panelDark": "rgba(23,23,23,0.92)",
     "ink": "#172033",
     "muted": "#667085",
     "signal": "#275DFF",
@@ -13,7 +16,7 @@
     "warning": "#B45309",
     "danger": "#B42318"
   },
-  "layout": {"sidebarWidth": 256, "pagePadding": 24, "sectionGap": 20, "contentMaxWidth": 1600, "dashboardTracks": "2.05fr 0.95fr"},
+  "layout": {"sidebarWidth": 256, "pagePadding": 24, "sectionGap": 20, "contentMaxWidth": 1600, "dashboardTracks": "2.05fr 0.95fr", "pageScrollOwner": "route"},
   "surface": {"panelRadius": 16, "controlRadius": 10, "blur": 24, "shadow": "0 18px 46px rgba(67,90,129,0.11)"},
   "typography": {"pageTitle": 24, "sectionTitle": 14, "body": 14, "numeric": "tabular-nums"},
   "motion": {"fastMs": 120, "standardMs": 180, "reducedMotion": true}

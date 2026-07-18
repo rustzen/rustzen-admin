@@ -138,7 +138,8 @@ Supported optional overrides are:
 
 ## Apply, recovery, and rollback
 
-Only `owner` may mutate releases. Admin and Viewer have deploy view access.
+Only `owner` may view or mutate releases. Admin, Viewer, and custom roles cannot
+receive deployment capabilities.
 
 Apply runs the fixed transient `rz-update.service` outside the Admin service
 cgroup. The worker:

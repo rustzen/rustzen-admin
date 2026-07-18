@@ -31,11 +31,15 @@ Current capability, module delegation, and menu-reconciliation rules.
 ## Built-in roles
 
 - `owner` is the only built-in role that receives `*` and the only role that
-  may apply, roll back, delete, or clean up releases.
-- `admin` receives concrete module capabilities and deploy view access.
-- `viewer` receives concrete read-only capabilities and deploy view access.
+  may view or manage system modules, system status, scheduled tasks, and
+  deployment releases.
+- `admin` receives concrete module and ordinary Admin-management capabilities,
+  excluding all owner-only capability roots.
+- `viewer` receives concrete read-only capabilities, excluding all owner-only
+  capability roots.
 - Built-in roles cannot be edited or deleted through role management.
-- Ordinary role forms cannot assign `*` or release mutation capabilities.
+- Ordinary role forms cannot assign `*`, an owner-only capability, or a prefix
+  wildcard that would cover an owner-only capability.
 
 ## Module synchronization
 

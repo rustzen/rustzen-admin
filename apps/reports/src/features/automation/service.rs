@@ -220,6 +220,9 @@ pub fn substitute(value: &str, input: &Value) -> Result<String, AppError> {
             .ok_or_else(|| AppError::InvalidInput(format!("missing string input: {key}")))?;
         out.replace_range(start..start + 8 + end + 2, replacement);
     }
+    if out.contains("{{") || out.contains("}}") {
+        return Err(AppError::InvalidInput("unsupported input variable".into()));
+    }
     Ok(out)
 }
 fn required(value: String, name: &str, max: usize) -> Result<String, AppError> {
@@ -242,9 +245,22 @@ fn pagination(current: Option<i64>, size: Option<i64>) -> Result<(i64, i64), App
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
     use url::Url;
 
-    use super::goto_target;
+    use super::{goto_target, substitute};
+
+    #[test]
+    fn input_substitution_rejects_unsupported_or_missing_variables() {
+        let input = json!({ "username": "owner", "password": "secret" });
+        assert_eq!(
+            substitute("{{input.username}}:{{input.password}}", &input).unwrap(),
+            "owner:secret"
+        );
+        assert!(substitute("{{account.username}}", &input).is_err());
+        assert!(substitute("{{input.missing}}", &input).is_err());
+        assert!(substitute("{{input.username}", &input).is_err());
+    }
 
     #[test]
     fn substituted_goto_target_must_remain_on_the_system_origin() {

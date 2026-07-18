@@ -4,13 +4,14 @@ import { EditIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import { appMessage, manageAPI } from "@/api";
-import { ConfirmDialog } from "@/components/app/confirm-dialog";
-import { DataTableShell } from "@/components/app/data-table-shell";
-import { PageCard } from "@/components/app/page-card";
-import { TablePagination } from "@/components/app/table-pagination";
-import { AuthWrap } from "@/components/base-auth";
+import { AuthWrap } from "@/components/auth";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
+import { DataTableState } from "@/components/feedback/data-state";
 import { TextField } from "@/components/form/text-field";
 import { TextareaField } from "@/components/form/textarea-field";
+import { PageCard } from "@/components/page/page-card";
+import { DataTableShell } from "@/components/table/data-table-shell";
+import { TablePagination } from "@/components/table/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +47,7 @@ function DictPage() {
         }),
         [currentPage],
     );
-    const { data, isFetching, refetch } = useQuery({
+    const { data, error, isFetching, isPending, refetch } = useQuery({
         queryKey: ["manage", "dict", params],
         queryFn: () => manageAPI.dict.list(params),
     });
@@ -67,7 +68,7 @@ function DictPage() {
                     <DictDialog mode="create" onSuccess={refresh}>
                         <Button>
                             <PlusIcon data-icon="inline-start" />
-                            Create Dictionary
+                            新建字典
                         </Button>
                     </DictDialog>
                 </AuthWrap>
@@ -126,12 +127,20 @@ function DictPage() {
                                     </TableCell>
                                 </TableRow>
                             ))
+                        ) : isPending ? (
+                            <DataTableState colSpan={6} kind="loading" title="正在加载字典" />
+                        ) : error ? (
+                            <DataTableState
+                                colSpan={6}
+                                kind="error"
+                                title="字典加载失败"
+                                description={
+                                    error instanceof Error ? error.message : "请稍后重试。"
+                                }
+                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                            />
                         ) : (
-                            <TableRow>
-                                <TableCell colSpan={6} className="h-40 text-center">
-                                    {isFetching ? "正在加载字典..." : "未找到字典。"}
-                                </TableCell>
-                            </TableRow>
+                            <DataTableState colSpan={6} kind="empty" title="暂无字典" />
                         )}
                     </TableBody>
                 </Table>
@@ -225,7 +234,7 @@ const DictDialog = ({ children, initialValues, mode = "create", onSuccess }: Dic
                 <DialogHeader>
                     <DialogTitle>{mode === "create" ? "创建字典" : "编辑字典"}</DialogTitle>
                     <DialogDescription>
-                        Dictionary records provide reusable option labels across the admin.
+                        字典记录为管理端提供可复用的选项标签和值。
                     </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
@@ -259,7 +268,7 @@ const DictDialog = ({ children, initialValues, mode = "create", onSuccess }: Dic
                     />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            Cancel
+                            取消
                         </Button>
                         <Button type="submit" disabled={submitting}>
                             {mode === "create" ? "创建" : "保存"}
@@ -291,7 +300,7 @@ const DeleteDictDialog = ({ record, onSuccess }: { record: Dict.Item; onSuccess?
                 </Button>
             }
             title="删除字典"
-            description={`This action cannot be undone. Delete \`${record.label}\` from \`${record.dictType}\`?`}
+            description={`此操作无法撤销。确定从 ${record.dictType} 中删除 ${record.label}？`}
             confirmLabel="删除"
             destructive
             onConfirm={confirm}

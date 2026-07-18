@@ -4,10 +4,11 @@ import { CopyIcon, Globe2Icon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-r
 import { useEffect, useState } from "react";
 
 import { appMessage, reportsAPI } from "@/api";
-import { ConfirmDialog } from "@/components/app/confirm-dialog";
-import { DataTableShell } from "@/components/app/data-table-shell";
-import { PageCard } from "@/components/app/page-card";
-import { AuthWrap } from "@/components/base-auth";
+import { AuthWrap } from "@/components/auth";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
+import { DataTableState } from "@/components/feedback/data-state";
+import { PageCard } from "@/components/page/page-card";
+import { DataTableShell } from "@/components/table/data-table-shell";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -39,8 +40,8 @@ import { Textarea } from "@/components/ui/textarea";
 export const Route = createFileRoute("/reports/templates")({ component: FlowsPage });
 const example: Reports.FlowStep[] = [
     { action: "goto", url: "/login" },
-    { action: "fill", selector: "#username", value: "{{account.username}}" },
-    { action: "fill", selector: "#password", value: "{{account.password}}" },
+    { action: "fill", selector: "#username", value: "{{input.username}}" },
+    { action: "fill", selector: "#password", value: "{{input.password}}" },
     { action: "click", selector: "button[type=submit]" },
     { action: "waitFor", selector: "form" },
     { action: "screenshot", name: "submitted" },
@@ -51,7 +52,12 @@ function FlowsPage() {
         queryKey: ["reports", "systems"],
         queryFn: reportsAPI.systems,
     });
-    const { data: flows = [], isFetching } = useQuery({
+    const {
+        data: flows = [],
+        error,
+        isPending,
+        refetch,
+    } = useQuery({
         queryKey: ["reports", "flows"],
         queryFn: () => reportsAPI.flows(),
     });
@@ -61,7 +67,7 @@ function FlowsPage() {
         mutationFn: (flow: Reports.Flow) =>
             reportsAPI.createFlow({
                 systemId: flow.systemId,
-                name: `${flow.name} copy`,
+                name: `${flow.name} 副本`,
                 steps: flow.steps,
             }),
         onSuccess: async () => {
@@ -150,12 +156,23 @@ function FlowsPage() {
                                     </TableCell>
                                 </TableRow>
                             ))
+                        ) : isPending ? (
+                            <DataTableState colSpan={5} kind="loading" title="正在加载报表模板" />
+                        ) : error ? (
+                            <DataTableState
+                                colSpan={5}
+                                kind="error"
+                                title="报表模板加载失败"
+                                description="无法读取模板，请检查 Reports 服务后重试。"
+                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                            />
                         ) : (
-                            <TableRow>
-                                <TableCell colSpan={5} className="h-40 text-center">
-                                    {isFetching ? "正在加载流程..." : "暂无流程。"}
-                                </TableCell>
-                            </TableRow>
+                            <DataTableState
+                                colSpan={5}
+                                kind="empty"
+                                title="暂无报表模板"
+                                description="先添加目标系统，再创建包含已验证步骤的填报模板。"
+                            />
                         )}
                     </TableBody>
                 </Table>
@@ -182,7 +199,7 @@ function TargetDialog({ onSaved }: { onSaved: () => Promise<unknown> }) {
             <DialogTrigger asChild>
                 <Button variant="outline">
                     <Globe2Icon />
-                    Add target
+                    添加目标系统
                 </Button>
             </DialogTrigger>
             <DialogContent>
@@ -211,7 +228,7 @@ function TargetDialog({ onSaved }: { onSaved: () => Promise<unknown> }) {
                         disabled={!name.trim() || !baseUrl.trim() || mutation.isPending}
                         onClick={() => mutation.mutate()}
                     >
-                        Add target
+                        添加目标系统
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -269,7 +286,7 @@ function FlowDialog({
                     ) : (
                         <>
                             <PlusIcon />
-                            New template
+                            新建模板
                         </>
                     )}
                 </Button>
@@ -278,7 +295,7 @@ function FlowDialog({
                 <DialogHeader>
                     <DialogTitle>{flow ? "编辑模板" : "新建报表模板"}</DialogTitle>
                     <DialogDescription>
-                        Supported actions: goto, fill, click, waitFor, assertText, screenshot.
+                        支持的动作：goto、fill、click、waitFor、assertText、screenshot。
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4">
@@ -314,7 +331,7 @@ function FlowDialog({
                 </div>
                 <DialogFooter>
                     <Button disabled={!name || !systemId || mutation.isPending} onClick={save}>
-                        Validate and save
+                        校验并保存
                     </Button>
                 </DialogFooter>
             </DialogContent>

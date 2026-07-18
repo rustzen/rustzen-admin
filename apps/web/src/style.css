@@ -93,7 +93,7 @@
 
     .white .rz-sidebar [data-slot="sidebar-inner"],
     .white .rz-topbar,
-    .white .operations-ledger [data-slot="card"] {
+    .white .rz-page [data-slot="card"] {
         border-color: var(--border);
         background: var(--card);
         box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
@@ -104,16 +104,16 @@
         background: transparent;
     }
 
-    .operations-ledger [data-slot="card"] {
-        border-color: rgba(255, 255, 255, 0.6);
-        background: var(--card);
+    .rz-page [data-slot="card"] {
+        border-color: rgba(255, 255, 255, 0.72);
+        background: var(--panel);
         box-shadow:
             0 18px 46px rgba(67, 90, 129, 0.11),
             inset 0 1px rgba(255, 255, 255, 0.7);
         backdrop-filter: blur(24px) saturate(1.18);
     }
 
-    .dark .operations-ledger [data-slot="card"] {
+    .dark .rz-page [data-slot="card"] {
         border-color: var(--border);
         background: var(--card);
         box-shadow:
@@ -131,7 +131,7 @@
         backdrop-filter: blur(30px) saturate(1.2);
     }
 
-    .operations-ledger {
+    .rz-page {
         max-width: 100rem;
     }
 
@@ -140,8 +140,8 @@
         min-width: 0;
     }
 
-    .operations-ledger [data-slot="card-title"],
-    .operations-ledger .tabular-nums {
+    .rz-page [data-slot="card-title"],
+    .rz-page .tabular-nums {
         font-variant-numeric: tabular-nums;
     }
 }

@@ -16,8 +16,11 @@ export function TablePagination({
     onPageChange,
 }: TablePaginationProps) {
     return (
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-            <span>
+        <nav
+            className="flex min-h-9 flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground"
+            aria-label="表格分页"
+        >
+            <span className="tabular-nums">
                 第 {currentPage} / {totalPages} 页 · 共 {total} 条
             </span>
             <div className="flex gap-2">
@@ -38,6 +41,6 @@ export function TablePagination({
                     下一页
                 </Button>
             </div>
-        </div>
+        </nav>
     );
 }

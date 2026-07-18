@@ -51,6 +51,18 @@ impl RolePolicy {
             capability_code == *root || capability_code.starts_with(&format!("{root}:"))
         })
     }
+
+    pub fn is_owner_only_capability_or_wildcard(self, capability_code: &str) -> bool {
+        if self.is_owner_only_capability(capability_code) {
+            return true;
+        }
+        let Some(wildcard_prefix) = capability_code.strip_suffix('*') else {
+            return false;
+        };
+        OWNER_ONLY_CAPABILITY_ROOTS
+            .iter()
+            .any(|root| format!("{root}:").starts_with(wildcard_prefix))
+    }
 }
 
 pub fn is_deploy_capability_code(code: &str) -> bool {
@@ -81,7 +93,11 @@ mod role_policy_tests {
         ] {
             assert!(!policy.role_allows_capability(BUILTIN_ADMIN_ROLE_CODE, capability));
             assert!(!policy.role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, capability));
+            assert!(policy.is_owner_only_capability_or_wildcard(capability));
         }
+        assert!(policy.is_owner_only_capability_or_wildcard("system:*"));
+        assert!(policy.is_owner_only_capability_or_wildcard("manage:*"));
+        assert!(!policy.is_owner_only_capability_or_wildcard("system:user:*"));
         assert!(policy.role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, "system:user:list"));
         assert!(!policy.role_allows_capability(BUILTIN_VIEWER_ROLE_CODE, "system:user:create"));
         for module in ["monitor", "insights", "reports"] {

@@ -1,5 +1,5 @@
 version: 1
-revision: 3
+revision: 4
 status: verified
 deterministic:
   results:
@@ -7,27 +7,28 @@ deterministic:
       result: pass
     - check: web-production-build
       result: pass
-    - check: login-shell-1440x900
-      result: pass-no-overflow-no-console-errors
-    - check: theme-toggle
-      result: pass-light-and-dark
-    - check: authenticated-operations-ledger-1440x900
+    - check: web-typecheck-and-lint
+      result: pass
+    - check: all-routes-browser-review-1920x1080
+      result: pass-no-horizontal-overflow
+    - check: three-theme-dashboard-review
+      result: pass-colorful-glass-white-dark
+    - check: representative-routes-1440x900
       result: pass-no-horizontal-overflow
     - check: authenticated-browser-console
-      result: pass-no-errors
-    - check: reference-comparison-1920x1080
-      result: pass-no-p0-p1-p2-findings
+      result: pass-no-warnings-or-errors
 hard_blockers: []
 scores:
   product_truth: 15
-  user_task: 14
+  user_task: 15
   information_architecture: 14
-  visual_coherence: 13
-  components_layout: 14
-  interaction_states: 8
-  engineering_fit: 8
+  visual_coherence: 14
+  components_layout: 15
+  interaction_states: 9
+  engineering_fit: 9
   evidence: 4
-total: 90
+total: 95
 decision: pass
 reviewer: codex-design-qa
-gaps: []
+gaps:
+  - failure-responses-were-source-reviewed-but-not-forced-on-every-runtime-route

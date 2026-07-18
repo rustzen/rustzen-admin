@@ -32,7 +32,7 @@ impl AuthService {
                     response.user_info.id,
                     username,
                     "SUCCESS",
-                    "User login successful",
+                    "用户登录成功",
                     start_time,
                     &audit_command,
                 )
@@ -40,13 +40,13 @@ impl AuthService {
                 Ok(response)
             }
             Err(err) => {
-                let description = err.to_string();
+                let description = login_failure_description(&err);
                 Self::record_login_operation(
                     pool,
                     0,
                     username,
                     "FAIL",
-                    &description,
+                    description,
                     start_time,
                     &audit_command,
                 )
@@ -232,5 +232,36 @@ impl AuthService {
             user_id
         );
         Ok(())
+    }
+}
+
+fn login_failure_description(error: &ServiceError) -> &'static str {
+    match error {
+        ServiceError::InvalidCredentials => "用户名或密码错误",
+        ServiceError::UserIsDisabled => "账号已禁用",
+        ServiceError::UserIsPending => "账号待审核",
+        ServiceError::UserIsLocked => "账号已锁定",
+        _ => "登录失败，请稍后重试",
+    }
+}
+
+#[cfg(test)]
+mod login_description_tests {
+    use super::login_failure_description;
+    use crate::common::error::ServiceError;
+
+    #[test]
+    fn login_failures_use_chinese_business_descriptions() {
+        assert_eq!(
+            login_failure_description(&ServiceError::InvalidCredentials),
+            "用户名或密码错误"
+        );
+        assert_eq!(login_failure_description(&ServiceError::UserIsDisabled), "账号已禁用");
+        assert_eq!(login_failure_description(&ServiceError::UserIsPending), "账号待审核");
+        assert_eq!(login_failure_description(&ServiceError::UserIsLocked), "账号已锁定");
+        assert_eq!(
+            login_failure_description(&ServiceError::DatabaseQueryFailed),
+            "登录失败，请稍后重试"
+        );
     }
 }

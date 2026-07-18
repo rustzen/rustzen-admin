@@ -8,7 +8,7 @@ use crate::common::{
     pagination::{Pagination, PaginationQuery},
     query::parse_optional_i16_filter,
 };
-use rustzen_auth::capability::{SYSTEM_WILDCARD, is_deploy_capability_code};
+use rustzen_auth::capability::{RolePolicy, SYSTEM_WILDCARD};
 
 use sqlx::SqlitePool;
 
@@ -182,16 +182,7 @@ fn ensure_builtin_role_code_is_reserved(role_code: &str) -> Result<(), ServiceEr
 }
 
 fn is_reserved_role_menu_code(code: &str) -> bool {
-    code == SYSTEM_WILDCARD || is_deploy_capability_code(code) || wildcard_covers_deploy(code)
-}
-
-fn wildcard_covers_deploy(code: &str) -> bool {
-    if !code.ends_with(":*") {
-        return false;
-    }
-
-    let wildcard_prefix = code.trim_end_matches('*');
-    "manage:deploy:".starts_with(wildcard_prefix)
+    code == SYSTEM_WILDCARD || RolePolicy.is_owner_only_capability_or_wildcard(code)
 }
 
 #[cfg(test)]
@@ -199,20 +190,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ordinary_roles_cannot_assign_wildcard_or_deploy_capabilities() {
+    fn ordinary_roles_cannot_assign_owner_only_capabilities() {
         assert!(ensure_menu_codes_assignable(&["system:user:list".to_string()]).is_ok());
 
         let wildcard_error = ensure_menu_codes_assignable(&["*".to_string()])
             .expect_err("wildcard should be reserved");
         assert!(matches!(wildcard_error, ServiceError::InvalidOperation(_)));
 
-        let deploy_error = ensure_menu_codes_assignable(&["manage:deploy:list".to_string()])
-            .expect_err("deploy should be reserved");
-        assert!(matches!(deploy_error, ServiceError::InvalidOperation(_)));
-
-        let manage_wildcard_error = ensure_menu_codes_assignable(&["manage:*".to_string()])
-            .expect_err("manage wildcard should cover deploy");
-        assert!(matches!(manage_wildcard_error, ServiceError::InvalidOperation(_)));
+        for code in [
+            "system:module:list",
+            "system:status:view",
+            "manage:task:list",
+            "manage:deploy:list",
+            "system:*",
+            "manage:*",
+        ] {
+            let error = ensure_menu_codes_assignable(&[code.to_string()])
+                .expect_err("owner-only capability should be reserved");
+            assert!(matches!(error, ServiceError::InvalidOperation(_)));
+        }
     }
 
     #[test]

@@ -4,13 +4,14 @@ import { CloudUploadIcon, TrashIcon, UploadIcon, XCircleIcon } from "lucide-reac
 import { useRef, useState, type FormEvent, type ReactNode } from "react";
 
 import { appMessage, manageAPI } from "@/api";
-import { ConfirmDialog } from "@/components/app/confirm-dialog";
-import { DataTableShell } from "@/components/app/data-table-shell";
-import { PageCard } from "@/components/app/page-card";
-import { TablePagination } from "@/components/app/table-pagination";
-import { AuthWrap } from "@/components/base-auth";
+import { AuthWrap } from "@/components/auth";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
+import { DataTableState } from "@/components/feedback/data-state";
 import { TextField } from "@/components/form/text-field";
 import { TextareaField } from "@/components/form/textarea-field";
+import { PageCard } from "@/components/page/page-card";
+import { DataTableShell } from "@/components/table/data-table-shell";
+import { TablePagination } from "@/components/table/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,7 +43,7 @@ const PAGE_SIZE = 20;
 function DeployPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const params: Deploy.ListParams = { current: currentPage, pageSize: PAGE_SIZE };
-    const { data, isFetching, refetch } = useQuery({
+    const { data, error, isFetching, isPending, refetch } = useQuery({
         queryKey: ["manage", "deploy", params],
         queryFn: () => manageAPI.deploy.list(params),
     });
@@ -64,7 +65,7 @@ function DeployPage() {
                         <UploadVersionDialog onSuccess={refresh}>
                             <Button>
                                 <UploadIcon data-icon="inline-start" />
-                                Upload Version
+                                上传版本
                             </Button>
                         </UploadVersionDialog>
                     </AuthWrap>
@@ -72,7 +73,7 @@ function DeployPage() {
                         <CleanupDialog onSuccess={refresh}>
                             <Button type="button" variant="outline">
                                 <TrashIcon data-icon="inline-start" />
-                                Clean Expired
+                                清理过期版本
                             </Button>
                         </CleanupDialog>
                     </AuthWrap>
@@ -117,12 +118,20 @@ function DeployPage() {
                                     </TableCell>
                                 </TableRow>
                             ))
+                        ) : isPending ? (
+                            <DataTableState colSpan={10} kind="loading" title="正在加载部署版本" />
+                        ) : error ? (
+                            <DataTableState
+                                colSpan={10}
+                                kind="error"
+                                title="部署版本加载失败"
+                                description={
+                                    error instanceof Error ? error.message : "请稍后重试。"
+                                }
+                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                            />
                         ) : (
-                            <TableRow>
-                                <TableCell colSpan={10} className="h-40 text-center">
-                                    {isFetching ? "正在加载部署版本..." : "未找到部署版本。"}
-                                </TableCell>
-                            </TableRow>
+                            <DataTableState colSpan={10} kind="empty" title="暂无部署版本" />
                         )}
                     </TableBody>
                 </Table>
@@ -229,8 +238,8 @@ function UploadVersionDialog({
                 <DialogHeader>
                     <DialogTitle>上传完整发行包</DialogTitle>
                     <DialogDescription>
-                        Upload one signed tar bundle containing Admin, Monitor, Insights, Reports,
-                        Web, and deployment files.
+                        上传一个包含 Admin、Monitor、Insights、Reports、Web 和部署文件的签名 tar
+                        完整包。
                     </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
@@ -263,10 +272,10 @@ function UploadVersionDialog({
                     />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            Cancel
+                            取消
                         </Button>
                         <Button type="submit" disabled={submitting}>
-                            Upload
+                            上传
                         </Button>
                     </DialogFooter>
                 </form>
@@ -304,7 +313,7 @@ function DeployVersionDialog({
                     <CloudUploadIcon />
                 </Button>
             }
-            title={`Deploy ${componentLabel(record.component)} ${record.version}?`}
+            title={`部署 ${componentLabel(record.component)} ${record.version}？`}
             description={description}
             confirmLabel="部署"
             disabled={record.isExpired}
@@ -358,11 +367,9 @@ function ExpireVersionDialog({
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>
-                        Expire {componentLabel(version.component)} {version.version}
+                        将 {componentLabel(version.component)} {version.version} 设为过期
                     </DialogTitle>
-                    <DialogDescription>
-                        Expire this version and optionally record a reason.
-                    </DialogDescription>
+                    <DialogDescription>将此版本设为过期，并可选记录原因。</DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <TextareaField
@@ -374,10 +381,10 @@ function ExpireVersionDialog({
                     />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            Cancel
+                            取消
                         </Button>
                         <Button type="submit" disabled={submitting}>
-                            Expire
+                            设为过期
                         </Button>
                     </DialogFooter>
                 </form>
@@ -413,7 +420,7 @@ function DeleteVersionDialog({
                 </Button>
             }
             title="删除版本"
-            description={`Delete ${componentLabel(record.component)} ${record.version}? The saved file will be cleaned up when possible.`}
+            description={`确定删除 ${componentLabel(record.component)} ${record.version}？系统会尽可能清理已保存的文件。`}
             confirmLabel="删除"
             destructive
             disabled={record.isCurrent}
@@ -433,7 +440,7 @@ function CleanupDialog({
 }) {
     const submit = async () => {
         const count = await manageAPI.deploy.cleanup(component);
-        appMessage.success(`Cleaned ${count} expired versions`);
+        appMessage.success(`已清理 ${count} 个过期版本`);
         onSuccess?.();
     };
 

@@ -3,10 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { insightsAPI } from "@/api";
-import { DataTableShell } from "@/components/app/data-table-shell";
-import { PageCard } from "@/components/app/page-card";
-import { TablePagination } from "@/components/app/table-pagination";
+import { DataTableState } from "@/components/feedback/data-state";
+import { PageCard } from "@/components/page/page-card";
+import { DataTableShell } from "@/components/table/data-table-shell";
+import { TablePagination } from "@/components/table/table-pagination";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
     Table,
@@ -24,7 +26,7 @@ function AnalyticsEventsPage() {
     const [eventName, setEventName] = useState("");
     const [current, setCurrent] = useState(1);
     const query = { eventName: eventName || undefined, current, pageSize };
-    const { data, isFetching } = useQuery({
+    const { data, error, isFetching, isPending, refetch } = useQuery({
         queryKey: ["insights", "events", query],
         queryFn: () => insightsAPI.events(query),
     });
@@ -69,7 +71,7 @@ function AnalyticsEventsPage() {
                                 <TableCell>
                                     <div>{row.visitorId}</div>
                                     <div className="text-xs text-muted-foreground">
-                                        {row.userId || "anonymous"}
+                                        {row.userId || "匿名"}
                                     </div>
                                 </TableCell>
                                 <TableCell className="font-mono text-xs">
@@ -82,13 +84,31 @@ function AnalyticsEventsPage() {
                                 <TableCell>{new Date(row.occurredAt).toLocaleString()}</TableCell>
                             </TableRow>
                         ))}
-                        {!data?.data.length && (
-                            <TableRow>
-                                <TableCell colSpan={6} className="h-40 text-center">
-                                    {isFetching ? "正在加载事件..." : "未找到事件。"}
-                                </TableCell>
-                            </TableRow>
-                        )}
+                        {!data?.data.length &&
+                            (isPending ? (
+                                <DataTableState colSpan={6} kind="loading" title="正在加载事件" />
+                            ) : error ? (
+                                <DataTableState
+                                    colSpan={6}
+                                    kind="error"
+                                    title="事件加载失败"
+                                    description="无法读取分析明细，请检查 Insights 服务后重试。"
+                                    action={
+                                        <Button onClick={() => void refetch()}>重新加载</Button>
+                                    }
+                                />
+                            ) : (
+                                <DataTableState
+                                    colSpan={6}
+                                    kind="empty"
+                                    title={eventName ? "没有匹配的事件" : "暂无分析事件"}
+                                    description={
+                                        eventName
+                                            ? "请检查完整事件名称或清除筛选条件。"
+                                            : "接收到埋点数据后，原始事件会显示在这里。"
+                                    }
+                                />
+                            ))}
                     </TableBody>
                 </Table>
             </DataTableShell>

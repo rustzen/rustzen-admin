@@ -10,6 +10,7 @@ import {
     UserPlusIcon,
     UsersIcon,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import {
     Bar,
     BarChart,
@@ -23,8 +24,10 @@ import {
 } from "recharts";
 
 import { dashboardAPI } from "@/api";
-import { PageHeader } from "@/components/app/page-header";
+import { DataState } from "@/components/feedback/data-state";
+import { PageHeader } from "@/components/page/page-header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calculatePercent, convertUnit } from "@/util";
@@ -73,7 +76,7 @@ function DashboardPage() {
 }
 
 const ModuleHealthCards = () => {
-    const { data = [] } = useQuery({
+    const { data, error, isPending, refetch } = useQuery({
         queryKey: ["dashboard", "modules"],
         queryFn: dashboardAPI.modules,
         refetchInterval: 15_000,
@@ -82,37 +85,54 @@ const ModuleHealthCards = () => {
         <Card className="gap-0 overflow-hidden py-0">
             <CardHeader className="border-b py-4">
                 <CardTitle>模块可用性</CardTitle>
-                <CardDescription>
-                    Current release and reachability for each runtime module.
-                </CardDescription>
+                <CardDescription>当前各运行模块的版本与连通状态。</CardDescription>
             </CardHeader>
             <CardContent className="divide-y p-0">
-                {(["monitor", "insights", "reports"] as const).map((module) => {
-                    const health = data.find((item) => item.module === module);
-                    return (
-                        <div
-                            key={module}
-                            className="grid grid-cols-[1fr_auto] items-center gap-4 px-6 py-4"
-                        >
-                            <div className="min-w-0">
-                                <div className="font-medium capitalize">{module}</div>
-                                <div className="mt-1 text-xs text-muted-foreground">
-                                    Release {health?.releaseVersion ?? "-"}
+                <DashboardQueryBoundary
+                    isPending={isPending}
+                    error={error}
+                    hasData={data !== undefined}
+                    loadingTitle="正在加载模块状态"
+                    errorTitle="模块状态加载失败"
+                    onRetry={() => void refetch()}
+                >
+                    {(["monitor", "insights", "reports"] as const).map((module) => {
+                        const health = data?.find((item) => item.module === module);
+                        const moduleLabel = {
+                            monitor: "监控",
+                            insights: "分析",
+                            reports: "报表",
+                        }[module];
+                        return (
+                            <div
+                                key={module}
+                                className="grid grid-cols-[1fr_auto] items-center gap-4 px-6 py-4"
+                            >
+                                <div className="min-w-0">
+                                    <div className="font-medium">{moduleLabel}</div>
+                                    <div className="mt-1 text-xs text-muted-foreground">
+                                        版本 {health?.releaseVersion ?? "-"}
+                                    </div>
                                 </div>
+                                <Badge variant={health?.available ? "default" : "destructive"}>
+                                    {health?.available ? "可用" : "不可用"}
+                                </Badge>
                             </div>
-                            <Badge variant={health?.available ? "default" : "destructive"}>
-                                {health?.available ? "可用" : "不可用"}
-                            </Badge>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </DashboardQueryBoundary>
             </CardContent>
         </Card>
     );
 };
 
 const StatsCards = () => {
-    const { data: stats } = useQuery({
+    const {
+        data: stats,
+        error,
+        isPending,
+        refetch,
+    } = useQuery({
         queryKey: ["dashboard", "stats"],
         queryFn: dashboardAPI.stats,
     });
@@ -151,28 +171,42 @@ const StatsCards = () => {
                 <CardDescription>注册、活跃、近期和待审核访问情况。</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-2 p-0">
-                {cards.map((item) => (
-                    <div
-                        key={item.title}
-                        className="border-b border-e p-4 even:border-e-0 [&:nth-last-child(-n+2)]:border-b-0"
-                    >
-                        <div className="flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
-                            <span>{item.title}</span>
-                            <item.icon className="size-4" />
+                <DashboardQueryBoundary
+                    isPending={isPending}
+                    error={error}
+                    hasData={stats !== undefined}
+                    loadingTitle="正在加载账号统计"
+                    errorTitle="账号统计加载失败"
+                    onRetry={() => void refetch()}
+                >
+                    {cards.map((item) => (
+                        <div
+                            key={item.title}
+                            className="border-b border-e p-4 even:border-e-0 [&:nth-last-child(-n+2)]:border-b-0"
+                        >
+                            <div className="flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
+                                <span>{item.title}</span>
+                                <item.icon className="size-4" />
+                            </div>
+                            <div className="tabular-nums mt-2 text-2xl font-semibold tracking-tight">
+                                {item.value}
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
                         </div>
-                        <div className="tabular-nums mt-2 text-2xl font-semibold tracking-tight">
-                            {item.value}
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
-                    </div>
-                ))}
+                    ))}
+                </DashboardQueryBoundary>
             </CardContent>
         </Card>
     );
 };
 
 const HealthCard = () => {
-    const { data: health } = useQuery({
+    const {
+        data: health,
+        error,
+        isPending,
+        refetch,
+    } = useQuery({
         queryKey: ["dashboard", "health"],
         queryFn: dashboardAPI.health,
     });
@@ -186,42 +220,54 @@ const HealthCard = () => {
                 <div className="flex items-center justify-between gap-3">
                     <div>
                         <CardTitle>系统健康</CardTitle>
-                        <CardDescription>
-                            Runtime pressure across memory, CPU, and disk.
-                        </CardDescription>
+                        <CardDescription>当前内存、CPU 与磁盘资源压力。</CardDescription>
                     </div>
                     <ShieldAlertIcon className="text-muted-foreground" />
                 </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-                <ProgressRow
-                    icon={ServerIcon}
-                    label="内存使用率"
-                    value={memoryUsage}
-                    detail={`${convertUnit(health?.memoryUsed)} / ${convertUnit(health?.memoryTotal)}`}
-                    warning={memoryUsage > 80}
-                />
-                <ProgressRow
-                    icon={ActivityIcon}
-                    label="CPU 使用率"
-                    value={cpuUsage}
-                    detail={`${cpuUsage.toFixed(1)}% / ${health?.cpuTotal ?? 0}`}
-                    warning={cpuUsage > 80}
-                />
-                <ProgressRow
-                    icon={HardDriveIcon}
-                    label="磁盘使用率"
-                    value={diskUsage}
-                    detail={`${convertUnit(health?.diskUsed)} / ${convertUnit(health?.diskTotal)}`}
-                    warning={diskUsage > 90}
-                />
+                <DashboardQueryBoundary
+                    isPending={isPending}
+                    error={error}
+                    hasData={health !== undefined}
+                    loadingTitle="正在加载系统健康状态"
+                    errorTitle="系统健康状态加载失败"
+                    onRetry={() => void refetch()}
+                >
+                    <ProgressRow
+                        icon={ServerIcon}
+                        label="内存使用率"
+                        value={memoryUsage}
+                        detail={`${convertUnit(health?.memoryUsed)} / ${convertUnit(health?.memoryTotal)}`}
+                        warning={memoryUsage > 80}
+                    />
+                    <ProgressRow
+                        icon={ActivityIcon}
+                        label="CPU 使用率"
+                        value={cpuUsage}
+                        detail={`${cpuUsage.toFixed(1)}% / ${health?.cpuTotal ?? 0}`}
+                        warning={cpuUsage > 80}
+                    />
+                    <ProgressRow
+                        icon={HardDriveIcon}
+                        label="磁盘使用率"
+                        value={diskUsage}
+                        detail={`${convertUnit(health?.diskUsed)} / ${convertUnit(health?.diskTotal)}`}
+                        warning={diskUsage > 90}
+                    />
+                </DashboardQueryBoundary>
             </CardContent>
         </Card>
     );
 };
 
 const MetricsCard = () => {
-    const { data: metrics } = useQuery({
+    const {
+        data: metrics,
+        error,
+        isPending,
+        refetch,
+    } = useQuery({
         queryKey: ["dashboard", "metrics"],
         queryFn: dashboardAPI.metrics,
     });
@@ -233,16 +279,28 @@ const MetricsCard = () => {
                 <CardDescription>近七天请求性能摘要。</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-3">
-                <MetricBlock label="平均响应" value={`${metrics?.avgResponseTime ?? 0}ms`} />
-                <MetricBlock label="错误率" value={`${(metrics?.errorRate ?? 0).toFixed(1)}%`} />
-                <MetricBlock label="请求总数" value={`${metrics?.totalRequests ?? 0}`} />
+                <DashboardQueryBoundary
+                    isPending={isPending}
+                    error={error}
+                    hasData={metrics !== undefined}
+                    loadingTitle="正在加载性能指标"
+                    errorTitle="性能指标加载失败"
+                    onRetry={() => void refetch()}
+                >
+                    <MetricBlock label="平均响应" value={`${metrics?.avgResponseTime ?? 0}ms`} />
+                    <MetricBlock
+                        label="错误率"
+                        value={`${(metrics?.errorRate ?? 0).toFixed(1)}%`}
+                    />
+                    <MetricBlock label="请求总数" value={`${metrics?.totalRequests ?? 0}`} />
+                </DashboardQueryBoundary>
             </CardContent>
         </Card>
     );
 };
 
 const ActivityTrendCard = () => {
-    const { data } = useQuery({
+    const { data, error, isPending, refetch } = useQuery({
         queryKey: ["dashboard", "trends"],
         queryFn: dashboardAPI.trends,
     });
@@ -256,37 +314,96 @@ const ActivityTrendCard = () => {
                 <CardDescription>用户登录趋势和活跃用户动态。</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 xl:grid-cols-2">
-                <div className="h-60 min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={dailyLogins}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="date" tickLine={false} axisLine={false} />
-                            <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-                            <Tooltip />
-                            <Line
-                                type="monotone"
-                                dataKey="count"
-                                stroke="var(--chart-1)"
-                                strokeWidth={2}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-                <div className="h-60 min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={hourlyActive}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="date" tickLine={false} axisLine={false} />
-                            <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
-                            <Tooltip />
-                            <Bar dataKey="count" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+                <DashboardQueryBoundary
+                    isPending={isPending}
+                    error={error}
+                    hasData={data !== undefined}
+                    loadingTitle="正在加载活动趋势"
+                    errorTitle="活动趋势加载失败"
+                    onRetry={() => void refetch()}
+                >
+                    <div className="h-60 min-w-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={dailyLogins}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="date" tickLine={false} axisLine={false} />
+                                <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                                <Tooltip />
+                                <Line
+                                    type="monotone"
+                                    dataKey="count"
+                                    stroke="var(--chart-1)"
+                                    strokeWidth={2}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="h-60 min-w-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={hourlyActive}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="date" tickLine={false} axisLine={false} />
+                                <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                                <Tooltip />
+                                <Bar dataKey="count" fill="var(--chart-2)" radius={[6, 6, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </DashboardQueryBoundary>
             </CardContent>
         </Card>
     );
 };
+
+function DashboardQueryBoundary({
+    isPending,
+    error,
+    hasData,
+    loadingTitle,
+    errorTitle,
+    onRetry,
+    children,
+}: {
+    isPending: boolean;
+    error: Error | null;
+    hasData: boolean;
+    loadingTitle: string;
+    errorTitle: string;
+    onRetry: () => void;
+    children: ReactNode;
+}) {
+    if (isPending && !hasData) {
+        return <DataState kind="loading" title={loadingTitle} compact className="col-span-full" />;
+    }
+    if (error && !hasData) {
+        return (
+            <DataState
+                kind="error"
+                title={errorTitle}
+                description="无法读取当前数据，请检查 Admin 服务后重试。"
+                action={<Button onClick={onRetry}>重新加载</Button>}
+                compact
+                className="col-span-full"
+            />
+        );
+    }
+    return (
+        <>
+            {children}
+            {error ? (
+                <div
+                    className="col-span-full flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-xs text-destructive"
+                    role="alert"
+                >
+                    <span>后台刷新失败，当前继续显示上次成功数据。</span>
+                    <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+                        重试
+                    </Button>
+                </div>
+            ) : null}
+        </>
+    );
+}
 
 const ProgressRow = ({
     icon: Icon,

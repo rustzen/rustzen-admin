@@ -1,15 +1,21 @@
 version: 1
-revision: 1
+revision: 2
 task:
-  id: operations-ledger-shell
+  id: application-ui-standardization
   project: rustzen-admin
-  surface: application-shell-and-dashboard
-  goal: Make current module health, operational attention, and recent state legible without turning the product into a decorative dashboard.
+  surface: all-web-routes-and-shared-page-components
+  goal: Unify the 21 current routes around one layout, surface, component, state, language, and three-theme standard without changing business contracts.
 scope:
   include:
     - application-shell
-    - navigation-density
-    - dashboard-information-hierarchy
+    - login-and-route-status-pages
+    - dashboard-and-profile
+    - monitoring-pages
+    - analytics-pages
+    - reports-pages
+    - system-pages
+    - manage-pages
+    - shared-page-table-feedback-components
     - global-tokens
     - responsive-layout
   exclude:
@@ -19,6 +25,8 @@ scope:
     - new-analytics
 facts:
   available:
+    - twenty-one-existing-routes
+    - colorful-glass-white-dark-themes
     - dashboard-stats
     - module-health
     - system-health
@@ -49,6 +57,8 @@ validation:
     - web-typecheck
     - web-test
     - web-build
+    - all-routes-browser-review
+    - three-theme-homepage-review
     - no-horizontal-overflow
     - no-console-errors
 acceptance:
@@ -59,8 +69,8 @@ acceptance:
 budget:
   max_variants: 3
   max_generation_rounds: 2
-  max_runtime_runs: 5
-  max_duration_minutes: 60
+  max_runtime_runs: 8
+  max_duration_minutes: 120
   max_cost_usd: 3
   max_artifact_storage_mb: 200
 recovery:

@@ -4,11 +4,12 @@ import { ActivityIcon, PencilIcon, PlusIcon, PowerIcon, Trash2Icon } from "lucid
 import { useState } from "react";
 
 import { appMessage, monitorAPI } from "@/api";
-import { ConfirmDialog } from "@/components/app/confirm-dialog";
-import { DataTableShell } from "@/components/app/data-table-shell";
-import { PageCard } from "@/components/app/page-card";
-import { TablePagination } from "@/components/app/table-pagination";
-import { AuthWrap } from "@/components/base-auth";
+import { AuthWrap } from "@/components/auth";
+import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
+import { DataTableState } from "@/components/feedback/data-state";
+import { PageCard } from "@/components/page/page-card";
+import { DataTableShell } from "@/components/table/data-table-shell";
+import { TablePagination } from "@/components/table/table-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,7 +39,7 @@ const pageSize = 20;
 function MonitoringChecksPage() {
     const [current, setCurrent] = useState(1);
     const queryClient = useQueryClient();
-    const { data, isFetching } = useQuery({
+    const { data, error, isFetching, isPending, refetch } = useQuery({
         queryKey: ["monitor", "checks", current],
         queryFn: () => monitorAPI.checks({ current, pageSize }),
         refetchInterval: 10_000,
@@ -104,8 +105,12 @@ function MonitoringChecksPage() {
                                             }
                                         >
                                             {!check.enabled
-                                                ? "disabled"
-                                                : (check.lastStatus ?? "pending")}
+                                                ? "已停用"
+                                                : check.lastStatus === "up"
+                                                  ? "正常"
+                                                  : check.lastStatus === "down"
+                                                    ? "异常"
+                                                    : "等待检查"}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{check.intervalSeconds}s</TableCell>
@@ -161,12 +166,23 @@ function MonitoringChecksPage() {
                                     </TableCell>
                                 </TableRow>
                             ))
+                        ) : isPending ? (
+                            <DataTableState colSpan={7} kind="loading" title="正在加载服务检查" />
+                        ) : error ? (
+                            <DataTableState
+                                colSpan={7}
+                                kind="error"
+                                title="服务检查加载失败"
+                                description="无法读取 TCP 检查，请检查 Monitor 服务后重试。"
+                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                            />
                         ) : (
-                            <TableRow>
-                                <TableCell colSpan={7} className="h-40 text-center">
-                                    {isFetching ? "正在加载检查..." : "暂无 TCP 检查。"}
-                                </TableCell>
-                            </TableRow>
+                            <DataTableState
+                                colSpan={7}
+                                kind="empty"
+                                title="暂无服务检查"
+                                description="添加 TCP 检查后，系统会按设定间隔持续探测服务状态。"
+                            />
                         )}
                     </TableBody>
                 </Table>
@@ -209,7 +225,7 @@ function CheckDialog({
         mutationFn: monitorAPI.testCheck,
         onSuccess: (result) => {
             if (result.status === "up") {
-                appMessage.success(`Connection succeeded in ${result.latencyMs ?? 0} ms`);
+                appMessage.success(`连接成功，耗时 ${result.latencyMs ?? 0} ms`);
             } else {
                 appMessage.error(result.error ?? "连接失败");
             }
@@ -241,7 +257,7 @@ function CheckDialog({
                     </Button>
                 ) : (
                     <Button>
-                        <PlusIcon /> New check
+                        <PlusIcon /> 新建检查
                     </Button>
                 )}
             </DialogTrigger>
@@ -249,7 +265,7 @@ function CheckDialog({
                 <DialogHeader>
                     <DialogTitle>{check ? "编辑 TCP 检查" : "新建 TCP 检查"}</DialogTitle>
                     <DialogDescription>
-                        The target is tested from the Monitoring service host.
+                        目标连接将从 Monitoring 服务所在主机发起测试。
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -283,13 +299,13 @@ function CheckDialog({
                             })
                         }
                     >
-                        <ActivityIcon /> Test
+                        <ActivityIcon /> 测试
                     </Button>
                     <Button
                         disabled={!valid || saveMutation.isPending}
                         onClick={() => saveMutation.mutate(input)}
                     >
-                        Save
+                        保存
                     </Button>
                 </DialogFooter>
             </DialogContent>

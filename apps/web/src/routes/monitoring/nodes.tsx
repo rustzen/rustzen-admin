@@ -14,8 +14,9 @@ import {
 } from "recharts";
 
 import { monitorAPI } from "@/api";
-import { DataTableShell } from "@/components/app/data-table-shell";
-import { PageCard } from "@/components/app/page-card";
+import { DataState, DataTableState } from "@/components/feedback/data-state";
+import { PageCard } from "@/components/page/page-card";
+import { DataTableShell } from "@/components/table/data-table-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,7 +48,12 @@ export const Route = createFileRoute("/monitoring/nodes")({ component: Monitorin
 
 function MonitoringNodesPage() {
     const [selected, setSelected] = useState<Monitor.Node | null>(null);
-    const { data = [], isFetching } = useQuery({
+    const {
+        data = [],
+        error,
+        isPending,
+        refetch,
+    } = useQuery({
         queryKey: ["monitor", "nodes"],
         queryFn: monitorAPI.nodes,
         refetchInterval: 30_000,
@@ -118,12 +124,23 @@ function MonitoringNodesPage() {
                                     </TableCell>
                                 </TableRow>
                             ))
+                        ) : isPending ? (
+                            <DataTableState colSpan={7} kind="loading" title="正在加载节点" />
+                        ) : error ? (
+                            <DataTableState
+                                colSpan={7}
+                                kind="error"
+                                title="节点加载失败"
+                                description="无法读取节点列表，请检查 Monitor 服务后重试。"
+                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                            />
                         ) : (
-                            <TableRow>
-                                <TableCell colSpan={7} className="h-40 text-center">
-                                    {isFetching ? "正在加载节点..." : "暂无已注册的监控节点。"}
-                                </TableCell>
-                            </TableRow>
+                            <DataTableState
+                                colSpan={7}
+                                kind="empty"
+                                title="暂无监控节点"
+                                description="启动节点 Agent 后，首次心跳会自动完成注册。"
+                            />
                         )}
                     </TableBody>
                 </Table>
@@ -139,31 +156,29 @@ function AddNodeDialog() {
             <DialogTrigger asChild>
                 <Button>
                     <PlusIcon />
-                    Add node
+                    添加节点
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>添加监控节点</DialogTitle>
                     <DialogDescription>
-                        Start the bundled agent on the node. It is added to this list after its
-                        first accepted heartbeat.
+                        在节点上启动随包提供的 Agent；首次心跳通过后，节点会自动加入列表。
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3 text-sm">
                     <p>
-                        Set the controller endpoint and the same
+                        配置控制器地址，并使用与 Monitor 服务一致的
                         <code className="mx-1 rounded bg-muted px-1 py-0.5">
                             RUSTZEN_MONITOR_AGENT_TOKEN
                         </code>
-                        used by the Monitor service.
+                        。
                     </p>
                     <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
                         rz-monitor agent
                     </pre>
                     <p className="text-muted-foreground">
-                        The node ID is derived from the agent hostname; repeated heartbeats update
-                        the existing row instead of creating duplicates.
+                        节点 ID 由 Agent 主机名生成；后续心跳会更新现有记录，不会重复创建节点。
                     </p>
                 </div>
             </DialogContent>
@@ -178,7 +193,12 @@ function NodeDetails({
     node: Monitor.Node | null;
     onOpenChange: (open: boolean) => void;
 }) {
-    const { data: metrics = [] } = useQuery({
+    const {
+        data: metrics = [],
+        error,
+        isPending,
+        refetch,
+    } = useQuery({
         queryKey: ["monitor", "nodes", node?.id, "metrics", "5m"],
         queryFn: () => monitorAPI.metrics(node?.id ?? "", { bucket: "5m" }),
         enabled: Boolean(node),
@@ -215,7 +235,22 @@ function NodeDetails({
                         />
                     </div>
                     <div className="h-80 rounded-lg border p-3">
-                        {metrics.length ? (
+                        {isPending ? (
+                            <DataState
+                                kind="loading"
+                                title="正在加载指标"
+                                compact
+                                className="h-full min-h-0"
+                            />
+                        ) : error && metrics.length === 0 ? (
+                            <DataState
+                                kind="error"
+                                title="指标加载失败"
+                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                                compact
+                                className="h-full min-h-0"
+                            />
+                        ) : metrics.length ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={metrics}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -252,9 +287,12 @@ function NodeDetails({
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                                No metrics in the last 24 hours.
-                            </div>
+                            <DataState
+                                kind="empty"
+                                title="最近 24 小时暂无指标"
+                                compact
+                                className="h-full min-h-0"
+                            />
                         )}
                     </div>
                 </div>

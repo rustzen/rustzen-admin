@@ -3,7 +3,7 @@ import { createRootRoute, Navigate, Outlet, redirect } from "@tanstack/react-rou
 import { lazy, Suspense, useEffect } from "react";
 
 import { MessageContent, authAPI } from "@/api";
-import { BaseLayout } from "@/components/base-layout";
+import { BaseLayout } from "@/components/layout";
 import { ThemeProvider } from "@/components/theme-provider";
 import { useAuthStore } from "@/store/useAuthStore";
 

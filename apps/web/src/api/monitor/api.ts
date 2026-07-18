@@ -1,67 +1,47 @@
+import { routePath } from "@/api/module-contract";
+import { monitorAPIContract as contract } from "@/api/monitor/contract";
 import { apiRequest } from "@/api/request";
 
 export const monitorAPI = {
-    overview: () => apiRequest<Monitor.Overview>({ url: "/api/monitor/overview" }),
-    nodes: () => apiRequest<Monitor.Node[]>({ url: "/api/monitor/nodes" }),
-    node: (nodeId: string) => apiRequest<Monitor.Node>({ url: `/api/monitor/nodes/${nodeId}` }),
+    overview: () => apiRequest<Monitor.Overview>({ url: contract.overview.path }),
+    nodes: () => apiRequest<Monitor.Node[]>({ url: contract.nodes.path }),
     metrics: (nodeId: string, params: Monitor.MetricsQuery = {}) =>
         apiRequest<Monitor.MetricPoint[], Monitor.MetricsQuery>({
-            url: `/api/monitor/nodes/${nodeId}/metrics`,
+            url: routePath(contract.metrics, { node_id: nodeId }),
             params,
         }),
     checks: (params: Monitor.CheckQuery = {}) =>
         apiRequest<Monitor.Page<Monitor.Check>, Monitor.CheckQuery>({
-            url: "/api/monitor/checks",
+            url: contract.checks.path,
             params,
         }),
-    check: (id: string) => apiRequest<Monitor.Check>({ url: `/api/monitor/checks/${id}` }),
     createCheck: (params: Monitor.SaveCheck) =>
         apiRequest<Monitor.Check, Monitor.SaveCheck>({
-            url: "/api/monitor/checks",
-            method: "POST",
+            url: contract.createCheck.path,
+            method: contract.createCheck.method,
             params,
         }),
     updateCheck: (id: string, params: Monitor.SaveCheck) =>
         apiRequest<Monitor.Check, Monitor.SaveCheck>({
-            url: `/api/monitor/checks/${id}`,
-            method: "PUT",
+            url: routePath(contract.updateCheck, { id }),
+            method: contract.updateCheck.method,
             params,
         }),
     deleteCheck: (id: string) =>
-        apiRequest<void>({ url: `/api/monitor/checks/${id}`, method: "DELETE" }),
+        apiRequest<void>({
+            url: routePath(contract.deleteCheck, { id }),
+            method: contract.deleteCheck.method,
+        }),
     setCheckEnabled: (id: string, enabled: boolean) =>
         apiRequest<Monitor.Check, { enabled: boolean }>({
-            url: `/api/monitor/checks/${id}/enabled`,
-            method: "PUT",
+            url: routePath(contract.setCheckEnabled, { id }),
+            method: contract.setCheckEnabled.method,
             params: { enabled },
         }),
     testCheck: (params: Pick<Monitor.SaveCheck, "host" | "port" | "timeoutMs">) =>
         apiRequest<Monitor.ProbeResult, Pick<Monitor.SaveCheck, "host" | "port" | "timeoutMs">>({
-            url: "/api/monitor/checks/test",
-            method: "POST",
-            params,
-        }),
-    checkResults: (id: string, params: Pick<Monitor.CheckQuery, "current" | "pageSize"> = {}) =>
-        apiRequest<Monitor.Page<Monitor.CheckResult>, typeof params>({
-            url: `/api/monitor/checks/${id}/results`,
-            params,
-        }),
-    incidents: (params: Monitor.IncidentQuery = {}) =>
-        apiRequest<Monitor.Page<Monitor.Incident>, Monitor.IncidentQuery>({
-            url: "/api/monitor/incidents",
-            params,
-        }),
-    incident: (id: string) => apiRequest<Monitor.Incident>({ url: `/api/monitor/incidents/${id}` }),
-    acknowledgeIncident: (id: string) =>
-        apiRequest<Monitor.Incident>({
-            url: `/api/monitor/incidents/${id}/acknowledge`,
-            method: "POST",
-        }),
-    settings: () => apiRequest<Monitor.Settings>({ url: "/api/monitor/settings" }),
-    updateSettings: (params: Monitor.UpdateSettings) =>
-        apiRequest<Monitor.Settings, Monitor.UpdateSettings>({
-            url: "/api/monitor/settings",
-            method: "PUT",
+            url: contract.testCheck.path,
+            method: contract.testCheck.method,
             params,
         }),
 };

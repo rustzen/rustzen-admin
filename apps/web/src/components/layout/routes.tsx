@@ -60,18 +60,18 @@ export type SearchRouteItem = {
     searchText: string;
 };
 
-const dashboardRoute: AppRouteItem = {
+const dashboardRoute = (): AppRouteItem => ({
     path: "/",
     name: t("仪表盘", "Dashboard"),
     icon: <LayoutDashboardIcon />,
-};
+});
 
-const profileRoute: AppRouteItem = {
+const profileRoute = (): AppRouteItem => ({
     path: "/profile",
     name: t("个人资料", "Profile"),
     icon: <UserIcon />,
     requiresPermission: false,
-};
+});
 
 const moduleGroupPaths: Record<SystemModule.Id, AppRouteGroupPath> = {
     monitor: "/monitoring",
@@ -109,7 +109,7 @@ const getModuleRoutes = (navigation: SystemModule.NavigationItem[]): AppRouteIte
     return Array.from(groups.values());
 };
 
-const systemRoutes: AppRouteItem = {
+const systemRoutes = (): AppRouteItem => ({
     name: t("系统", "System"),
     icon: <SettingsIcon />,
     path: "/system",
@@ -140,9 +140,9 @@ const systemRoutes: AppRouteItem = {
             icon: <HistoryIcon />,
         },
     ],
-};
+});
 
-const manageRoutes: AppRouteItem = {
+const manageRoutes = (): AppRouteItem => ({
     name: t("管理", "Management"),
     icon: <CloudUploadIcon />,
     path: "/manage",
@@ -168,9 +168,9 @@ const manageRoutes: AppRouteItem = {
             icon: <CloudUploadIcon />,
         },
     ],
-};
+});
 
-const demoRoutes: AppRouteItem = {
+const demoRoutes = (): AppRouteItem => ({
     name: t("示例", "Examples"),
     icon: <GaugeIcon />,
     path: "/demo",
@@ -188,7 +188,7 @@ const demoRoutes: AppRouteItem = {
             requiresPermission: false,
         },
     ],
-};
+});
 
 const appRoutePaths = new Set<string>([
     "/",
@@ -228,11 +228,11 @@ export const getMenuData = (
     moduleNavigation: SystemModule.NavigationItem[],
 ): AppRouteItem[] => {
     const layoutMenuRoutes: AppRouteItem[] = [
-        dashboardRoute,
+        dashboardRoute(),
         ...getModuleRoutes(moduleNavigation),
-        systemRoutes,
-        manageRoutes,
-        demoRoutes,
+        systemRoutes(),
+        manageRoutes(),
+        demoRoutes(),
     ];
     const getMenuList = (menuList: AppRouteItem[]): AppRouteItem[] => {
         return menuList
@@ -262,12 +262,12 @@ export const getSearchRouteItems = (
     moduleNavigation: SystemModule.NavigationItem[],
 ): SearchRouteItem[] => {
     const layoutSearchRoutes: AppRouteItem[] = [
-        dashboardRoute,
-        profileRoute,
+        dashboardRoute(),
+        profileRoute(),
         ...getModuleRoutes(moduleNavigation),
-        systemRoutes,
-        manageRoutes,
-        demoRoutes,
+        systemRoutes(),
+        manageRoutes(),
+        demoRoutes(),
     ];
     const flattenRoutes = (
         routes: AppRouteItem[],

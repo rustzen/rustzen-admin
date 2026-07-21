@@ -38,17 +38,6 @@ export const Route = createFileRoute("/manage/task")({
 
 const RUN_PAGE_SIZE = 10;
 
-const taskStatusMeta: Record<
-    Task.RunStatus | "never",
-    { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-> = {
-    running: { label: t("运行中", "Running"), variant: "default" },
-    success: { label: t("成功", "Success"), variant: "secondary" },
-    failed: { label: t("失败", "Failed"), variant: "destructive" },
-    skipped: { label: t("已跳过", "Skipped"), variant: "outline" },
-    never: { label: t("从未运行", "Never run"), variant: "outline" },
-};
-
 function TaskPage() {
     const { data, error, isPending, refetch } = useQuery({
         queryKey: ["manage", "task"],
@@ -323,6 +312,13 @@ function RunTaskDialog({ record, onSuccess }: { record: Task.Item; onSuccess: ()
 }
 
 function TaskStatusBadge({ status }: { status?: Task.RunStatus | null }) {
+    const taskStatusMeta = {
+        running: { label: t("运行中", "Running"), variant: "default" as const },
+        success: { label: t("成功", "Success"), variant: "secondary" as const },
+        failed: { label: t("失败", "Failed"), variant: "destructive" as const },
+        skipped: { label: t("已跳过", "Skipped"), variant: "outline" as const },
+        never: { label: t("从未运行", "Never run"), variant: "outline" as const },
+    };
     const meta = taskStatusMeta[status ?? "never"];
     return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }

@@ -39,33 +39,13 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { ENABLE_OPTIONS, MENU_TYPE_OPTIONS } from "@/constant/options";
+import { getEnableOptions, getMenuTypeOptions, getModuleIconOptions } from "@/constant/options";
 import { localizeBuiltInMenuName } from "@/lib/builtin-i18n";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/system/menu")({
     component: MenuPage,
 });
-
-const menuTypeMeta: Record<
-    number,
-    { label: string; variant: "default" | "secondary" | "outline" }
-> = {
-    1: { label: t("目录", "Directory"), variant: "secondary" },
-    2: { label: t("菜单", "Menu"), variant: "default" },
-    3: { label: t("按钮", "Button"), variant: "outline" },
-};
-
-const statusMeta: Record<number, { label: string; variant: "secondary" | "outline" }> = {
-    1: { label: t("启用", "Enabled"), variant: "secondary" },
-    2: { label: t("禁用", "Disabled"), variant: "outline" },
-};
-
-const MODULE_ICON_OPTIONS = [
-    { label: t("监控", "Monitoring"), value: "monitor" },
-    { label: t("分析", "Insights"), value: "chart-no-axes-combined" },
-    { label: t("报表", "Reports"), value: "file-text" },
-] as const;
 
 type FlatMenuItem = Menu.Item & {
     depth: number;
@@ -394,7 +374,7 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
-                                        {MENU_TYPE_OPTIONS.map((item) => (
+                                        {getMenuTypeOptions().map((item) => (
                                             <SelectItem key={item.value} value={String(item.value)}>
                                                 {item.label}
                                             </SelectItem>
@@ -411,7 +391,7 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
-                                        {ENABLE_OPTIONS.map((item) => (
+                                        {getEnableOptions().map((item) => (
                                             <SelectItem key={item.value} value={String(item.value)}>
                                                 {item.label}
                                             </SelectItem>
@@ -430,7 +410,7 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
-                                        {MODULE_ICON_OPTIONS.map((item) => (
+                                        {getModuleIconOptions().map((item) => (
                                             <SelectItem key={item.value} value={item.value}>
                                                 {item.label}
                                             </SelectItem>
@@ -496,7 +476,12 @@ function DisableMenuDialog({ record, onSuccess }: { record: Menu.Item; onSuccess
 }
 
 function MenuTypeBadge({ menuType }: { menuType: number }) {
-    const meta = menuTypeMeta[menuType] ?? {
+    const menuTypeMeta = {
+        1: { label: t("目录", "Directory"), variant: "secondary" as const },
+        2: { label: t("菜单", "Menu"), variant: "default" as const },
+        3: { label: t("按钮", "Button"), variant: "outline" as const },
+    };
+    const meta = menuTypeMeta[menuType as keyof typeof menuTypeMeta] ?? {
         label: t("未知", "Unknown"),
         variant: "outline" as const,
     };
@@ -504,7 +489,14 @@ function MenuTypeBadge({ menuType }: { menuType: number }) {
 }
 
 function MenuStatusBadge({ status }: { status: number }) {
-    const meta = statusMeta[status] ?? { label: t("未知", "Unknown"), variant: "outline" as const };
+    const statusMeta = {
+        1: { label: t("启用", "Enabled"), variant: "secondary" as const },
+        2: { label: t("禁用", "Disabled"), variant: "outline" as const },
+    };
+    const meta = statusMeta[status as keyof typeof statusMeta] ?? {
+        label: t("未知", "Unknown"),
+        variant: "outline" as const,
+    };
     return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 

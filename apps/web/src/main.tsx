@@ -3,6 +3,8 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { LocaleProvider } from "@/lib/i18n";
+
 import { routeTree } from "./routeTree.gen";
 
 const queryClient = new QueryClient({
@@ -48,7 +50,9 @@ if (rootElement && !rootElement.innerHTML) {
     root.render(
         <StrictMode>
             <QueryClientProvider client={queryClient}>
-                <RouterProvider router={router} />
+                <LocaleProvider>
+                    <RouterProvider router={router} />
+                </LocaleProvider>
             </QueryClientProvider>
         </StrictMode>,
     );

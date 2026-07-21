@@ -32,16 +32,16 @@ const DEFAULT_ACTION = "AUTH_LOGIN";
 const ALL_ACTION = "all";
 const PAGE_SIZE = 20;
 
-const actionOptions: Array<{ label: string; value: string }> = [
-    { label: t("全部", "All"), value: ALL_ACTION },
-    { label: t("登录", "Sign-in"), value: DEFAULT_ACTION },
-    { label: "GET", value: "HTTP_GET" },
-    { label: "POST", value: "HTTP_POST" },
-    { label: "PUT", value: "HTTP_PUT" },
-    { label: "DELETE", value: "HTTP_DELETE" },
-];
-
 function LogPage() {
+    const actionOptions = [
+        { label: t("全部", "All"), value: ALL_ACTION },
+        { label: t("登录", "Sign-in"), value: DEFAULT_ACTION },
+        { label: "GET", value: "HTTP_GET" },
+        { label: "POST", value: "HTTP_POST" },
+        { label: "PUT", value: "HTTP_PUT" },
+        { label: "DELETE", value: "HTTP_DELETE" },
+    ];
+
     const [savedActionType, setActionType] = useLocalStore("log-action", DEFAULT_ACTION);
     const actionType = savedActionType || DEFAULT_ACTION;
     const selectedAction = actionType === ALL_ACTION ? undefined : actionType;

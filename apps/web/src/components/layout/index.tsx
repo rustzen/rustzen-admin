@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/sidebar";
 import { APP_BRAND_NAME } from "@/constant/brand";
 import { localizeBuiltInUserName } from "@/lib/builtin-i18n";
-import { t } from "@/lib/i18n";
+import { t, useLocale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -58,6 +58,7 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
     const menuPermissionSignature = useAuthStore(
         (state) => state.userInfo?.permissions?.join("|") || "",
     );
+    const locale = useLocale();
     const router = useRouter();
     const currentPath = useLocation().pathname;
     const { data: moduleNavigation = [] } = useQuery({
@@ -69,12 +70,12 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
 
     const menuData = useMemo(
         () => getMenuData(checkMenuPermissions, moduleNavigation),
-        [checkMenuPermissions, menuPermissionSignature, moduleNavigation],
+        [checkMenuPermissions, menuPermissionSignature, moduleNavigation, locale],
     );
 
     const searchRoutes = useMemo(
         () => getSearchRouteItems(checkMenuPermissions, moduleNavigation),
-        [checkMenuPermissions, menuPermissionSignature, moduleNavigation],
+        [checkMenuPermissions, menuPermissionSignature, moduleNavigation, locale],
     );
 
     const handleSearchSelect = (path: AppRoutePath) => {

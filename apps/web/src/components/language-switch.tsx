@@ -1,10 +1,10 @@
 import { LanguagesIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { getLocale, setLocale, t } from "@/lib/i18n";
+import { setLocale, t, useLocale } from "@/lib/i18n";
 
 export function LanguageSwitch() {
-    const locale = getLocale();
+    const locale = useLocale();
     const nextLocale = locale === "zh-CN" ? "en-US" : "zh-CN";
 
     return (

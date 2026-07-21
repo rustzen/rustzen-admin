@@ -5,6 +5,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { MessageContent, authAPI } from "@/api";
 import { BaseLayout } from "@/components/layout";
 import { ThemeProvider } from "@/components/theme-provider";
+import { useLocale } from "@/lib/i18n";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const permissionFreePaths = new Set(["/profile", "/403", "/404"]);
@@ -59,6 +60,7 @@ export const Route = createRootRoute({
 });
 
 function RootLayout() {
+    useLocale();
     const { token, updateUserInfo } = useAuthStore();
     const { data: userInfo } = useQuery({
         queryKey: ["auth", "me"],

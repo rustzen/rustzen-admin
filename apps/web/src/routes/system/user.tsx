@@ -48,7 +48,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { ENABLE_OPTIONS } from "@/constant/options";
+import { getEnableOptions } from "@/constant/options";
 import { localizeBuiltInRoleName, localizeBuiltInUserName } from "@/lib/builtin-i18n";
 import { t } from "@/lib/i18n";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -58,16 +58,6 @@ export const Route = createFileRoute("/system/user")({
 });
 
 const PAGE_SIZE = 20;
-
-const statusMeta: Record<
-    number,
-    { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
-> = {
-    1: { label: t("启用", "Enabled"), variant: "secondary" },
-    2: { label: t("禁用", "Disabled"), variant: "outline" },
-    3: { label: t("待审核", "Pending"), variant: "default" },
-    4: { label: t("已锁定", "Locked"), variant: "destructive" },
-};
 
 const formatResetDateSuffix = (date: Date) => {
     const year = date.getFullYear() % 100;
@@ -191,7 +181,7 @@ function UserPage() {
                         <SelectContent>
                             <SelectGroup>
                                 <SelectItem value="all">{t("全部状态", "All statuses")}</SelectItem>
-                                {ENABLE_OPTIONS.map((item) => (
+                                {getEnableOptions().map((item) => (
                                     <SelectItem key={item.value} value={String(item.value)}>
                                         {item.label}
                                     </SelectItem>
@@ -584,7 +574,7 @@ const UserDialog = ({ children, initialValues, mode = "create", onSuccess }: Use
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
-                                        {ENABLE_OPTIONS.map((item) => (
+                                        {getEnableOptions().map((item) => (
                                             <SelectItem key={item.value} value={String(item.value)}>
                                                 {item.label}
                                             </SelectItem>
@@ -689,7 +679,16 @@ function UserActionDialog({
 }
 
 function UserStatusBadge({ status }: { status: number }) {
-    const meta = statusMeta[status] ?? { label: t("未知", "Unknown"), variant: "outline" as const };
+    const statusMeta = {
+        1: { label: t("启用", "Enabled"), variant: "secondary" as const },
+        2: { label: t("禁用", "Disabled"), variant: "outline" as const },
+        3: { label: t("待审核", "Pending"), variant: "default" as const },
+        4: { label: t("已锁定", "Locked"), variant: "destructive" as const },
+    };
+    const meta = statusMeta[status as keyof typeof statusMeta] ?? {
+        label: t("未知", "Unknown"),
+        variant: "outline" as const,
+    };
     return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 

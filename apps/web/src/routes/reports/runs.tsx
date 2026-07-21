@@ -55,18 +55,20 @@ const variants: Record<Reports.Run["status"], "default" | "secondary" | "destruc
         failed: "destructive",
         cancelled: "outline",
     };
-const runStatusLabels: Record<Reports.Run["status"], string> = {
-    queued: t("排队中", "Queued"),
-    running: t("执行中", "Running"),
-    succeeded: t("已成功", "Succeeded"),
-    failed: t("失败", "Failed"),
-    cancelled: t("已取消", "Cancelled"),
-};
-const stepStatusLabels: Record<Reports.RunStep["status"], string> = {
-    running: t("执行中", "Running"),
-    succeeded: t("已成功", "Succeeded"),
-    failed: t("失败", "Failed"),
-};
+const runStatusLabel = (status: Reports.Run["status"]) =>
+    ({
+        queued: t("排队中", "Queued"),
+        running: t("执行中", "Running"),
+        succeeded: t("已成功", "Succeeded"),
+        failed: t("失败", "Failed"),
+        cancelled: t("已取消", "Cancelled"),
+    })[status];
+const stepStatusLabel = (status: Reports.RunStep["status"]) =>
+    ({
+        running: t("执行中", "Running"),
+        succeeded: t("已成功", "Succeeded"),
+        failed: t("失败", "Failed"),
+    })[status];
 const defaultRunInput = JSON.stringify({ username: "", password: "" }, null, 2);
 function RunsPage() {
     const [current, setCurrent] = useState(1),
@@ -129,7 +131,7 @@ function RunsPage() {
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={variants[run.status]}>
-                                            {runStatusLabels[run.status]}
+                                            {runStatusLabel(run.status)}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{date(run.createdAt)}</TableCell>
@@ -346,7 +348,7 @@ function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }
                         <div className="rounded-md border p-3 text-sm">
                             <p>
                                 {t("状态：", "Status: ")}
-                                {currentRun ? runStatusLabels[currentRun.status] : "-"}
+                                {currentRun ? runStatusLabel(currentRun.status) : "-"}
                             </p>
                             <p>
                                 {t("开始时间：", "Started at: ")}
@@ -377,7 +379,7 @@ function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }
                                                 : "destructive"
                                         }
                                     >
-                                        {stepStatusLabels[step.status]}
+                                        {stepStatusLabel(step.status)}
                                     </Badge>
                                 </div>
                                 <p className="text-muted-foreground">

@@ -42,7 +42,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { ENABLE_OPTIONS } from "@/constant/options";
+import { getEnableOptions } from "@/constant/options";
 import {
     localizeBuiltInMenuName,
     localizeBuiltInRoleDescription,
@@ -57,11 +57,6 @@ const PAGE_SIZE = 20;
 export const Route = createFileRoute("/system/role")({
     component: RolePage,
 });
-
-const statusMeta: Record<number, { label: string; variant: "secondary" | "outline" }> = {
-    1: { label: t("启用", "Enabled"), variant: "secondary" },
-    2: { label: t("禁用", "Disabled"), variant: "outline" },
-};
 
 function RolePage() {
     const [currentPage, setCurrentPage] = useState(1);
@@ -151,7 +146,7 @@ function RolePage() {
                         <SelectContent>
                             <SelectGroup>
                                 <SelectItem value="all">{t("全部状态", "All statuses")}</SelectItem>
-                                {ENABLE_OPTIONS.map((item) => (
+                                {getEnableOptions().map((item) => (
                                     <SelectItem key={item.value} value={String(item.value)}>
                                         {item.label}
                                     </SelectItem>
@@ -461,7 +456,7 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
-                                    {ENABLE_OPTIONS.map((item) => (
+                                    {getEnableOptions().map((item) => (
                                         <SelectItem key={item.value} value={String(item.value)}>
                                             {item.label}
                                         </SelectItem>
@@ -603,7 +598,14 @@ function DeleteRoleDialog({ record, onSuccess }: { record: Role.Item; onSuccess:
 }
 
 function RoleStatusBadge({ status }: { status: number }) {
-    const meta = statusMeta[status] ?? { label: t("未知", "Unknown"), variant: "outline" as const };
+    const statusMeta = {
+        1: { label: t("启用", "Enabled"), variant: "secondary" as const },
+        2: { label: t("禁用", "Disabled"), variant: "outline" as const },
+    };
+    const meta = statusMeta[status as keyof typeof statusMeta] ?? {
+        label: t("未知", "Unknown"),
+        variant: "outline" as const,
+    };
     return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 

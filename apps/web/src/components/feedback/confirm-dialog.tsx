@@ -10,6 +10,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+import { t } from "@/lib/i18n";
 
 interface ConfirmDialogProps {
     trigger: ReactNode;
@@ -53,7 +54,7 @@ export function ConfirmDialog({
                 </DialogHeader>
                 <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                        取消
+                        {t("取消", "Cancel")}
                     </Button>
                     <Button
                         type="button"

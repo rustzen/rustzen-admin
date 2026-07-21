@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { t } from "@/lib/i18n";
 
 interface TablePaginationProps {
     currentPage: number;
@@ -18,10 +19,13 @@ export function TablePagination({
     return (
         <nav
             className="flex min-h-9 flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground"
-            aria-label="表格分页"
+            aria-label={t("表格分页", "Table pagination")}
         >
             <span className="tabular-nums">
-                第 {currentPage} / {totalPages} 页 · 共 {total} 条
+                {t(
+                    `第 ${currentPage} / ${totalPages} 页 · 共 ${total} 条`,
+                    `Page ${currentPage} of ${totalPages} · ${total} records`,
+                )}
             </span>
             <div className="flex gap-2">
                 <Button
@@ -30,7 +34,7 @@ export function TablePagination({
                     disabled={currentPage <= 1 || disabled}
                     onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                 >
-                    上一页
+                    {t("上一页", "Previous")}
                 </Button>
                 <Button
                     type="button"
@@ -38,7 +42,7 @@ export function TablePagination({
                     disabled={currentPage >= totalPages || disabled}
                     onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
                 >
-                    下一页
+                    {t("下一页", "Next")}
                 </Button>
             </div>
         </nav>

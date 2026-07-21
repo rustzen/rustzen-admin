@@ -1,8 +1,8 @@
 use super::{
     service::RoleService,
-    types::{CreateRoleRequest, RoleItemResp, RoleQuery, UpdateRolePayload},
+    types::{CreateRoleRequest, RoleItemResp, RoleOptionResp, RoleQuery, UpdateRolePayload},
 };
-use crate::common::api::{ApiResponse, AppResult, OptionItem, OptionsQuery};
+use crate::common::api::{ApiResponse, AppResult, OptionsQuery};
 
 use axum::{
     Json,
@@ -55,6 +55,6 @@ pub async fn delete_role(
 pub async fn get_role_options(
     State(pool): State<SqlitePool>,
     Query(query): Query<OptionsQuery>,
-) -> AppResult<Vec<OptionItem<i64>>> {
+) -> AppResult<Vec<RoleOptionResp>> {
     Ok(ApiResponse::success(RoleService::get_role_options(&pool, query).await?))
 }

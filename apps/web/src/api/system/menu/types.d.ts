@@ -59,5 +59,8 @@ declare namespace Menu {
 
     interface OptionItem extends Api.OptionItem<number> {
         code: string;
+        isSystem: boolean;
+        moduleId?: string | null;
+        moduleMenuCode?: string | null;
     }
 }

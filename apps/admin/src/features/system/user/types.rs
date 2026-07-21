@@ -68,13 +68,24 @@ pub struct UserItemResp {
     pub is_system: bool,
     pub status: i16,
     pub last_login_at: Option<NaiveDateTime>,
-    pub roles: Vec<UserOptionResp>,
+    pub roles: Vec<UserRoleResp>,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
 
 /// User option
 pub type UserOptionResp = OptionItem<i64>;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserRoleResp {
+    pub label: String,
+    pub value: i64,
+    #[serde(default)]
+    pub code: String,
+    #[serde(default)]
+    pub is_system: bool,
+}
 
 /// User list query parameters
 #[derive(Debug, Clone, Deserialize)]
@@ -136,7 +147,7 @@ impl TryFrom<UserWithRolesRow> for UserItemResp {
     type Error = ServiceError;
 
     fn try_from(user: UserWithRolesRow) -> Result<Self, Self::Error> {
-        let roles = serde_json::from_value::<Vec<UserOptionResp>>(user.roles).map_err(|e| {
+        let roles = serde_json::from_value::<Vec<UserRoleResp>>(user.roles).map_err(|e| {
             ServiceError::InvalidOperation(format!("Invalid user role data: {}", e))
         })?;
 

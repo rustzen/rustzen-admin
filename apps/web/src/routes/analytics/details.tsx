@@ -18,6 +18,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/analytics/details")({ component: AnalyticsEventsPage });
 const pageSize = 20;
@@ -32,13 +33,16 @@ function AnalyticsEventsPage() {
     });
     return (
         <PageCard
-            title="分析明细"
-            description="查看当前实例的页面、接口、用户和业务原始事件。"
+            title={t("分析明细", "Analytics details")}
+            description={t(
+                "查看当前实例的页面、接口、用户和业务原始事件。",
+                "View raw page, API, user, and business events for the current instance.",
+            )}
             toolbar={
                 <div className="flex flex-wrap gap-3">
                     <Input
                         className="mt-auto w-64"
-                        placeholder="输入完整事件名称"
+                        placeholder={t("输入完整事件名称", "Enter the full event name")}
                         value={eventName}
                         onChange={(event) => {
                             setEventName(event.target.value);
@@ -52,12 +56,12 @@ function AnalyticsEventsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>事件</TableHead>
-                            <TableHead>访客 / 用户</TableHead>
-                            <TableHead>位置</TableHead>
-                            <TableHead>平台</TableHead>
-                            <TableHead>耗时</TableHead>
-                            <TableHead>发生时间</TableHead>
+                            <TableHead>{t("事件", "Event")}</TableHead>
+                            <TableHead>{t("访客 / 用户", "Visitor / User")}</TableHead>
+                            <TableHead>{t("位置", "Location")}</TableHead>
+                            <TableHead>{t("平台", "Platform")}</TableHead>
+                            <TableHead>{t("耗时", "Duration")}</TableHead>
+                            <TableHead>{t("发生时间", "Occurred at")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -71,7 +75,7 @@ function AnalyticsEventsPage() {
                                 <TableCell>
                                     <div>{row.visitorId}</div>
                                     <div className="text-xs text-muted-foreground">
-                                        {row.userId || "匿名"}
+                                        {row.userId || t("匿名", "Anonymous")}
                                     </div>
                                 </TableCell>
                                 <TableCell className="font-mono text-xs">
@@ -86,26 +90,45 @@ function AnalyticsEventsPage() {
                         ))}
                         {!data?.data.length &&
                             (isPending ? (
-                                <DataTableState colSpan={6} kind="loading" title="正在加载事件" />
+                                <DataTableState
+                                    colSpan={6}
+                                    kind="loading"
+                                    title={t("正在加载事件", "Loading events")}
+                                />
                             ) : error ? (
                                 <DataTableState
                                     colSpan={6}
                                     kind="error"
-                                    title="事件加载失败"
-                                    description="无法读取分析明细，请检查 Insights 服务后重试。"
+                                    title={t("事件加载失败", "Failed to load events")}
+                                    description={t(
+                                        "无法读取分析明细，请检查 Insights 服务后重试。",
+                                        "Unable to read analytics details. Check the Insights service and try again.",
+                                    )}
                                     action={
-                                        <Button onClick={() => void refetch()}>重新加载</Button>
+                                        <Button onClick={() => void refetch()}>
+                                            {t("重新加载", "Reload")}
+                                        </Button>
                                     }
                                 />
                             ) : (
                                 <DataTableState
                                     colSpan={6}
                                     kind="empty"
-                                    title={eventName ? "没有匹配的事件" : "暂无分析事件"}
+                                    title={
+                                        eventName
+                                            ? t("没有匹配的事件", "No matching events")
+                                            : t("暂无分析事件", "No analytics events")
+                                    }
                                     description={
                                         eventName
-                                            ? "请检查完整事件名称或清除筛选条件。"
-                                            : "接收到埋点数据后，原始事件会显示在这里。"
+                                            ? t(
+                                                  "请检查完整事件名称或清除筛选条件。",
+                                                  "Check the full event name or clear the filter.",
+                                              )
+                                            : t(
+                                                  "接收到埋点数据后，原始事件会显示在这里。",
+                                                  "Raw events will appear here after tracking data is received.",
+                                              )
                                     }
                                 />
                             ))}

@@ -43,6 +43,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/monitoring/nodes")({ component: MonitoringNodesPage });
 
@@ -61,21 +62,24 @@ function MonitoringNodesPage() {
 
     return (
         <PageCard
-            title="节点"
-            description="查看每个已注册节点的最新心跳和资源快照。"
+            title={t("节点", "Nodes")}
+            description={t(
+                "查看每个已注册节点的最新心跳和资源快照。",
+                "View the latest heartbeat and resource snapshot for each registered node.",
+            )}
             actions={<AddNodeDialog />}
         >
             <DataTableShell>
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>节点</TableHead>
-                            <TableHead>状态</TableHead>
+                            <TableHead>{t("节点", "Node")}</TableHead>
+                            <TableHead>{t("状态", "Status")}</TableHead>
                             <TableHead>CPU</TableHead>
-                            <TableHead>内存</TableHead>
-                            <TableHead>磁盘</TableHead>
-                            <TableHead>最后在线</TableHead>
-                            <TableHead className="text-right">详情</TableHead>
+                            <TableHead>{t("内存", "Memory")}</TableHead>
+                            <TableHead>{t("磁盘", "Disk")}</TableHead>
+                            <TableHead>{t("最后在线", "Last seen")}</TableHead>
+                            <TableHead className="text-right">{t("详情", "Details")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -119,27 +123,41 @@ function MonitoringNodesPage() {
                                             size="sm"
                                             onClick={() => setSelected(node)}
                                         >
-                                            View
+                                            {t("查看", "View")}
                                         </Button>
                                     </TableCell>
                                 </TableRow>
                             ))
                         ) : isPending ? (
-                            <DataTableState colSpan={7} kind="loading" title="正在加载节点" />
+                            <DataTableState
+                                colSpan={7}
+                                kind="loading"
+                                title={t("正在加载节点", "Loading nodes")}
+                            />
                         ) : error ? (
                             <DataTableState
                                 colSpan={7}
                                 kind="error"
-                                title="节点加载失败"
-                                description="无法读取节点列表，请检查 Monitor 服务后重试。"
-                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                                title={t("节点加载失败", "Failed to load nodes")}
+                                description={t(
+                                    "无法读取节点列表，请检查 Monitor 服务后重试。",
+                                    "Unable to read the node list. Check the Monitor service and try again.",
+                                )}
+                                action={
+                                    <Button onClick={() => void refetch()}>
+                                        {t("重新加载", "Reload")}
+                                    </Button>
+                                }
                             />
                         ) : (
                             <DataTableState
                                 colSpan={7}
                                 kind="empty"
-                                title="暂无监控节点"
-                                description="启动节点 Agent 后，首次心跳会自动完成注册。"
+                                title={t("暂无监控节点", "No monitored nodes")}
+                                description={t(
+                                    "启动节点 Agent 后，首次心跳会自动完成注册。",
+                                    "Start the node agent. Its first heartbeat will register it automatically.",
+                                )}
                             />
                         )}
                     </TableBody>
@@ -156,29 +174,37 @@ function AddNodeDialog() {
             <DialogTrigger asChild>
                 <Button>
                     <PlusIcon />
-                    添加节点
+                    {t("添加节点", "Add node")}
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>添加监控节点</DialogTitle>
+                    <DialogTitle>{t("添加监控节点", "Add monitored node")}</DialogTitle>
                     <DialogDescription>
-                        在节点上启动随包提供的 Agent；首次心跳通过后，节点会自动加入列表。
+                        {t(
+                            "在节点上启动随包提供的 Agent；首次心跳通过后，节点会自动加入列表。",
+                            "Start the bundled agent on the node. It will join the list after its first heartbeat.",
+                        )}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-3 text-sm">
                     <p>
-                        配置控制器地址，并使用与 Monitor 服务一致的
+                        {t(
+                            "配置控制器地址，并使用与 Monitor 服务一致的环境变量：",
+                            "Configure the controller address and use the same environment variable as the Monitor service:",
+                        )}
                         <code className="mx-1 rounded bg-muted px-1 py-0.5">
                             RUSTZEN_MONITOR_AGENT_TOKEN
                         </code>
-                        。
                     </p>
                     <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
                         rz-monitor agent
                     </pre>
                     <p className="text-muted-foreground">
-                        节点 ID 由 Agent 主机名生成；后续心跳会更新现有记录，不会重复创建节点。
+                        {t(
+                            "节点 ID 由 Agent 主机名生成；后续心跳会更新现有记录，不会重复创建节点。",
+                            "The node ID is generated from the agent hostname. Later heartbeats update the existing record instead of creating duplicates.",
+                        )}
                     </p>
                 </div>
             </DialogContent>
@@ -207,17 +233,17 @@ function NodeDetails({
         <Sheet open={Boolean(node)} onOpenChange={onOpenChange}>
             <SheetContent className="sm:max-w-3xl">
                 <SheetHeader>
-                    <SheetTitle>{node?.hostname ?? "节点详情"}</SheetTitle>
+                    <SheetTitle>{node?.hostname ?? t("节点详情", "Node details")}</SheetTitle>
                     <SheetDescription>
                         {node ? `${node.agentId} · Agent ${node.agentVersion}` : ""}
                     </SheetDescription>
                 </SheetHeader>
                 <div className="grid gap-4 px-4">
                     <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-                        <Summary label="状态" value={node?.status ?? "-"} />
+                        <Summary label={t("状态", "Status")} value={node?.status ?? "-"} />
                         <Summary label="CPU" value={formatPercent(node?.cpuPercent ?? null)} />
                         <Summary
-                            label="内存"
+                            label={t("内存", "Memory")}
                             value={
                                 node?.memoryUsedBytes === null ||
                                 node?.memoryUsedBytes === undefined
@@ -226,7 +252,7 @@ function NodeDetails({
                             }
                         />
                         <Summary
-                            label="磁盘"
+                            label={t("磁盘", "Disk")}
                             value={
                                 node?.diskUsedBytes === null || node?.diskUsedBytes === undefined
                                     ? "-"
@@ -238,15 +264,19 @@ function NodeDetails({
                         {isPending ? (
                             <DataState
                                 kind="loading"
-                                title="正在加载指标"
+                                title={t("正在加载指标", "Loading metrics")}
                                 compact
                                 className="h-full min-h-0"
                             />
                         ) : error && metrics.length === 0 ? (
                             <DataState
                                 kind="error"
-                                title="指标加载失败"
-                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                                title={t("指标加载失败", "Failed to load metrics")}
+                                action={
+                                    <Button onClick={() => void refetch()}>
+                                        {t("重新加载", "Reload")}
+                                    </Button>
+                                }
                                 compact
                                 className="h-full min-h-0"
                             />
@@ -273,14 +303,14 @@ function NodeDetails({
                                     <Line
                                         type="monotone"
                                         dataKey="memoryPercent"
-                                        name="内存 %"
+                                        name={t("内存 %", "Memory %")}
                                         stroke="var(--chart-2)"
                                         dot={false}
                                     />
                                     <Line
                                         type="monotone"
                                         dataKey="diskPercent"
-                                        name="磁盘 %"
+                                        name={t("磁盘 %", "Disk %")}
                                         stroke="var(--chart-3)"
                                         dot={false}
                                     />
@@ -289,7 +319,7 @@ function NodeDetails({
                         ) : (
                             <DataState
                                 kind="empty"
-                                title="最近 24 小时暂无指标"
+                                title={t("最近 24 小时暂无指标", "No metrics in the last 24 hours")}
                                 compact
                                 className="h-full min-h-0"
                             />

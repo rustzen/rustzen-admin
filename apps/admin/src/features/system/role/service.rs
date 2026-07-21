@@ -1,9 +1,12 @@
 use super::{
     repo::RoleRepository,
-    types::{CreateRoleRequest, RoleItemResp, RoleListQuery, RoleQuery, UpdateRolePayload},
+    types::{
+        CreateRoleRequest, RoleItemResp, RoleListQuery, RoleOptionResp, RoleQuery,
+        UpdateRolePayload,
+    },
 };
 use crate::common::{
-    api::{OptionItem, OptionsQuery},
+    api::OptionsQuery,
     error::ServiceError,
     pagination::{Pagination, PaginationQuery},
     query::parse_optional_i16_filter,
@@ -135,12 +138,17 @@ impl RoleService {
     pub async fn get_role_options(
         pool: &SqlitePool,
         query: OptionsQuery,
-    ) -> Result<Vec<OptionItem<i64>>, ServiceError> {
+    ) -> Result<Vec<RoleOptionResp>, ServiceError> {
         tracing::info!("Retrieving role options: {:?}", query);
         Ok(RoleRepository::list_role_options(pool, query.q.as_deref(), query.limit)
             .await?
             .into_iter()
-            .map(|(id, name)| OptionItem { label: name, value: id })
+            .map(|(id, name, code, is_system)| RoleOptionResp {
+                label: name,
+                value: id,
+                code,
+                is_system,
+            })
             .collect())
     }
 }

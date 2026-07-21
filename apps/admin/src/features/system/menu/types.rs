@@ -55,6 +55,9 @@ pub struct MenuOptionResp {
     pub label: String,
     pub value: i64,
     pub code: String,
+    pub is_system: bool,
+    pub module_id: Option<String>,
+    pub module_menu_code: Option<String>,
 }
 
 /// Menu item for tree list display

@@ -56,8 +56,14 @@ Rules for frontend work under `apps/web/`.
 - Colorful glass, white, and dark are equal supported themes. Decorative ambient
   color belongs to the shell; page cards and table surfaces must remain readable
   through the shared `--panel` token in every theme.
-- User-facing copy defaults to Chinese. Retain English only for product names,
-  protocol/method names, file formats, role codes, and technical abbreviations.
+- The UI defaults to Simplified Chinese and also supports English. Write fixed
+  user-facing copy with `t(chinese, english)` from `apps/web/src/lib/i18n.ts`.
+  Retain untranslated product names, protocol/method names, file formats, role
+  codes, and technical abbreviations where appropriate.
+- Localize database-backed built-in records from stable codes or IDs in
+  `apps/web/src/lib/builtin-i18n.ts`. Keep user-created names, descriptions,
+  logs, URLs, and other runtime data unchanged instead of translating or
+  duplicating them into language-specific database columns.
 - Use lowercase kebab-case for component file and directory names. Use PascalCase only for exported React components and types.
 - Prefer plain function components. Use `forwardRef`, `memo`, `useCallback`, or similar React wrappers only when a real caller needs the ref identity or memoized identity.
 - Do not add small calculation helpers or generic abstractions for values that are clearer as local constants or fixed props.

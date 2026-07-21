@@ -40,6 +40,8 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { ENABLE_OPTIONS, MENU_TYPE_OPTIONS } from "@/constant/options";
+import { localizeBuiltInMenuName } from "@/lib/builtin-i18n";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/system/menu")({
     component: MenuPage,
@@ -49,20 +51,20 @@ const menuTypeMeta: Record<
     number,
     { label: string; variant: "default" | "secondary" | "outline" }
 > = {
-    1: { label: "目录", variant: "secondary" },
-    2: { label: "菜单", variant: "default" },
-    3: { label: "按钮", variant: "outline" },
+    1: { label: t("目录", "Directory"), variant: "secondary" },
+    2: { label: t("菜单", "Menu"), variant: "default" },
+    3: { label: t("按钮", "Button"), variant: "outline" },
 };
 
 const statusMeta: Record<number, { label: string; variant: "secondary" | "outline" }> = {
-    1: { label: "启用", variant: "secondary" },
-    2: { label: "禁用", variant: "outline" },
+    1: { label: t("启用", "Enabled"), variant: "secondary" },
+    2: { label: t("禁用", "Disabled"), variant: "outline" },
 };
 
 const MODULE_ICON_OPTIONS = [
-    { label: "监控", value: "monitor" },
-    { label: "分析", value: "chart-no-axes-combined" },
-    { label: "报表", value: "file-text" },
+    { label: t("监控", "Monitoring"), value: "monitor" },
+    { label: t("分析", "Insights"), value: "chart-no-axes-combined" },
+    { label: t("报表", "Reports"), value: "file-text" },
 ] as const;
 
 type FlatMenuItem = Menu.Item & {
@@ -82,14 +84,17 @@ function MenuPage() {
 
     return (
         <PageCard
-            title="菜单管理"
-            description="管理路由菜单、权限编码和按钮操作。"
+            title={t("菜单管理", "Menu management")}
+            description={t(
+                "管理路由菜单、权限编码和按钮操作。",
+                "Manage route menus, permission codes, and button actions.",
+            )}
             actions={
                 <AuthWrap code="system:menu:create">
                     <MenuDialog mode="create" onSuccess={refresh}>
                         <Button>
                             <PlusIcon data-icon="inline-start" />
-                            新建菜单
+                            {t("新建菜单", "New menu")}
                         </Button>
                     </MenuDialog>
                 </AuthWrap>
@@ -99,13 +104,17 @@ function MenuPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="min-w-64">名称</TableHead>
-                            <TableHead className="min-w-64">编码</TableHead>
-                            <TableHead className="min-w-32">菜单类型</TableHead>
-                            <TableHead className="min-w-28">状态</TableHead>
-                            <TableHead className="min-w-28">排序</TableHead>
-                            <TableHead className="min-w-44">更新时间</TableHead>
-                            <TableHead className="w-24 text-right">操作</TableHead>
+                            <TableHead className="min-w-64">{t("名称", "Name")}</TableHead>
+                            <TableHead className="min-w-64">{t("编码", "Code")}</TableHead>
+                            <TableHead className="min-w-32">{t("菜单类型", "Menu type")}</TableHead>
+                            <TableHead className="min-w-28">{t("状态", "Status")}</TableHead>
+                            <TableHead className="min-w-28">{t("排序", "Sort order")}</TableHead>
+                            <TableHead className="min-w-44">
+                                {t("更新时间", "Updated at")}
+                            </TableHead>
+                            <TableHead className="w-24 text-right">
+                                {t("操作", "Actions")}
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -122,7 +131,7 @@ function MenuPage() {
                                                     └
                                                 </span>
                                             ) : null}
-                                            {record.name}
+                                            {localizeBuiltInMenuName(record)}
                                         </span>
                                     </TableCell>
                                     <TableCell>
@@ -142,19 +151,33 @@ function MenuPage() {
                                 </TableRow>
                             ))
                         ) : isPending ? (
-                            <DataTableState colSpan={7} kind="loading" title="正在加载菜单" />
+                            <DataTableState
+                                colSpan={7}
+                                kind="loading"
+                                title={t("正在加载菜单", "Loading menus")}
+                            />
                         ) : error ? (
                             <DataTableState
                                 colSpan={7}
                                 kind="error"
-                                title="菜单加载失败"
+                                title={t("菜单加载失败", "Failed to load menus")}
                                 description={
-                                    error instanceof Error ? error.message : "请稍后重试。"
+                                    error instanceof Error
+                                        ? error.message
+                                        : t("请稍后重试。", "Please try again later.")
                                 }
-                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                                action={
+                                    <Button onClick={() => void refetch()}>
+                                        {t("重新加载", "Reload")}
+                                    </Button>
+                                }
                             />
                         ) : (
-                            <DataTableState colSpan={7} kind="empty" title="暂无菜单" />
+                            <DataTableState
+                                colSpan={7}
+                                kind="empty"
+                                title={t("暂无菜单", "No menus")}
+                            />
                         )}
                     </TableBody>
                 </Table>
@@ -171,7 +194,12 @@ function MenuActions({ record, onSuccess }: { record: Menu.Item; onSuccess: () =
             {canEdit ? (
                 <AuthWrap code="system:menu:update">
                     <MenuDialog mode="edit" initialValues={record} onSuccess={onSuccess}>
-                        <Button type="button" variant="ghost" size="icon-sm" aria-label="编辑菜单">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={t("编辑菜单", "Edit menu")}
+                        >
                             <EditIcon />
                         </Button>
                     </MenuDialog>
@@ -234,15 +262,17 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
         const parsedSortOrder = Number(sortOrder);
 
         if (!trimmedName) {
-            appMessage.error("请输入菜单名称");
+            appMessage.error(t("请输入菜单名称", "Enter a menu name."));
             return;
         }
         if (!trimmedCode) {
-            appMessage.error("请输入权限编码");
+            appMessage.error(t("请输入权限编码", "Enter a permission code."));
             return;
         }
         if (!Number.isInteger(parsedSortOrder) || parsedSortOrder < 0) {
-            appMessage.error("排序必须是非负整数");
+            appMessage.error(
+                t("排序必须是非负整数", "The sort order must be a non-negative integer."),
+            );
             return;
         }
 
@@ -260,10 +290,10 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
         try {
             if (mode === "create") {
                 await systemAPI.menu.create(payload);
-                appMessage.success("菜单已创建");
+                appMessage.success(t("菜单已创建", "Menu created."));
             } else if (initialValues?.id) {
                 await systemAPI.menu.update(initialValues.id, payload);
-                appMessage.success("菜单已更新");
+                appMessage.success(t("菜单已更新", "Menu updated."));
             }
             if (isModuleOwned) {
                 await queryClient.invalidateQueries({
@@ -282,23 +312,35 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>{mode === "create" ? "创建菜单" : "编辑菜单"}</DialogTitle>
+                    <DialogTitle>
+                        {mode === "create"
+                            ? t("创建菜单", "Create menu")
+                            : t("编辑菜单", "Edit menu")}
+                    </DialogTitle>
                     <DialogDescription>
                         {isModuleOwned
-                            ? "覆盖标题、图标、排序和可见性。模块标识仍与清单保持同步。"
-                            : "配置菜单层级、权限编码和显示顺序。"}
+                            ? t(
+                                  "覆盖标题、图标、排序和可见性。模块标识仍与清单保持同步。",
+                                  "Override the title, icon, sort order, and visibility. The module identifier remains synchronized with the manifest.",
+                              )
+                            : t(
+                                  "配置菜单层级、权限编码和显示顺序。",
+                                  "Configure the menu hierarchy, permission code, and display order.",
+                              )}
                     </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <div className="grid gap-2">
-                        <Label htmlFor="menu-parent">上级菜单</Label>
+                        <Label htmlFor="menu-parent">{t("上级菜单", "Parent menu")}</Label>
                         <Select
                             value={parentId}
                             onValueChange={setParentId}
                             disabled={isModuleOwned}
                         >
                             <SelectTrigger id="menu-parent" className="w-full">
-                                <SelectValue placeholder="请选择上级菜单" />
+                                <SelectValue
+                                    placeholder={t("请选择上级菜单", "Select a parent menu")}
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
@@ -313,35 +355,42 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                     </div>
                     <TextField
                         id="menu-name"
-                        label={isModuleOwned ? "菜单标题" : "菜单名称"}
+                        label={
+                            isModuleOwned ? t("菜单标题", "Menu title") : t("菜单名称", "Menu name")
+                        }
                         value={name}
-                        placeholder="请输入菜单名称"
+                        placeholder={t("请输入菜单名称", "Enter a menu name")}
                         onChange={setName}
                     />
                     <TextField
                         id="menu-code"
-                        label="权限编码"
+                        label={t("权限编码", "Permission code")}
                         value={code}
-                        placeholder="请输入权限编码（如 system:menu:list）"
+                        placeholder={t(
+                            "请输入权限编码（如 system:menu:list）",
+                            "Enter a permission code (for example, system:menu:list)",
+                        )}
                         onChange={setCode}
                         disabled={isModuleOwned}
                     />
                     {isModuleOwned && initialValues?.path ? (
                         <div className="grid gap-2">
-                            <Label htmlFor="menu-path">路由路径</Label>
+                            <Label htmlFor="menu-path">{t("路由路径", "Route path")}</Label>
                             <Input id="menu-path" value={initialValues.path} disabled />
                         </div>
                     ) : null}
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="grid gap-2">
-                            <Label htmlFor="menu-type">类型</Label>
+                            <Label htmlFor="menu-type">{t("类型", "Type")}</Label>
                             <Select
                                 value={menuType}
                                 onValueChange={setMenuType}
                                 disabled={isModuleOwned}
                             >
                                 <SelectTrigger id="menu-type" className="w-full">
-                                    <SelectValue placeholder="请选择菜单类型" />
+                                    <SelectValue
+                                        placeholder={t("请选择菜单类型", "Select a menu type")}
+                                    />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
@@ -355,10 +404,10 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                             </Select>
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="menu-status">状态</Label>
+                            <Label htmlFor="menu-status">{t("状态", "Status")}</Label>
                             <Select value={status} onValueChange={setStatus}>
                                 <SelectTrigger id="menu-status" className="w-full">
-                                    <SelectValue placeholder="请选择状态" />
+                                    <SelectValue placeholder={t("请选择状态", "Select a status")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
@@ -374,10 +423,10 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                     </div>
                     {isModuleOwned ? (
                         <div className="grid gap-2">
-                            <Label htmlFor="menu-icon">图标</Label>
+                            <Label htmlFor="menu-icon">{t("图标", "Icon")}</Label>
                             <Select value={icon || undefined} onValueChange={setIcon}>
                                 <SelectTrigger id="menu-icon" className="w-full">
-                                    <SelectValue placeholder="请选择图标" />
+                                    <SelectValue placeholder={t("请选择图标", "Select an icon")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
@@ -393,20 +442,20 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
                     ) : null}
                     <TextField
                         id="menu-sort-order"
-                        label="排序"
+                        label={t("排序", "Sort order")}
                         value={sortOrder}
                         type="number"
                         min={0}
                         step={1}
-                        placeholder="请输入排序"
+                        placeholder={t("请输入排序", "Enter a sort order")}
                         onChange={setSortOrder}
                     />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            取消
+                            {t("取消", "Cancel")}
                         </Button>
                         <Button type="submit" disabled={submitting}>
-                            {mode === "create" ? "创建" : "保存"}
+                            {mode === "create" ? t("创建", "Create") : t("保存", "Save")}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -418,7 +467,7 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
 function DisableMenuDialog({ record, onSuccess }: { record: Menu.Item; onSuccess: () => void }) {
     const submit = async () => {
         await systemAPI.menu.delete(record.id);
-        appMessage.success("菜单已禁用");
+        appMessage.success(t("菜单已禁用", "Menu disabled."));
         onSuccess();
     };
 
@@ -429,14 +478,17 @@ function DisableMenuDialog({ record, onSuccess }: { record: Menu.Item; onSuccess
                     type="button"
                     variant="ghost-destructive"
                     size="icon-sm"
-                    aria-label="禁用菜单"
+                    aria-label={t("禁用菜单", "Disable menu")}
                 >
                     <StopCircleIcon />
                 </Button>
             }
-            title="禁用菜单"
-            description={`菜单 ${record.name} 将被禁用，是否继续？`}
-            confirmLabel="禁用"
+            title={t("禁用菜单", "Disable menu")}
+            description={t(
+                `菜单 ${record.name} 将被禁用，是否继续？`,
+                `Menu ${record.name} will be disabled. Continue?`,
+            )}
+            confirmLabel={t("禁用", "Disable")}
             destructive
             onConfirm={submit}
         />
@@ -444,12 +496,15 @@ function DisableMenuDialog({ record, onSuccess }: { record: Menu.Item; onSuccess
 }
 
 function MenuTypeBadge({ menuType }: { menuType: number }) {
-    const meta = menuTypeMeta[menuType] ?? { label: "未知", variant: "outline" as const };
+    const meta = menuTypeMeta[menuType] ?? {
+        label: t("未知", "Unknown"),
+        variant: "outline" as const,
+    };
     return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 
 function MenuStatusBadge({ status }: { status: number }) {
-    const meta = statusMeta[status] ?? { label: "未知", variant: "outline" as const };
+    const meta = statusMeta[status] ?? { label: t("未知", "Unknown"), variant: "outline" as const };
     return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 

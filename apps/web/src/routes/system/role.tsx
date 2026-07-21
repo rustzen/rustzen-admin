@@ -43,6 +43,12 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { ENABLE_OPTIONS } from "@/constant/options";
+import {
+    localizeBuiltInMenuName,
+    localizeBuiltInRoleDescription,
+    localizeBuiltInRoleName,
+} from "@/lib/builtin-i18n";
+import { t } from "@/lib/i18n";
 
 const OWNER_ROLE_CODE = "owner";
 const BUILTIN_ROLE_CODES = new Set([OWNER_ROLE_CODE, "admin", "viewer"]);
@@ -53,8 +59,8 @@ export const Route = createFileRoute("/system/role")({
 });
 
 const statusMeta: Record<number, { label: string; variant: "secondary" | "outline" }> = {
-    1: { label: "启用", variant: "secondary" },
-    2: { label: "禁用", variant: "outline" },
+    1: { label: t("启用", "Enabled"), variant: "secondary" },
+    2: { label: t("禁用", "Disabled"), variant: "outline" },
 };
 
 function RolePage() {
@@ -109,14 +115,17 @@ function RolePage() {
 
     return (
         <PageCard
-            title="角色管理"
-            description="管理角色定义和权限分配。"
+            title={t("角色管理", "Role management")}
+            description={t(
+                "管理角色定义和权限分配。",
+                "Manage role definitions and permission assignments.",
+            )}
             actions={
                 <AuthWrap code="system:role:create">
                     <RoleDialog mode="create" onSuccess={refresh}>
                         <Button>
                             <PlusIcon data-icon="inline-start" />
-                            新建角色
+                            {t("新建角色", "New role")}
                         </Button>
                     </RoleDialog>
                 </AuthWrap>
@@ -124,24 +133,24 @@ function RolePage() {
             toolbar={
                 <form className="grid gap-3 md:grid-cols-4" onSubmit={search}>
                     <Input
-                        aria-label="角色名称"
+                        aria-label={t("角色名称", "Role name")}
                         value={roleName}
-                        placeholder="角色名称"
+                        placeholder={t("角色名称", "Role name")}
                         onChange={(event) => setRoleName(event.target.value)}
                     />
                     <Input
-                        aria-label="角色编码"
+                        aria-label={t("角色编码", "Role code")}
                         value={roleCode}
-                        placeholder="角色编码"
+                        placeholder={t("角色编码", "Role code")}
                         onChange={(event) => setRoleCode(event.target.value)}
                     />
                     <Select value={status} onValueChange={setStatus}>
-                        <SelectTrigger className="w-full" aria-label="角色状态">
-                            <SelectValue placeholder="状态" />
+                        <SelectTrigger className="w-full" aria-label={t("角色状态", "Role status")}>
+                            <SelectValue placeholder={t("状态", "Status")} />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                <SelectItem value="all">全部状态</SelectItem>
+                                <SelectItem value="all">{t("全部状态", "All statuses")}</SelectItem>
                                 {ENABLE_OPTIONS.map((item) => (
                                     <SelectItem key={item.value} value={String(item.value)}>
                                         {item.label}
@@ -152,7 +161,7 @@ function RolePage() {
                     </Select>
                     <div className="flex gap-2">
                         <Button type="submit" disabled={isFetching}>
-                            查询
+                            {t("查询", "Search")}
                         </Button>
                         <Button
                             type="button"
@@ -160,7 +169,7 @@ function RolePage() {
                             disabled={isFetching}
                             onClick={reset}
                         >
-                            重置
+                            {t("重置", "Reset")}
                         </Button>
                     </div>
                 </form>
@@ -171,13 +180,17 @@ function RolePage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-16">ID</TableHead>
-                            <TableHead className="min-w-48">角色名称</TableHead>
-                            <TableHead className="min-w-48">角色编码</TableHead>
-                            <TableHead className="min-w-64">描述</TableHead>
-                            <TableHead className="min-w-28">状态</TableHead>
-                            <TableHead className="min-w-40">权限</TableHead>
-                            <TableHead className="min-w-44">更新时间</TableHead>
-                            <TableHead className="w-24 text-right">操作</TableHead>
+                            <TableHead className="min-w-48">{t("角色名称", "Role name")}</TableHead>
+                            <TableHead className="min-w-48">{t("角色编码", "Role code")}</TableHead>
+                            <TableHead className="min-w-64">{t("描述", "Description")}</TableHead>
+                            <TableHead className="min-w-28">{t("状态", "Status")}</TableHead>
+                            <TableHead className="min-w-40">{t("权限", "Permissions")}</TableHead>
+                            <TableHead className="min-w-44">
+                                {t("更新时间", "Updated at")}
+                            </TableHead>
+                            <TableHead className="w-24 text-right">
+                                {t("操作", "Actions")}
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -185,12 +198,17 @@ function RolePage() {
                             rows.map((record) => (
                                 <TableRow key={record.id}>
                                     <TableCell className="font-medium">{record.id}</TableCell>
-                                    <TableCell>{record.name}</TableCell>
+                                    <TableCell>
+                                        {localizeBuiltInRoleName(record.code, record.name)}
+                                    </TableCell>
                                     <TableCell>
                                         <Badge variant="outline">{record.code}</Badge>
                                     </TableCell>
                                     <TableCell className="max-w-72 truncate">
-                                        {record.description || "-"}
+                                        {localizeBuiltInRoleDescription(
+                                            record.code,
+                                            record.description,
+                                        ) || "-"}
                                     </TableCell>
                                     <TableCell>
                                         <RoleStatusBadge status={record.status} />
@@ -202,10 +220,15 @@ function RolePage() {
                                                     .map((menu) => menu.label)
                                                     .join(", ")}
                                             >
-                                                {record.menus.length} 项权限
+                                                {t(
+                                                    `${record.menus.length} 项权限`,
+                                                    `${record.menus.length} permissions`,
+                                                )}
                                             </span>
                                         ) : (
-                                            <span className="text-muted-foreground">暂无权限</span>
+                                            <span className="text-muted-foreground">
+                                                {t("暂无权限", "No permissions")}
+                                            </span>
                                         )}
                                     </TableCell>
                                     <TableCell>{formatDateTime(record.updatedAt)}</TableCell>
@@ -215,19 +238,33 @@ function RolePage() {
                                 </TableRow>
                             ))
                         ) : isPending ? (
-                            <DataTableState colSpan={8} kind="loading" title="正在加载角色" />
+                            <DataTableState
+                                colSpan={8}
+                                kind="loading"
+                                title={t("正在加载角色", "Loading roles")}
+                            />
                         ) : error ? (
                             <DataTableState
                                 colSpan={8}
                                 kind="error"
-                                title="角色加载失败"
+                                title={t("角色加载失败", "Failed to load roles")}
                                 description={
-                                    error instanceof Error ? error.message : "请稍后重试。"
+                                    error instanceof Error
+                                        ? error.message
+                                        : t("请稍后重试。", "Please try again later.")
                                 }
-                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                                action={
+                                    <Button onClick={() => void refetch()}>
+                                        {t("重新加载", "Reload")}
+                                    </Button>
+                                }
                             />
                         ) : (
-                            <DataTableState colSpan={8} kind="empty" title="暂无角色" />
+                            <DataTableState
+                                colSpan={8}
+                                kind="empty"
+                                title={t("暂无角色", "No roles")}
+                            />
                         )}
                     </TableBody>
                 </Table>
@@ -252,7 +289,12 @@ function RoleActions({ record, onSuccess }: { record: Role.Item; onSuccess: () =
         <div className="flex justify-end gap-2">
             <AuthWrap code="system:role:update">
                 <RoleDialog mode="edit" record={record} onSuccess={onSuccess}>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label="编辑角色">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("编辑角色", "Edit role")}
+                    >
                         <EditIcon />
                     </Button>
                 </RoleDialog>
@@ -291,7 +333,13 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
                 .filter((option) => option.value !== 0 && isAssignableRolePermission(option.code))
                 .map((option) => ({
                     key: option.value,
-                    title: option.label,
+                    title: localizeBuiltInMenuName({
+                        name: option.label,
+                        code: option.code,
+                        isSystem: option.isSystem,
+                        moduleId: option.moduleId,
+                        moduleMenuCode: option.moduleMenuCode,
+                    }),
                     code: option.code,
                 })),
         [menuOptions],
@@ -330,19 +378,28 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
         };
 
         if (payload.name.length < 2 || payload.name.length > 50) {
-            appMessage.error("角色名称必须为 2-50 个字符");
+            appMessage.error(
+                t("角色名称必须为 2-50 个字符", "The role name must be 2–50 characters."),
+            );
             return;
         }
         if (payload.code.length < 2 || payload.code.length > 50) {
-            appMessage.error("角色编码必须为 2-50 个字符");
+            appMessage.error(
+                t("角色编码必须为 2-50 个字符", "The role code must be 2–50 characters."),
+            );
             return;
         }
         if (!/^[a-zA-Z_]+$/.test(payload.code)) {
-            appMessage.error("角色编码只能包含字母和下划线");
+            appMessage.error(
+                t(
+                    "角色编码只能包含字母和下划线",
+                    "The role code may contain only letters and underscores.",
+                ),
+            );
             return;
         }
         if (payload.menuIds.length === 0) {
-            appMessage.error("请至少选择一个权限");
+            appMessage.error(t("请至少选择一个权限", "Select at least one permission."));
             return;
         }
 
@@ -350,10 +407,10 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
         try {
             if (mode === "create") {
                 await systemAPI.role.create(payload);
-                appMessage.success("角色已创建");
+                appMessage.success(t("角色已创建", "Role created."));
             } else if (record?.id) {
                 await systemAPI.role.update(record.id, payload);
-                appMessage.success("角色已更新");
+                appMessage.success(t("角色已更新", "Role updated."));
             }
             onSuccess?.();
             setOpen(false);
@@ -367,31 +424,40 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>{mode === "create" ? "创建角色" : "编辑角色"}</DialogTitle>
-                    <DialogDescription>配置角色标识、状态和可分配权限。</DialogDescription>
+                    <DialogTitle>
+                        {mode === "create"
+                            ? t("创建角色", "Create role")
+                            : t("编辑角色", "Edit role")}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {t(
+                            "配置角色标识、状态和可分配权限。",
+                            "Configure the role identifier, status, and assignable permissions.",
+                        )}
+                    </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <div className="grid gap-4 md:grid-cols-2">
                         <TextField
                             id="role-name"
-                            label="角色名称"
+                            label={t("角色名称", "Role name")}
                             value={name}
-                            placeholder="请输入角色名称"
+                            placeholder={t("请输入角色名称", "Enter a role name")}
                             onChange={setName}
                         />
                         <TextField
                             id="role-code"
-                            label="角色编码"
+                            label={t("角色编码", "Role code")}
                             value={code}
-                            placeholder="请输入角色编码"
+                            placeholder={t("请输入角色编码", "Enter a role code")}
                             onChange={setCode}
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="role-status">状态</Label>
+                        <Label htmlFor="role-status">{t("状态", "Status")}</Label>
                         <Select value={status} onValueChange={setStatus}>
                             <SelectTrigger id="role-status" className="w-full">
-                                <SelectValue placeholder="请选择状态" />
+                                <SelectValue placeholder={t("请选择状态", "Select a status")} />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
@@ -415,10 +481,10 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
                     <div className="grid gap-1">
                         <TextareaField
                             id="role-description"
-                            label="描述"
+                            label={t("描述", "Description")}
                             value={description}
                             maxLength={200}
-                            placeholder="请输入角色描述"
+                            placeholder={t("请输入角色描述", "Enter a role description")}
                             onChange={setDescription}
                         />
                         <div className="text-xs text-muted-foreground">
@@ -427,10 +493,10 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
                     </div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            取消
+                            {t("取消", "Cancel")}
                         </Button>
                         <Button type="submit" disabled={submitting}>
-                            {mode === "create" ? "创建" : "保存"}
+                            {mode === "create" ? t("创建", "Create") : t("保存", "Save")}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -465,12 +531,14 @@ function PermissionPicker({
     return (
         <div className="grid gap-2">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <Label>权限</Label>
-                <span className="text-sm text-muted-foreground">已选择 {selectedCount} 项</span>
+                <Label>{t("权限", "Permissions")}</Label>
+                <span className="text-sm text-muted-foreground">
+                    {t(`已选择 ${selectedCount} 项`, `${selectedCount} selected`)}
+                </span>
             </div>
             <Input
                 value={search}
-                placeholder="搜索权限"
+                placeholder={t("搜索权限", "Search permissions")}
                 onChange={(event) => onSearchChange(event.target.value)}
             />
             <div className="max-h-72 overflow-auto rounded-md border p-3">
@@ -494,7 +562,9 @@ function PermissionPicker({
                         ))}
                     </div>
                 ) : (
-                    <div className="text-sm text-muted-foreground">未找到可分配权限。</div>
+                    <div className="text-sm text-muted-foreground">
+                        {t("未找到可分配权限。", "No assignable permissions found.")}
+                    </div>
                 )}
             </div>
         </div>
@@ -504,7 +574,7 @@ function PermissionPicker({
 function DeleteRoleDialog({ record, onSuccess }: { record: Role.Item; onSuccess: () => void }) {
     const submit = async () => {
         await systemAPI.role.delete(record.id);
-        appMessage.success("角色已删除");
+        appMessage.success(t("角色已删除", "Role deleted."));
         onSuccess();
     };
 
@@ -515,14 +585,17 @@ function DeleteRoleDialog({ record, onSuccess }: { record: Role.Item; onSuccess:
                     type="button"
                     variant="ghost-destructive"
                     size="icon-sm"
-                    aria-label="删除角色"
+                    aria-label={t("删除角色", "Delete role")}
                 >
                     <TrashIcon />
                 </Button>
             }
-            title="删除角色"
-            description={`此操作无法撤销。确定删除角色 ${record.name}？`}
-            confirmLabel="删除"
+            title={t("删除角色", "Delete role")}
+            description={t(
+                `此操作无法撤销。确定删除角色 ${record.name}？`,
+                `This action cannot be undone. Delete role ${record.name}?`,
+            )}
+            confirmLabel={t("删除", "Delete")}
             destructive
             onConfirm={submit}
         />
@@ -530,7 +603,7 @@ function DeleteRoleDialog({ record, onSuccess }: { record: Role.Item; onSuccess:
 }
 
 function RoleStatusBadge({ status }: { status: number }) {
-    const meta = statusMeta[status] ?? { label: "未知", variant: "outline" as const };
+    const meta = statusMeta[status] ?? { label: t("未知", "Unknown"), variant: "outline" as const };
     return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 

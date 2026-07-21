@@ -17,6 +17,9 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { localizeModuleMenuName, localizeModuleName } from "@/lib/builtin-i18n";
+import { t } from "@/lib/i18n";
+
 export type AppRoutePath =
     | "/"
     | "/profile"
@@ -59,13 +62,13 @@ export type SearchRouteItem = {
 
 const dashboardRoute: AppRouteItem = {
     path: "/",
-    name: "仪表盘",
+    name: t("仪表盘", "Dashboard"),
     icon: <LayoutDashboardIcon />,
 };
 
 const profileRoute: AppRouteItem = {
     path: "/profile",
-    name: "个人资料",
+    name: t("个人资料", "Profile"),
     icon: <UserIcon />,
     requiresPermission: false,
 };
@@ -91,13 +94,13 @@ const getModuleRoutes = (navigation: SystemModule.NavigationItem[]): AppRouteIte
         }
         const group = groups.get(item.module) ?? {
             path: moduleGroupPaths[item.module],
-            name: item.moduleName,
+            name: localizeModuleName(item.module, item.moduleName),
             icon,
             children: [],
         };
         group.children?.push({
             path: item.path,
-            name: item.title,
+            name: localizeModuleMenuName(item.module, item.code, item.title),
             icon,
             requiresPermission: false,
         });
@@ -107,68 +110,68 @@ const getModuleRoutes = (navigation: SystemModule.NavigationItem[]): AppRouteIte
 };
 
 const systemRoutes: AppRouteItem = {
-    name: "系统",
+    name: t("系统", "System"),
     icon: <SettingsIcon />,
     path: "/system",
     children: [
         {
             path: "/system/user",
-            name: "用户",
+            name: t("用户", "Users"),
             icon: <UserIcon />,
         },
         {
             path: "/system/role",
-            name: "角色",
+            name: t("角色", "Roles"),
             icon: <UsersIcon />,
         },
         {
             path: "/system/menu",
-            name: "菜单",
+            name: t("菜单", "Menus"),
             icon: <MenuIcon />,
         },
         {
             path: "/manage/dict",
-            name: "字典",
+            name: t("字典", "Dictionaries"),
             icon: <BookOpenIcon />,
         },
         {
             path: "/manage/log",
-            name: "日志",
+            name: t("日志", "Logs"),
             icon: <HistoryIcon />,
         },
     ],
 };
 
 const manageRoutes: AppRouteItem = {
-    name: "管理",
+    name: t("管理", "Management"),
     icon: <CloudUploadIcon />,
     path: "/manage",
     children: [
         {
             path: "/system/module",
-            name: "系统模块",
+            name: t("系统模块", "System modules"),
             icon: <BoxesIcon />,
         },
         {
             path: "/system/status",
-            name: "系统状态",
+            name: t("系统状态", "System status"),
             icon: <MonitorIcon />,
         },
         {
             path: "/manage/task",
-            name: "定时任务",
+            name: t("定时任务", "Scheduled tasks"),
             icon: <ClockIcon />,
         },
         {
             path: "/manage/deploy",
-            name: "部署版本",
+            name: t("部署版本", "Deploy versions"),
             icon: <CloudUploadIcon />,
         },
     ],
 };
 
 const demoRoutes: AppRouteItem = {
-    name: "示例",
+    name: t("示例", "Examples"),
     icon: <GaugeIcon />,
     path: "/demo",
     children: [
@@ -266,7 +269,10 @@ export const getSearchRouteItems = (
         manageRoutes,
         demoRoutes,
     ];
-    const flattenRoutes = (routes: AppRouteItem[], groupLabel = "通用"): SearchRouteItem[] => {
+    const flattenRoutes = (
+        routes: AppRouteItem[],
+        groupLabel = t("通用", "General"),
+    ): SearchRouteItem[] => {
         return routes.flatMap((route) => {
             if (route.children) {
                 return flattenRoutes(route.children, route.name);

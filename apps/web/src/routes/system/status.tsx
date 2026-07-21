@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/page/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/system/status")({
     component: SystemStatusPage,
@@ -21,17 +22,21 @@ function SystemStatusPage() {
     });
 
     if (isLoading && !data) {
-        return <DataState kind="loading" title="正在加载系统状态" />;
+        return <DataState kind="loading" title={t("正在加载系统状态", "Loading system status")} />;
     }
 
     return (
         <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto">
             <PageHeader
-                title="系统状态"
-                description="存储和本地资源遥测数据每 30 秒刷新一次。"
+                title={t("系统状态", "System status")}
+                description={t(
+                    "存储和本地资源遥测数据每 30 秒刷新一次。",
+                    "Storage and local resource telemetry refresh every 30 seconds.",
+                )}
                 actions={
                     <span className="text-sm text-muted-foreground">
-                        采集时间：{data?.collectedAt ? formatDateTime(data.collectedAt) : "-"}
+                        {t("采集时间：", "Collected at: ")}
+                        {data?.collectedAt ? formatDateTime(data.collectedAt) : "-"}
                     </span>
                 }
             />
@@ -44,9 +49,14 @@ function SystemStatusPage() {
             ) : isError ? (
                 <DataState
                     kind="error"
-                    title="系统状态加载失败"
-                    description="请检查 Admin 服务日志和本地资源读取权限后重试。"
-                    action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                    title={t("系统状态加载失败", "Failed to load system status")}
+                    description={t(
+                        "请检查 Admin 服务日志和本地资源读取权限后重试。",
+                        "Check the Admin service logs and local resource permissions, then try again.",
+                    )}
+                    action={
+                        <Button onClick={() => void refetch()}>{t("重新加载", "Reload")}</Button>
+                    }
                 />
             ) : null}
         </div>
@@ -59,25 +69,33 @@ function StorageCard({ storage }: { storage: SystemStatus.StorageStatus }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>存储</CardTitle>
-                <CardDescription>SQLite 存储及运行目录分布。</CardDescription>
+                <CardTitle>{t("存储", "Storage")}</CardTitle>
+                <CardDescription>
+                    {t(
+                        "SQLite 存储及运行目录分布。",
+                        "SQLite storage and runtime directory distribution.",
+                    )}
+                </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_1fr]">
                     <div className="rounded-lg border bg-muted/40 p-5">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <DatabaseIcon />
-                            <span>SQLite 总计</span>
+                            <span>{t("SQLite 总计", "SQLite total")}</span>
                         </div>
                         <div className="mt-3 text-4xl font-semibold">
                             {formatBytes(storage.database.totalBytes)}
                         </div>
                         <div className="mt-5 inline-flex rounded-md border bg-background px-3 py-1 text-sm text-muted-foreground">
-                            SQLite 数据库
+                            {t("SQLite 数据库", "SQLite database")}
                         </div>
                         <Progress className="mt-5" value={100} />
                         <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-                            <span>主库 {formatBytes(storage.database.mainBytes)}</span>
+                            <span>
+                                {t("主库", "Main database")}{" "}
+                                {formatBytes(storage.database.mainBytes)}
+                            </span>
                             <span className="text-right">
                                 WAL {formatBytes(storage.database.walBytes)}
                             </span>
@@ -87,13 +105,18 @@ function StorageCard({ storage }: { storage: SystemStatus.StorageStatus }) {
                     <div>
                         <div className="mb-5 flex items-start justify-between gap-4">
                             <div>
-                                <div className="text-base font-semibold">目录分布</div>
+                                <div className="text-base font-semibold">
+                                    {t("目录分布", "Directory distribution")}
+                                </div>
                                 <div className="mt-1 text-sm text-muted-foreground">
-                                    按当前目录占用空间对比
+                                    {t("按当前目录占用空间对比", "Compare current directory usage")}
                                 </div>
                             </div>
                             <div className="text-sm text-muted-foreground">
-                                {storage.directories.length} 项
+                                {t(
+                                    `${storage.directories.length} 项`,
+                                    `${storage.directories.length} items`,
+                                )}
                             </div>
                         </div>
                         <div className="grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
@@ -127,7 +150,7 @@ function StorageCard({ storage }: { storage: SystemStatus.StorageStatus }) {
 
                 <div className="grid grid-cols-1 gap-5 border-t pt-5 md:grid-cols-3">
                     <StorageBreakdownItem
-                        label="主服务"
+                        label={t("主服务", "Main service")}
                         value={storage.database.mainBytes}
                         total={storage.database.totalBytes}
                     />
@@ -173,25 +196,30 @@ function ResourceCard({ resource }: { resource: SystemStatus.LocalResourceStatus
     return (
         <Card>
             <CardHeader>
-                <CardTitle>本地资源</CardTitle>
-                <CardDescription>当前主机的 CPU、内存和磁盘使用情况。</CardDescription>
+                <CardTitle>{t("本地资源", "Local resources")}</CardTitle>
+                <CardDescription>
+                    {t(
+                        "当前主机的 CPU、内存和磁盘使用情况。",
+                        "CPU, memory, and disk usage on the current host.",
+                    )}
+                </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-7 lg:grid-cols-3">
                 <ResourceMetric
                     icon={CpuIcon}
                     title="CPU"
-                    detail={`${resource.cpu.cores} 核`}
+                    detail={t(`${resource.cpu.cores} 核`, `${resource.cpu.cores} cores`)}
                     percent={resource.cpu.usagePercent}
                 />
                 <ResourceMetric
                     icon={MemoryStickIcon}
-                    title="内存"
+                    title={t("内存", "Memory")}
                     detail={`${formatBytes(resource.memory.usedBytes)} / ${formatBytes(resource.memory.totalBytes)}`}
                     percent={resource.memory.usagePercent}
                 />
                 <ResourceMetric
                     icon={HardDriveIcon}
-                    title="磁盘"
+                    title={t("磁盘", "Disk")}
                     detail={`${formatBytes(resource.disk.usedBytes)} / ${formatBytes(resource.disk.totalBytes)}`}
                     percent={resource.disk.usagePercent}
                 />

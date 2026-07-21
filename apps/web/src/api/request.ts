@@ -1,4 +1,6 @@
 import { appMessage } from "@/api/runtime";
+import { localizeApiError } from "@/lib/builtin-i18n";
+import { t } from "@/lib/i18n";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export function apiRequest<T, P = Api.BaseParams>(
@@ -18,8 +20,12 @@ export async function apiRequest<T, P = Api.BaseParams>(
 
     const result = (await response.json()) as Api.ApiResponse<T>;
     if (result.code !== 0) {
-        appMessage.error(result.message || response.statusText || "请求失败");
-        return Promise.reject(new Error(result.message || response.statusText));
+        const message = localizeApiError(
+            result.code,
+            result.message || response.statusText || t("请求失败", "Request failed"),
+        );
+        appMessage.error(message);
+        return Promise.reject(new Error(message));
     }
 
     return props.raw ? result : result.data;
@@ -78,8 +84,12 @@ export const apiUpload = async <T>(url: string, formData: FormData): Promise<T> 
 
     const result = (await response.json()) as Api.ApiResponse<T>;
     if (result.code !== 0) {
-        appMessage.error(result.message || response.statusText || "上传失败");
-        return Promise.reject(new Error(result.message || response.statusText));
+        const message = localizeApiError(
+            result.code,
+            result.message || response.statusText || t("上传失败", "Upload failed"),
+        );
+        appMessage.error(message);
+        return Promise.reject(new Error(message));
     }
     return result.data;
 };
@@ -128,11 +138,12 @@ const handleError = async (error: unknown) => {
 
     const payload = await readErrorPayload(error);
     const requestUrl = error.url || "";
-    const message = payload?.message || error.statusText || "请求失败";
+    const fallbackMessage = payload?.message || error.statusText || t("请求失败", "Request failed");
+    const message = localizeApiError(payload?.code, fallbackMessage);
 
     if (error.status === 401) {
         if (requestUrl.includes("/api/auth/login")) {
-            appMessage.error(message || "用户名或密码错误。");
+            appMessage.error(message || t("用户名或密码错误。", "Invalid username or password."));
             return Promise.reject(error);
         }
 
@@ -156,9 +167,11 @@ const handleError = async (error: unknown) => {
     return Promise.reject(error);
 };
 
-const readErrorPayload = async (response: Response): Promise<{ message?: string } | null> => {
+const readErrorPayload = async (
+    response: Response,
+): Promise<{ code?: number; message?: string } | null> => {
     try {
-        return (await response.clone().json()) as { message?: string };
+        return (await response.clone().json()) as { code?: number; message?: string };
     } catch {
         const text = await response.clone().text();
         return text ? { message: text } : null;

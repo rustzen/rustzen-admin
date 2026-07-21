@@ -1,4 +1,5 @@
 import { apiRequest } from "@/api/request";
+import { t } from "@/lib/i18n";
 
 /**
  * Menu management API service.
@@ -41,7 +42,17 @@ export const menuAPI = {
         const res = await apiRequest<Menu.OptionItem[]>({
             url: "/api/system/menus/options",
         });
-        return [{ label: "根目录", value: 0, code: "" }, ...res];
+        return [
+            {
+                label: t("根目录", "Root"),
+                value: 0,
+                code: "",
+                isSystem: true,
+                moduleId: null,
+                moduleMenuCode: null,
+            },
+            ...res,
+        ];
     },
 };
 

@@ -10,6 +10,7 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
+import { t } from "@/lib/i18n";
 
 import type { AppRoutePath, SearchRouteItem } from "./routes";
 
@@ -52,10 +53,10 @@ export const AppSearch = ({ routes, onSelect }: AppSearchProps) => {
                 variant="outline"
                 className="h-9 w-45 justify-start gap-2 px-3 text-muted-foreground xl:w-90"
                 onClick={() => setOpen(true)}
-                aria-label="打开页面搜索"
+                aria-label={t("打开页面搜索", "Open page search")}
             >
                 <SearchIcon data-icon="inline-start" />
-                <span className="min-w-0 flex-1 truncate text-left">搜索</span>
+                <span className="min-w-0 flex-1 truncate text-left">{t("搜索", "Search")}</span>
                 <kbd className="rounded border bg-muted px-1.5 py-0.5 text-xs leading-none text-muted-foreground">
                     ⌘ K
                 </kbd>
@@ -64,12 +65,17 @@ export const AppSearch = ({ routes, onSelect }: AppSearchProps) => {
             <CommandDialog
                 open={open}
                 onOpenChange={setOpen}
-                title="搜索页面"
-                description="输入页面名称或路径进行跳转。"
+                title={t("搜索页面", "Search pages")}
+                description={t(
+                    "输入页面名称或路径进行跳转。",
+                    "Type a page name or path to navigate.",
+                )}
             >
-                <CommandInput placeholder="输入页面名称或路径..." />
+                <CommandInput
+                    placeholder={t("输入页面名称或路径...", "Type a page name or path...")}
+                />
                 <CommandList>
-                    <CommandEmpty>未找到页面。</CommandEmpty>
+                    <CommandEmpty>{t("未找到页面。", "No pages found.")}</CommandEmpty>
                     {Object.entries(groupedRoutes).map(([groupLabel, groupRoutes]) => (
                         <CommandGroup key={groupLabel} heading={groupLabel}>
                             {groupRoutes.map((route) => (

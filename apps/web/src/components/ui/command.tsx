@@ -9,6 +9,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
@@ -25,8 +26,8 @@ function Command({ className, ...props }: React.ComponentProps<typeof CommandPri
 }
 
 function CommandDialog({
-    title = "命令面板",
-    description = "搜索要运行的命令...",
+    title = t("命令面板", "Command palette"),
+    description = t("搜索要运行的命令...", "Search for a command to run..."),
     children,
     className,
     showCloseButton = true,

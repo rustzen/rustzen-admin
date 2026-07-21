@@ -26,7 +26,7 @@ declare namespace User {
         lastLoginAt?: string | null;
         createdAt: string;
         updatedAt: string;
-        roles: Api.OptionItem<number>[];
+        roles: Role.OptionItem[];
     }
 
     // 查询参数

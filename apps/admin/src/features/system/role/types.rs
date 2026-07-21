@@ -54,6 +54,15 @@ pub struct RoleItemResp {
     pub menus: Vec<OptionItem<i64>>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RoleOptionResp {
+    pub label: String,
+    pub value: i64,
+    pub code: String,
+    pub is_system: bool,
+}
+
 /// Role list query parameters
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]

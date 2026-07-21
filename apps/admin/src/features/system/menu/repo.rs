@@ -174,10 +174,11 @@ impl MenuRepository {
         pool: &SqlitePool,
         search_query: Option<&str>,
         limit: Option<i64>,
-    ) -> Result<Vec<(i64, String, String)>, ServiceError> {
+    ) -> Result<Vec<(i64, String, String, bool, Option<String>, Option<String>)>, ServiceError>
+    {
         fetch_with_filters(
             pool,
-            "SELECT id, name, code FROM menus WHERE is_active = TRUE AND deleted_at IS NULL",
+            "SELECT id, name, code, is_system, module_id, module_menu_code FROM menus WHERE is_active = TRUE AND deleted_at IS NULL",
             |query_builder| {
                 push_ilike(query_builder, "name", search_query);
             },

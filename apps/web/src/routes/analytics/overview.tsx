@@ -16,6 +16,7 @@ import { MetricCard } from "@/components/page/metric-card";
 import { PageCard } from "@/components/page/page-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/analytics/overview")({ component: AnalyticsOverviewPage });
 
@@ -32,43 +33,79 @@ function AnalyticsOverviewPage() {
     });
     if (isPending) {
         return (
-            <PageCard title="分析概览" description="查看当前实例的页面、接口、事件和访客活动。">
-                <DataState kind="loading" title="正在加载分析概览" />
+            <PageCard
+                title={t("分析概览", "Analytics overview")}
+                description={t(
+                    "查看当前实例的页面、接口、事件和访客活动。",
+                    "View page, API, event, and visitor activity for the current instance.",
+                )}
+            >
+                <DataState
+                    kind="loading"
+                    title={t("正在加载分析概览", "Loading analytics overview")}
+                />
             </PageCard>
         );
     }
 
     if (!overview) {
         return (
-            <PageCard title="分析概览" description="查看当前实例的页面、接口、事件和访客活动。">
+            <PageCard
+                title={t("分析概览", "Analytics overview")}
+                description={t(
+                    "查看当前实例的页面、接口、事件和访客活动。",
+                    "View page, API, event, and visitor activity for the current instance.",
+                )}
+            >
                 <DataState
                     kind="error"
-                    title={error ? "分析概览加载失败" : "分析概览暂不可用"}
-                    description="无法读取分析数据，请检查 Insights 服务后重试。"
-                    action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                    title={
+                        error
+                            ? t("分析概览加载失败", "Failed to load analytics overview")
+                            : t("分析概览暂不可用", "Analytics overview is unavailable")
+                    }
+                    description={t(
+                        "无法读取分析数据，请检查 Insights 服务后重试。",
+                        "Unable to read analytics data. Check the Insights service and try again.",
+                    )}
+                    action={
+                        <Button onClick={() => void refetch()}>{t("重新加载", "Reload")}</Button>
+                    }
                 />
             </PageCard>
         );
     }
 
     return (
-        <PageCard title="分析概览" description="查看当前实例的页面、接口、事件和访客活动。">
+        <PageCard
+            title={t("分析概览", "Analytics overview")}
+            description={t(
+                "查看当前实例的页面、接口、事件和访客活动。",
+                "View page, API, event, and visitor activity for the current instance.",
+            )}
+        >
             <>
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                    <MetricCard label="页面浏览量" value={overview.pv} />
-                    <MetricCard label="独立访客" value={overview.uv} />
-                    <MetricCard label="全部事件" value={overview.eventCount} />
-                    <MetricCard label="接口请求" value={overview.requestCount} />
-                    <MetricCard label="错误数" value={overview.errorCount} />
+                    <MetricCard label={t("页面浏览量", "Page views")} value={overview.pv} />
+                    <MetricCard label={t("独立访客", "Unique visitors")} value={overview.uv} />
+                    <MetricCard label={t("全部事件", "Total events")} value={overview.eventCount} />
                     <MetricCard
-                        label="平均耗时"
+                        label={t("接口请求", "API requests")}
+                        value={overview.requestCount}
+                    />
+                    <MetricCard label={t("错误数", "Errors")} value={overview.errorCount} />
+                    <MetricCard
+                        label={t("平均耗时", "Average duration")}
                         value={`${Math.round(overview.averageDurationMs)} ms`}
                     />
-                    <MetricCard label="P95 耗时" value={`${overview.p95DurationMs} ms`} />
+                    <MetricCard
+                        label={t("P95 耗时", "P95 duration")}
+                        value={`${overview.p95DurationMs} ms`}
+                    />
                 </div>
                 <Card>
                     <CardHeader>
-                        <CardTitle>每日活动</CardTitle>
+                        <CardTitle>{t("每日活动", "Daily activity")}</CardTitle>
                     </CardHeader>
                     <CardContent className="h-72">
                         <ResponsiveContainer width="100%" height="100%">
@@ -92,7 +129,7 @@ function AnalyticsOverviewPage() {
                                 <Line
                                     type="monotone"
                                     dataKey="requestCount"
-                                    name="请求数"
+                                    name={t("请求数", "Requests")}
                                     stroke="var(--chart-3)"
                                 />
                             </LineChart>

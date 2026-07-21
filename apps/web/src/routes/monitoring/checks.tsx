@@ -31,6 +31,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/monitoring/checks")({ component: MonitoringChecksPage });
 
@@ -50,14 +51,14 @@ function MonitoringChecksPage() {
             monitorAPI.setCheckEnabled(id, enabled),
         onSuccess: async () => {
             await refresh();
-            appMessage.success("检查状态已更新");
+            appMessage.success(t("检查状态已更新", "Check status updated"));
         },
     });
     const deleteMutation = useMutation({
         mutationFn: monitorAPI.deleteCheck,
         onSuccess: async () => {
             await refresh();
-            appMessage.success("检查已删除");
+            appMessage.success(t("检查已删除", "Check deleted"));
         },
     });
 
@@ -65,8 +66,11 @@ function MonitoringChecksPage() {
     const total = data?.total ?? 0;
     return (
         <PageCard
-            title="服务监控"
-            description="按固定间隔探测 TCP 服务并查看留存结果。"
+            title={t("服务监控", "Service monitoring")}
+            description={t(
+                "按固定间隔探测 TCP 服务并查看留存结果。",
+                "Probe TCP services at fixed intervals and view retained results.",
+            )}
             actions={
                 <AuthWrap code="monitor:check:manage">
                     <CheckDialog onSaved={refresh} />
@@ -77,13 +81,13 @@ function MonitoringChecksPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>名称</TableHead>
-                            <TableHead>目标</TableHead>
-                            <TableHead>状态</TableHead>
-                            <TableHead>间隔</TableHead>
-                            <TableHead>失败次数</TableHead>
-                            <TableHead>最后检查</TableHead>
-                            <TableHead className="text-right">操作</TableHead>
+                            <TableHead>{t("名称", "Name")}</TableHead>
+                            <TableHead>{t("目标", "Target")}</TableHead>
+                            <TableHead>{t("状态", "Status")}</TableHead>
+                            <TableHead>{t("间隔", "Interval")}</TableHead>
+                            <TableHead>{t("失败次数", "Failures")}</TableHead>
+                            <TableHead>{t("最后检查", "Last checked")}</TableHead>
+                            <TableHead className="text-right">{t("操作", "Actions")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -105,12 +109,12 @@ function MonitoringChecksPage() {
                                             }
                                         >
                                             {!check.enabled
-                                                ? "已停用"
+                                                ? t("已停用", "Disabled")
                                                 : check.lastStatus === "up"
-                                                  ? "正常"
+                                                  ? t("正常", "Up")
                                                   : check.lastStatus === "down"
-                                                    ? "异常"
-                                                    : "等待检查"}
+                                                    ? t("异常", "Down")
+                                                    : t("等待检查", "Pending")}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{check.intervalSeconds}s</TableCell>
@@ -130,7 +134,9 @@ function MonitoringChecksPage() {
                                                     variant="ghost"
                                                     size="icon-sm"
                                                     aria-label={
-                                                        check.enabled ? "禁用检查" : "启用检查"
+                                                        check.enabled
+                                                            ? t("禁用检查", "Disable check")
+                                                            : t("启用检查", "Enable check")
                                                     }
                                                     onClick={() =>
                                                         enabledMutation.mutate({
@@ -146,14 +152,23 @@ function MonitoringChecksPage() {
                                                         <Button
                                                             variant="ghost-destructive"
                                                             size="icon-sm"
-                                                            aria-label="删除检查"
+                                                            aria-label={t(
+                                                                "删除检查",
+                                                                "Delete check",
+                                                            )}
                                                         >
                                                             <Trash2Icon />
                                                         </Button>
                                                     }
-                                                    title="删除 TCP 检查？"
-                                                    description="已留存的检查结果也会一并删除。"
-                                                    confirmLabel="删除"
+                                                    title={t(
+                                                        "删除 TCP 检查？",
+                                                        "Delete TCP check?",
+                                                    )}
+                                                    description={t(
+                                                        "已留存的检查结果也会一并删除。",
+                                                        "Retained check results will also be deleted.",
+                                                    )}
+                                                    confirmLabel={t("删除", "Delete")}
                                                     destructive
                                                     onConfirm={() =>
                                                         deleteMutation
@@ -167,21 +182,35 @@ function MonitoringChecksPage() {
                                 </TableRow>
                             ))
                         ) : isPending ? (
-                            <DataTableState colSpan={7} kind="loading" title="正在加载服务检查" />
+                            <DataTableState
+                                colSpan={7}
+                                kind="loading"
+                                title={t("正在加载服务检查", "Loading service checks")}
+                            />
                         ) : error ? (
                             <DataTableState
                                 colSpan={7}
                                 kind="error"
-                                title="服务检查加载失败"
-                                description="无法读取 TCP 检查，请检查 Monitor 服务后重试。"
-                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                                title={t("服务检查加载失败", "Failed to load service checks")}
+                                description={t(
+                                    "无法读取 TCP 检查，请检查 Monitor 服务后重试。",
+                                    "Unable to read TCP checks. Check the Monitor service and try again.",
+                                )}
+                                action={
+                                    <Button onClick={() => void refetch()}>
+                                        {t("重新加载", "Reload")}
+                                    </Button>
+                                }
                             />
                         ) : (
                             <DataTableState
                                 colSpan={7}
                                 kind="empty"
-                                title="暂无服务检查"
-                                description="添加 TCP 检查后，系统会按设定间隔持续探测服务状态。"
+                                title={t("暂无服务检查", "No service checks")}
+                                description={t(
+                                    "添加 TCP 检查后，系统会按设定间隔持续探测服务状态。",
+                                    "Add a TCP check to probe the service continuously at the configured interval.",
+                                )}
                             />
                         )}
                     </TableBody>
@@ -217,7 +246,9 @@ function CheckDialog({
             check ? monitorAPI.updateCheck(check.id, input) : monitorAPI.createCheck(input),
         onSuccess: async () => {
             await onSaved();
-            appMessage.success(check ? "检查已更新" : "检查已创建");
+            appMessage.success(
+                check ? t("检查已更新", "Check updated") : t("检查已创建", "Check created"),
+            );
             setOpen(false);
         },
     });
@@ -225,9 +256,14 @@ function CheckDialog({
         mutationFn: monitorAPI.testCheck,
         onSuccess: (result) => {
             if (result.status === "up") {
-                appMessage.success(`连接成功，耗时 ${result.latencyMs ?? 0} ms`);
+                appMessage.success(
+                    t(
+                        `连接成功，耗时 ${result.latencyMs ?? 0} ms`,
+                        `Connection successful in ${result.latencyMs ?? 0} ms`,
+                    ),
+                );
             } else {
-                appMessage.error(result.error ?? "连接失败");
+                appMessage.error(result.error ?? t("连接失败", "Connection failed"));
             }
         },
     });
@@ -252,35 +288,57 @@ function CheckDialog({
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 {check ? (
-                    <Button variant="ghost" size="icon-sm" aria-label="编辑检查">
+                    <Button variant="ghost" size="icon-sm" aria-label={t("编辑检查", "Edit check")}>
                         <PencilIcon />
                     </Button>
                 ) : (
                     <Button>
-                        <PlusIcon /> 新建检查
+                        <PlusIcon /> {t("新建检查", "New check")}
                     </Button>
                 )}
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{check ? "编辑 TCP 检查" : "新建 TCP 检查"}</DialogTitle>
+                    <DialogTitle>
+                        {check
+                            ? t("编辑 TCP 检查", "Edit TCP check")
+                            : t("新建 TCP 检查", "New TCP check")}
+                    </DialogTitle>
                     <DialogDescription>
-                        目标连接将从 Monitoring 服务所在主机发起测试。
+                        {t(
+                            "目标连接将从 Monitoring 服务所在主机发起测试。",
+                            "The target connection will be tested from the host running the Monitoring service.",
+                        )}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="名称" value={name} onChange={setName} className="sm:col-span-2" />
-                    <Field label="主机" value={host} onChange={setHost} />
-                    <Field label="端口" value={port} onChange={setPort} type="number" />
-                    <Field label="间隔秒数" value={interval} onChange={setInterval} type="number" />
                     <Field
-                        label="超时毫秒数"
+                        label={t("名称", "Name")}
+                        value={name}
+                        onChange={setName}
+                        className="sm:col-span-2"
+                    />
+                    <Field label={t("主机", "Host")} value={host} onChange={setHost} />
+                    <Field
+                        label={t("端口", "Port")}
+                        value={port}
+                        onChange={setPort}
+                        type="number"
+                    />
+                    <Field
+                        label={t("间隔秒数", "Interval (seconds)")}
+                        value={interval}
+                        onChange={setInterval}
+                        type="number"
+                    />
+                    <Field
+                        label={t("超时毫秒数", "Timeout (milliseconds)")}
                         value={timeout}
                         onChange={setTimeoutValue}
                         type="number"
                     />
                     <Field
-                        label="失败阈值"
+                        label={t("失败阈值", "Failure threshold")}
                         value={threshold}
                         onChange={setThreshold}
                         type="number"
@@ -299,13 +357,13 @@ function CheckDialog({
                             })
                         }
                     >
-                        <ActivityIcon /> 测试
+                        <ActivityIcon /> {t("测试", "Test")}
                     </Button>
                     <Button
                         disabled={!valid || saveMutation.isPending}
                         onClick={() => saveMutation.mutate(input)}
                     >
-                        保存
+                        {t("保存", "Save")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

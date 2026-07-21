@@ -33,6 +33,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/manage/deploy")({
     component: DeployPage,
@@ -57,15 +58,18 @@ function DeployPage() {
 
     return (
         <PageCard
-            title="部署版本"
-            description="上传签名的 rz 完整发行包并应用到四个服务。"
+            title={t("部署版本", "Deployment versions")}
+            description={t(
+                "上传签名的 rz 完整发行包并应用到四个服务。",
+                "Upload a signed complete rz release bundle and apply it to all four services.",
+            )}
             actions={
                 <div className="flex flex-wrap gap-2">
                     <AuthWrap code="manage:deploy:create">
                         <UploadVersionDialog onSuccess={refresh}>
                             <Button>
                                 <UploadIcon data-icon="inline-start" />
-                                上传版本
+                                {t("上传版本", "Upload version")}
                             </Button>
                         </UploadVersionDialog>
                     </AuthWrap>
@@ -73,7 +77,7 @@ function DeployPage() {
                         <CleanupDialog onSuccess={refresh}>
                             <Button type="button" variant="outline">
                                 <TrashIcon data-icon="inline-start" />
-                                清理过期版本
+                                {t("清理过期版本", "Clean expired versions")}
                             </Button>
                         </CleanupDialog>
                     </AuthWrap>
@@ -84,16 +88,22 @@ function DeployPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="min-w-28">组件</TableHead>
-                            <TableHead className="min-w-32">版本</TableHead>
-                            <TableHead className="min-w-28">架构</TableHead>
-                            <TableHead className="min-w-28">大小</TableHead>
-                            <TableHead className="min-w-28">状态</TableHead>
-                            <TableHead className="min-w-32">部署人</TableHead>
-                            <TableHead className="min-w-44">部署时间</TableHead>
-                            <TableHead className="min-w-44">过期时间</TableHead>
-                            <TableHead className="min-w-56">备注</TableHead>
-                            <TableHead className="w-32 text-right">操作</TableHead>
+                            <TableHead className="min-w-28">{t("组件", "Component")}</TableHead>
+                            <TableHead className="min-w-32">{t("版本", "Version")}</TableHead>
+                            <TableHead className="min-w-28">{t("架构", "Architecture")}</TableHead>
+                            <TableHead className="min-w-28">{t("大小", "Size")}</TableHead>
+                            <TableHead className="min-w-28">{t("状态", "Status")}</TableHead>
+                            <TableHead className="min-w-32">{t("部署人", "Deployed by")}</TableHead>
+                            <TableHead className="min-w-44">
+                                {t("部署时间", "Deployed at")}
+                            </TableHead>
+                            <TableHead className="min-w-44">
+                                {t("过期时间", "Expired at")}
+                            </TableHead>
+                            <TableHead className="min-w-56">{t("备注", "Notes")}</TableHead>
+                            <TableHead className="w-32 text-right">
+                                {t("操作", "Actions")}
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -119,19 +129,33 @@ function DeployPage() {
                                 </TableRow>
                             ))
                         ) : isPending ? (
-                            <DataTableState colSpan={10} kind="loading" title="正在加载部署版本" />
+                            <DataTableState
+                                colSpan={10}
+                                kind="loading"
+                                title={t("正在加载部署版本", "Loading deployment versions")}
+                            />
                         ) : error ? (
                             <DataTableState
                                 colSpan={10}
                                 kind="error"
-                                title="部署版本加载失败"
+                                title={t("部署版本加载失败", "Failed to load deployment versions")}
                                 description={
-                                    error instanceof Error ? error.message : "请稍后重试。"
+                                    error instanceof Error
+                                        ? error.message
+                                        : t("请稍后重试。", "Please try again later.")
                                 }
-                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                                action={
+                                    <Button onClick={() => void refetch()}>
+                                        {t("重新加载", "Reload")}
+                                    </Button>
+                                }
                             />
                         ) : (
-                            <DataTableState colSpan={10} kind="empty" title="暂无部署版本" />
+                            <DataTableState
+                                colSpan={10}
+                                kind="empty"
+                                title={t("暂无部署版本", "No deployment versions")}
+                            />
                         )}
                     </TableBody>
                 </Table>
@@ -160,7 +184,7 @@ function DeployActions({ record, onSuccess }: { record: Deploy.Item; onSuccess: 
                         variant="ghost"
                         size="icon-sm"
                         disabled={record.isCurrent || record.isExpired}
-                        aria-label="将版本设为过期"
+                        aria-label={t("将版本设为过期", "Expire version")}
                     >
                         <XCircleIcon />
                     </Button>
@@ -199,11 +223,11 @@ function UploadVersionDialog({
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!version.trim()) {
-            appMessage.error("请输入版本号");
+            appMessage.error(t("请输入版本号", "Enter a version number"));
             return;
         }
         if (!file) {
-            appMessage.error("请选择部署文件");
+            appMessage.error(t("请选择部署文件", "Select a deployment file"));
             return;
         }
 
@@ -214,7 +238,7 @@ function UploadVersionDialog({
                 notes: notes.trim() || undefined,
                 file,
             });
-            appMessage.success("上传成功");
+            appMessage.success(t("上传成功", "Upload completed"));
             onSuccess?.();
             reset();
             setOpen(false);
@@ -236,22 +260,26 @@ function UploadVersionDialog({
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>上传完整发行包</DialogTitle>
+                    <DialogTitle>
+                        {t("上传完整发行包", "Upload complete release bundle")}
+                    </DialogTitle>
                     <DialogDescription>
-                        上传一个包含 Admin、Monitor、Insights、Reports、Web 和部署文件的签名 tar
-                        完整包。
+                        {t(
+                            "上传一个包含 Admin、Monitor、Insights、Reports、Web 和部署文件的签名 tar 完整包。",
+                            "Upload a signed complete tar bundle containing Admin, Monitor, Insights, Reports, Web, and deployment files.",
+                        )}
                     </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <TextField
                         id="deploy-version"
-                        label="版本"
+                        label={t("版本", "Version")}
                         value={version}
                         placeholder="0.5.0"
                         onChange={setVersion}
                     />
                     <div className="grid gap-2">
-                        <Label htmlFor="deploy-file">文件</Label>
+                        <Label htmlFor="deploy-file">{t("文件", "File")}</Label>
                         <Input
                             ref={fileInputRef}
                             id="deploy-file"
@@ -260,22 +288,24 @@ function UploadVersionDialog({
                             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
                         />
                         <div className="text-sm text-muted-foreground">
-                            {file ? `${file.name} · ${formatFileSize(file.size)}` : "未选择文件。"}
+                            {file
+                                ? `${file.name} · ${formatFileSize(file.size)}`
+                                : t("未选择文件。", "No file selected.")}
                         </div>
                     </div>
                     <TextareaField
                         id="deploy-notes"
-                        label="备注"
+                        label={t("备注", "Notes")}
                         value={notes}
-                        placeholder="可选备注"
+                        placeholder={t("可选备注", "Optional notes")}
                         onChange={setNotes}
                     />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            取消
+                            {t("取消", "Cancel")}
                         </Button>
                         <Button type="submit" disabled={submitting}>
-                            上传
+                            {t("上传", "Upload")}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -291,12 +321,14 @@ function DeployVersionDialog({
     record: Deploy.Item;
     onSuccess: () => void;
 }) {
-    const description =
-        "rz 符号链接只切换一次，随后监控、分析、报表和管理服务依次通过健康检查门禁重启。门禁失败时会恢复原链接，并还原已进入重启流程的服务数据库。";
+    const description = t(
+        "rz 符号链接只切换一次，随后监控、分析、报表和管理服务依次通过健康检查门禁重启。门禁失败时会恢复原链接，并还原已进入重启流程的服务数据库。",
+        "The rz symbolic link switches once, then Monitoring, Insights, Reports, and Admin restart in sequence behind health-check gates. If a gate fails, the original link and databases for services already in the restart flow are restored.",
+    );
 
     const submit = async () => {
         await manageAPI.deploy.deploy(record.id);
-        appMessage.success("部署任务已提交");
+        appMessage.success(t("部署任务已提交", "Deployment task submitted"));
         onSuccess();
     };
 
@@ -308,14 +340,17 @@ function DeployVersionDialog({
                     variant="ghost"
                     size="icon-sm"
                     disabled={record.isExpired}
-                    aria-label="部署版本"
+                    aria-label={t("部署版本", "Deploy version")}
                 >
                     <CloudUploadIcon />
                 </Button>
             }
-            title={`部署 ${componentLabel(record.component)} ${record.version}？`}
+            title={t(
+                `部署 ${componentLabel(record.component)} ${record.version}？`,
+                `Deploy ${componentLabel(record.component)} ${record.version}?`,
+            )}
             description={description}
-            confirmLabel="部署"
+            confirmLabel={t("部署", "Deploy")}
             disabled={record.isExpired}
             onConfirm={submit}
         />
@@ -343,7 +378,7 @@ function ExpireVersionDialog({
             await manageAPI.deploy.expire(version.id, {
                 notes: notes.trim() || null,
             });
-            appMessage.success("版本已设为过期");
+            appMessage.success(t("版本已设为过期", "Version expired"));
             onSuccess?.();
             setOpen(false);
         } finally {
@@ -367,24 +402,32 @@ function ExpireVersionDialog({
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>
-                        将 {componentLabel(version.component)} {version.version} 设为过期
+                        {t(
+                            `将 ${componentLabel(version.component)} ${version.version} 设为过期`,
+                            `Expire ${componentLabel(version.component)} ${version.version}`,
+                        )}
                     </DialogTitle>
-                    <DialogDescription>将此版本设为过期，并可选记录原因。</DialogDescription>
+                    <DialogDescription>
+                        {t(
+                            "将此版本设为过期，并可选记录原因。",
+                            "Expire this version and optionally record a reason.",
+                        )}
+                    </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <TextareaField
                         id={`expire-notes-${version.id}`}
-                        label="备注"
+                        label={t("备注", "Notes")}
                         value={notes}
-                        placeholder="可选原因"
+                        placeholder={t("可选原因", "Optional reason")}
                         onChange={setNotes}
                     />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            取消
+                            {t("取消", "Cancel")}
                         </Button>
                         <Button type="submit" disabled={submitting}>
-                            设为过期
+                            {t("设为过期", "Expire")}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -402,7 +445,7 @@ function DeleteVersionDialog({
 }) {
     const submit = async () => {
         await manageAPI.deploy.remove(record.id);
-        appMessage.success("版本已删除");
+        appMessage.success(t("版本已删除", "Version deleted"));
         onSuccess();
     };
 
@@ -414,14 +457,17 @@ function DeleteVersionDialog({
                     variant="ghost-destructive"
                     size="icon-sm"
                     disabled={record.isCurrent}
-                    aria-label="删除版本"
+                    aria-label={t("删除版本", "Delete version")}
                 >
                     <TrashIcon />
                 </Button>
             }
-            title="删除版本"
-            description={`确定删除 ${componentLabel(record.component)} ${record.version}？系统会尽可能清理已保存的文件。`}
-            confirmLabel="删除"
+            title={t("删除版本", "Delete version")}
+            description={t(
+                `确定删除 ${componentLabel(record.component)} ${record.version}？系统会尽可能清理已保存的文件。`,
+                `Delete ${componentLabel(record.component)} ${record.version}? The system will clean up saved files where possible.`,
+            )}
+            confirmLabel={t("删除", "Delete")}
             destructive
             disabled={record.isCurrent}
             onConfirm={submit}
@@ -440,16 +486,19 @@ function CleanupDialog({
 }) {
     const submit = async () => {
         const count = await manageAPI.deploy.cleanup(component);
-        appMessage.success(`已清理 ${count} 个过期版本`);
+        appMessage.success(t(`已清理 ${count} 个过期版本`, `Cleaned ${count} expired versions`));
         onSuccess?.();
     };
 
     return (
         <ConfirmDialog
             trigger={children}
-            title="清理过期版本？"
-            description="将从列表中移除非当前的过期版本，并尽可能清理已保存的文件。"
-            confirmLabel="清理过期版本"
+            title={t("清理过期版本？", "Clean expired versions?")}
+            description={t(
+                "将从列表中移除非当前的过期版本，并尽可能清理已保存的文件。",
+                "Remove non-current expired versions from the list and clean up saved files where possible.",
+            )}
+            confirmLabel={t("清理过期版本", "Clean expired versions")}
             destructive
             onConfirm={submit}
         />
@@ -458,19 +507,19 @@ function CleanupDialog({
 
 function DeployStatusBadge({ record }: { record: Deploy.Item }) {
     if (record.isCurrent) {
-        return <Badge variant="secondary">当前</Badge>;
+        return <Badge variant="secondary">{t("当前", "Current")}</Badge>;
     }
     if (record.isExpired) {
-        return <Badge variant="destructive">已过期</Badge>;
+        return <Badge variant="destructive">{t("已过期", "Expired")}</Badge>;
     }
     if (record.isDeployed) {
-        return <Badge>已部署</Badge>;
+        return <Badge>{t("已部署", "Deployed")}</Badge>;
     }
-    return <Badge variant="outline">已上传</Badge>;
+    return <Badge variant="outline">{t("已上传", "Uploaded")}</Badge>;
 }
 
 function componentLabel(component: Deploy.Component) {
-    return component === "release" ? "发行包" : component;
+    return component === "release" ? t("发行包", "Release bundle") : component;
 }
 
 function formatFileSize(value: number) {

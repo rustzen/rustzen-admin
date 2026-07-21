@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/user";
+import { t } from "@/lib/i18n";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export const Route = createFileRoute("/profile")({
@@ -28,13 +29,24 @@ function ProfilePage() {
 
     return (
         <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto pr-1">
-            <PageHeader title="个人资料" description="管理个人账号信息与登录凭据。" />
+            <PageHeader
+                title={t("个人资料", "Profile")}
+                description={t(
+                    "管理个人账号信息与登录凭据。",
+                    "Manage your account information and sign-in credentials.",
+                )}
+            />
             <div className="grid xl:grid-cols-[minmax(520px,1fr)_420px]">
                 <Card>
                     <CardHeader className="flex flex-row items-start justify-between gap-4">
                         <div>
-                            <CardTitle>账号信息</CardTitle>
-                            <CardDescription>查看并维护当前账号资料。</CardDescription>
+                            <CardTitle>{t("账号信息", "Account information")}</CardTitle>
+                            <CardDescription>
+                                {t(
+                                    "查看并维护当前账号资料。",
+                                    "View and update your account details.",
+                                )}
+                            </CardDescription>
                         </div>
                         <div className="flex gap-2">
                             <EditProfileDialog userInfo={userInfo} onUpdated={updateUserInfo} />
@@ -43,9 +55,15 @@ function ProfilePage() {
                     </CardHeader>
                     <CardContent className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_220px]">
                         <div className="grid gap-4">
-                            <ProfileField label="用户名" value={userInfo?.username} />
-                            <ProfileField label="邮箱" value={userInfo?.email} />
-                            <ProfileField label="真实姓名" value={userInfo?.realName} />
+                            <ProfileField
+                                label={t("用户名", "Username")}
+                                value={userInfo?.username}
+                            />
+                            <ProfileField label={t("邮箱", "Email")} value={userInfo?.email} />
+                            <ProfileField
+                                label={t("真实姓名", "Full name")}
+                                value={userInfo?.realName}
+                            />
                         </div>
                         <div className="flex flex-col items-center">
                             <UserAvatar />
@@ -79,7 +97,7 @@ function EditProfileDialog({
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!email.trim()) {
-            appMessage.error("请输入邮箱");
+            appMessage.error(t("请输入邮箱", "Enter an email address"));
             return;
         }
 
@@ -90,7 +108,7 @@ function EditProfileDialog({
                 realName: realName.trim() || null,
             });
             onUpdated(nextUserInfo);
-            appMessage.success("个人资料已更新");
+            appMessage.success(t("个人资料已更新", "Profile updated"));
             setOpen(false);
         } finally {
             setSubmitting(false);
@@ -100,19 +118,21 @@ function EditProfileDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="编辑个人资料">
+                <Button variant="ghost" size="icon" aria-label={t("编辑个人资料", "Edit profile")}>
                     <EditIcon />
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>编辑个人资料</DialogTitle>
-                    <DialogDescription>更新邮箱和显示名称。</DialogDescription>
+                    <DialogTitle>{t("编辑个人资料", "Edit profile")}</DialogTitle>
+                    <DialogDescription>
+                        {t("更新邮箱和显示名称。", "Update your email address and display name.")}
+                    </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <div className="grid gap-2">
                         <label className="text-sm font-medium" htmlFor="profile-email">
-                            邮箱
+                            {t("邮箱", "Email")}
                         </label>
                         <Input
                             id="profile-email"
@@ -122,7 +142,7 @@ function EditProfileDialog({
                     </div>
                     <div className="grid gap-2">
                         <label className="text-sm font-medium" htmlFor="profile-real-name">
-                            真实姓名
+                            {t("真实姓名", "Full name")}
                         </label>
                         <Input
                             id="profile-real-name"
@@ -132,10 +152,10 @@ function EditProfileDialog({
                     </div>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            取消
+                            {t("取消", "Cancel")}
                         </Button>
                         <Button type="submit" disabled={submitting}>
-                            保存
+                            {t("保存", "Save")}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -160,11 +180,11 @@ function ChangePasswordDialog() {
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (!currentPassword || !newPassword || !confirmPassword) {
-            appMessage.error("请填写全部密码字段");
+            appMessage.error(t("请填写全部密码字段", "Complete all password fields"));
             return;
         }
         if (newPassword !== confirmPassword) {
-            appMessage.error("两次输入的密码不一致");
+            appMessage.error(t("两次输入的密码不一致", "The passwords do not match"));
             return;
         }
 
@@ -175,7 +195,7 @@ function ChangePasswordDialog() {
                 newPassword,
                 confirmPassword,
             });
-            appMessage.success("密码已修改");
+            appMessage.success(t("密码已修改", "Password changed"));
             reset();
             setOpen(false);
         } finally {
@@ -194,40 +214,45 @@ function ChangePasswordDialog() {
             }}
         >
             <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="修改密码">
+                <Button variant="ghost" size="icon" aria-label={t("修改密码", "Change password")}>
                     <LockIcon />
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>修改密码</DialogTitle>
-                    <DialogDescription>请使用未在其他系统中使用的新密码。</DialogDescription>
+                    <DialogTitle>{t("修改密码", "Change password")}</DialogTitle>
+                    <DialogDescription>
+                        {t(
+                            "请使用未在其他系统中使用的新密码。",
+                            "Use a new password that you do not use for other services.",
+                        )}
+                    </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <PasswordField
                         id="current-password"
-                        label="当前密码"
+                        label={t("当前密码", "Current password")}
                         value={currentPassword}
                         onChange={setCurrentPassword}
                     />
                     <PasswordField
                         id="new-password"
-                        label="新密码"
+                        label={t("新密码", "New password")}
                         value={newPassword}
                         onChange={setNewPassword}
                     />
                     <PasswordField
                         id="confirm-password"
-                        label="确认密码"
+                        label={t("确认密码", "Confirm password")}
                         value={confirmPassword}
                         onChange={setConfirmPassword}
                     />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            取消
+                            {t("取消", "Cancel")}
                         </Button>
                         <Button type="submit" disabled={submitting}>
-                            保存
+                            {t("保存", "Save")}
                         </Button>
                     </DialogFooter>
                 </form>

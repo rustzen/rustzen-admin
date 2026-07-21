@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { t } from "@/lib/i18n";
 import { calculatePercent, convertUnit } from "@/util";
 
 export const Route = createFileRoute("/")({
@@ -39,13 +40,19 @@ export const Route = createFileRoute("/")({
 function DashboardPage() {
     return (
         <div className="operations-ledger mx-auto flex h-full min-h-0 min-w-0 w-full flex-col gap-5 overflow-y-auto pr-1">
-            <PageHeader title="仪表盘" description="用户、运行健康和活动趋势的运维概览。" />
+            <PageHeader
+                title={t("仪表盘", "Dashboard")}
+                description={t(
+                    "用户、运行健康和活动趋势的运维概览。",
+                    "An operational overview of users, runtime health, and activity trends.",
+                )}
+            />
 
             <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col gap-4">
                 <div className="w-full overflow-x-auto pb-1">
                     <TabsList>
-                        <TabsTrigger value="overview">概览</TabsTrigger>
-                        <TabsTrigger value="analytics">分析</TabsTrigger>
+                        <TabsTrigger value="overview">{t("概览", "Overview")}</TabsTrigger>
+                        <TabsTrigger value="analytics">{t("分析", "Analytics")}</TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -84,24 +91,29 @@ const ModuleHealthCards = () => {
     return (
         <Card className="gap-0 overflow-hidden py-0">
             <CardHeader className="border-b py-4">
-                <CardTitle>模块可用性</CardTitle>
-                <CardDescription>当前各运行模块的版本与连通状态。</CardDescription>
+                <CardTitle>{t("模块可用性", "Module availability")}</CardTitle>
+                <CardDescription>
+                    {t(
+                        "当前各运行模块的版本与连通状态。",
+                        "Versions and connectivity status of the active modules.",
+                    )}
+                </CardDescription>
             </CardHeader>
             <CardContent className="divide-y p-0">
                 <DashboardQueryBoundary
                     isPending={isPending}
                     error={error}
                     hasData={data !== undefined}
-                    loadingTitle="正在加载模块状态"
-                    errorTitle="模块状态加载失败"
+                    loadingTitle={t("正在加载模块状态", "Loading module status")}
+                    errorTitle={t("模块状态加载失败", "Failed to load module status")}
                     onRetry={() => void refetch()}
                 >
                     {(["monitor", "insights", "reports"] as const).map((module) => {
                         const health = data?.find((item) => item.module === module);
                         const moduleLabel = {
-                            monitor: "监控",
-                            insights: "分析",
-                            reports: "报表",
+                            monitor: t("监控", "Monitor"),
+                            insights: t("分析", "Insights"),
+                            reports: t("报表", "Reports"),
                         }[module];
                         return (
                             <div
@@ -111,11 +123,13 @@ const ModuleHealthCards = () => {
                                 <div className="min-w-0">
                                     <div className="font-medium">{moduleLabel}</div>
                                     <div className="mt-1 text-xs text-muted-foreground">
-                                        版本 {health?.releaseVersion ?? "-"}
+                                        {t("版本", "Version")} {health?.releaseVersion ?? "-"}
                                     </div>
                                 </div>
                                 <Badge variant={health?.available ? "default" : "destructive"}>
-                                    {health?.available ? "可用" : "不可用"}
+                                    {health?.available
+                                        ? t("可用", "Available")
+                                        : t("不可用", "Unavailable")}
                                 </Badge>
                             </div>
                         );
@@ -139,27 +153,27 @@ const StatsCards = () => {
 
     const cards = [
         {
-            title: "用户总数",
+            title: t("用户总数", "Total users"),
             value: stats?.totalUsers ?? 0,
-            description: "全部已注册账号",
+            description: t("全部已注册账号", "All registered accounts"),
             icon: UsersIcon,
         },
         {
-            title: "活跃用户",
+            title: t("活跃用户", "Active users"),
             value: stats?.activeUsers ?? 0,
-            description: "当前已启用账号",
+            description: t("当前已启用账号", "Currently enabled accounts"),
             icon: UserCheckIcon,
         },
         {
-            title: "今日登录",
+            title: t("今日登录", "Today's logins"),
             value: stats?.todayLogins ?? 0,
-            description: "今日成功会话",
+            description: t("今日成功会话", "Successful sessions today"),
             icon: ClockIcon,
         },
         {
-            title: "待审核用户",
+            title: t("待审核用户", "Pending users"),
             value: stats?.pendingUsers ?? 0,
-            description: "等待审核",
+            description: t("等待审核", "Awaiting review"),
             icon: UserPlusIcon,
         },
     ];
@@ -167,16 +181,21 @@ const StatsCards = () => {
     return (
         <Card className="gap-0 overflow-hidden py-0">
             <CardHeader className="border-b py-4">
-                <CardTitle>账号台账</CardTitle>
-                <CardDescription>注册、活跃、近期和待审核访问情况。</CardDescription>
+                <CardTitle>{t("账号台账", "Account overview")}</CardTitle>
+                <CardDescription>
+                    {t(
+                        "注册、活跃、近期和待审核访问情况。",
+                        "Registration, activity, recent access, and pending reviews.",
+                    )}
+                </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-2 p-0">
                 <DashboardQueryBoundary
                     isPending={isPending}
                     error={error}
                     hasData={stats !== undefined}
-                    loadingTitle="正在加载账号统计"
-                    errorTitle="账号统计加载失败"
+                    loadingTitle={t("正在加载账号统计", "Loading account statistics")}
+                    errorTitle={t("账号统计加载失败", "Failed to load account statistics")}
                     onRetry={() => void refetch()}
                 >
                     {cards.map((item) => (
@@ -219,8 +238,13 @@ const HealthCard = () => {
             <CardHeader>
                 <div className="flex items-center justify-between gap-3">
                     <div>
-                        <CardTitle>系统健康</CardTitle>
-                        <CardDescription>当前内存、CPU 与磁盘资源压力。</CardDescription>
+                        <CardTitle>{t("系统健康", "System health")}</CardTitle>
+                        <CardDescription>
+                            {t(
+                                "当前内存、CPU 与磁盘资源压力。",
+                                "Current memory, CPU, and disk utilization.",
+                            )}
+                        </CardDescription>
                     </div>
                     <ShieldAlertIcon className="text-muted-foreground" />
                 </div>
@@ -230,27 +254,27 @@ const HealthCard = () => {
                     isPending={isPending}
                     error={error}
                     hasData={health !== undefined}
-                    loadingTitle="正在加载系统健康状态"
-                    errorTitle="系统健康状态加载失败"
+                    loadingTitle={t("正在加载系统健康状态", "Loading system health")}
+                    errorTitle={t("系统健康状态加载失败", "Failed to load system health")}
                     onRetry={() => void refetch()}
                 >
                     <ProgressRow
                         icon={ServerIcon}
-                        label="内存使用率"
+                        label={t("内存使用率", "Memory usage")}
                         value={memoryUsage}
                         detail={`${convertUnit(health?.memoryUsed)} / ${convertUnit(health?.memoryTotal)}`}
                         warning={memoryUsage > 80}
                     />
                     <ProgressRow
                         icon={ActivityIcon}
-                        label="CPU 使用率"
+                        label={t("CPU 使用率", "CPU usage")}
                         value={cpuUsage}
                         detail={`${cpuUsage.toFixed(1)}% / ${health?.cpuTotal ?? 0}`}
                         warning={cpuUsage > 80}
                     />
                     <ProgressRow
                         icon={HardDriveIcon}
-                        label="磁盘使用率"
+                        label={t("磁盘使用率", "Disk usage")}
                         value={diskUsage}
                         detail={`${convertUnit(health?.diskUsed)} / ${convertUnit(health?.diskTotal)}`}
                         warning={diskUsage > 90}
@@ -275,24 +299,32 @@ const MetricsCard = () => {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>性能指标</CardTitle>
-                <CardDescription>近七天请求性能摘要。</CardDescription>
+                <CardTitle>{t("性能指标", "Performance metrics")}</CardTitle>
+                <CardDescription>
+                    {t("近七天请求性能摘要。", "Request performance over the past seven days.")}
+                </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-3">
                 <DashboardQueryBoundary
                     isPending={isPending}
                     error={error}
                     hasData={metrics !== undefined}
-                    loadingTitle="正在加载性能指标"
-                    errorTitle="性能指标加载失败"
+                    loadingTitle={t("正在加载性能指标", "Loading performance metrics")}
+                    errorTitle={t("性能指标加载失败", "Failed to load performance metrics")}
                     onRetry={() => void refetch()}
                 >
-                    <MetricBlock label="平均响应" value={`${metrics?.avgResponseTime ?? 0}ms`} />
                     <MetricBlock
-                        label="错误率"
+                        label={t("平均响应", "Average response time")}
+                        value={`${metrics?.avgResponseTime ?? 0}ms`}
+                    />
+                    <MetricBlock
+                        label={t("错误率", "Error rate")}
                         value={`${(metrics?.errorRate ?? 0).toFixed(1)}%`}
                     />
-                    <MetricBlock label="请求总数" value={`${metrics?.totalRequests ?? 0}`} />
+                    <MetricBlock
+                        label={t("请求总数", "Total requests")}
+                        value={`${metrics?.totalRequests ?? 0}`}
+                    />
                 </DashboardQueryBoundary>
             </CardContent>
         </Card>
@@ -310,16 +342,21 @@ const ActivityTrendCard = () => {
     return (
         <Card className="lg:col-span-4">
             <CardHeader>
-                <CardTitle>概览</CardTitle>
-                <CardDescription>用户登录趋势和活跃用户动态。</CardDescription>
+                <CardTitle>{t("概览", "Overview")}</CardTitle>
+                <CardDescription>
+                    {t(
+                        "用户登录趋势和活跃用户动态。",
+                        "User login trends and active-user activity.",
+                    )}
+                </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 xl:grid-cols-2">
                 <DashboardQueryBoundary
                     isPending={isPending}
                     error={error}
                     hasData={data !== undefined}
-                    loadingTitle="正在加载活动趋势"
-                    errorTitle="活动趋势加载失败"
+                    loadingTitle={t("正在加载活动趋势", "Loading activity trends")}
+                    errorTitle={t("活动趋势加载失败", "Failed to load activity trends")}
                     onRetry={() => void refetch()}
                 >
                     <div className="h-60 min-w-0">
@@ -380,8 +417,11 @@ function DashboardQueryBoundary({
             <DataState
                 kind="error"
                 title={errorTitle}
-                description="无法读取当前数据，请检查 Admin 服务后重试。"
-                action={<Button onClick={onRetry}>重新加载</Button>}
+                description={t(
+                    "无法读取当前数据，请检查 Admin 服务后重试。",
+                    "Unable to read the current data. Check the Admin service and try again.",
+                )}
+                action={<Button onClick={onRetry}>{t("重新加载", "Reload")}</Button>}
                 compact
                 className="col-span-full"
             />
@@ -395,9 +435,14 @@ function DashboardQueryBoundary({
                     className="col-span-full flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-xs text-destructive"
                     role="alert"
                 >
-                    <span>后台刷新失败，当前继续显示上次成功数据。</span>
+                    <span>
+                        {t(
+                            "后台刷新失败，当前继续显示上次成功数据。",
+                            "Background refresh failed. The last successfully loaded data remains visible.",
+                        )}
+                    </span>
                     <Button type="button" variant="outline" size="sm" onClick={onRetry}>
-                        重试
+                        {t("重试", "Retry")}
                     </Button>
                 </div>
             ) : null}

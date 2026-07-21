@@ -29,6 +29,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { localizeBuiltInTaskDescription, localizeBuiltInTaskName } from "@/lib/builtin-i18n";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/manage/task")({
     component: TaskPage,
@@ -40,11 +42,11 @@ const taskStatusMeta: Record<
     Task.RunStatus | "never",
     { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
 > = {
-    running: { label: "运行中", variant: "default" },
-    success: { label: "成功", variant: "secondary" },
-    failed: { label: "失败", variant: "destructive" },
-    skipped: { label: "已跳过", variant: "outline" },
-    never: { label: "从未运行", variant: "outline" },
+    running: { label: t("运行中", "Running"), variant: "default" },
+    success: { label: t("成功", "Success"), variant: "secondary" },
+    failed: { label: t("失败", "Failed"), variant: "destructive" },
+    skipped: { label: t("已跳过", "Skipped"), variant: "outline" },
+    never: { label: t("从未运行", "Never run"), variant: "outline" },
 };
 
 function TaskPage() {
@@ -55,28 +57,45 @@ function TaskPage() {
     const rows = data?.data ?? [];
 
     return (
-        <PageCard title="定时任务" description="查看调度状态并手动运行维护任务。">
+        <PageCard
+            title={t("定时任务", "Scheduled tasks")}
+            description={t(
+                "查看调度状态并手动运行维护任务。",
+                "View scheduling status and run maintenance tasks manually.",
+            )}
+        >
             <DataTableShell>
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="min-w-48">名称</TableHead>
-                            <TableHead className="min-w-64">描述</TableHead>
+                            <TableHead className="min-w-48">{t("名称", "Name")}</TableHead>
+                            <TableHead className="min-w-64">{t("描述", "Description")}</TableHead>
                             <TableHead className="min-w-36">Cron</TableHead>
-                            <TableHead className="min-w-28">状态</TableHead>
-                            <TableHead className="min-w-44">下次运行</TableHead>
-                            <TableHead className="min-w-44">上次完成</TableHead>
-                            <TableHead className="min-w-56">上次错误</TableHead>
-                            <TableHead className="w-28 text-right">操作</TableHead>
+                            <TableHead className="min-w-28">{t("状态", "Status")}</TableHead>
+                            <TableHead className="min-w-44">{t("下次运行", "Next run")}</TableHead>
+                            <TableHead className="min-w-44">
+                                {t("上次完成", "Last finished")}
+                            </TableHead>
+                            <TableHead className="min-w-56">
+                                {t("上次错误", "Last error")}
+                            </TableHead>
+                            <TableHead className="w-28 text-right">
+                                {t("操作", "Actions")}
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {rows.length > 0 ? (
                             rows.map((record) => (
                                 <TableRow key={record.taskKey}>
-                                    <TableCell className="font-medium">{record.name}</TableCell>
+                                    <TableCell className="font-medium">
+                                        {localizeBuiltInTaskName(record.taskKey, record.name)}
+                                    </TableCell>
                                     <TableCell className="max-w-72 truncate">
-                                        {record.description || "-"}
+                                        {localizeBuiltInTaskDescription(
+                                            record.taskKey,
+                                            record.description,
+                                        ) || "-"}
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant="outline">
@@ -97,7 +116,10 @@ function TaskPage() {
                                         <div className="flex justify-end gap-2">
                                             <TaskRunLogDialog
                                                 taskKey={record.taskKey}
-                                                taskName={record.name}
+                                                taskName={localizeBuiltInTaskName(
+                                                    record.taskKey,
+                                                    record.name,
+                                                )}
                                             />
                                             <AuthWrap code="manage:task:run">
                                                 <RunTaskDialog
@@ -110,19 +132,33 @@ function TaskPage() {
                                 </TableRow>
                             ))
                         ) : isPending ? (
-                            <DataTableState colSpan={8} kind="loading" title="正在加载任务" />
+                            <DataTableState
+                                colSpan={8}
+                                kind="loading"
+                                title={t("正在加载任务", "Loading tasks")}
+                            />
                         ) : error ? (
                             <DataTableState
                                 colSpan={8}
                                 kind="error"
-                                title="任务加载失败"
+                                title={t("任务加载失败", "Failed to load tasks")}
                                 description={
-                                    error instanceof Error ? error.message : "请稍后重试。"
+                                    error instanceof Error
+                                        ? error.message
+                                        : t("请稍后重试。", "Please try again later.")
                                 }
-                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                                action={
+                                    <Button onClick={() => void refetch()}>
+                                        {t("重新加载", "Reload")}
+                                    </Button>
+                                }
                             />
                         ) : (
-                            <DataTableState colSpan={8} kind="empty" title="暂无定时任务" />
+                            <DataTableState
+                                colSpan={8}
+                                kind="empty"
+                                title={t("暂无定时任务", "No scheduled tasks")}
+                            />
                         )}
                     </TableBody>
                 </Table>
@@ -147,25 +183,42 @@ function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: st
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button type="button" variant="ghost" size="icon-sm" aria-label="任务日志">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={t("任务日志", "Task logs")}
+                >
                     <HistoryIcon />
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-5xl">
                 <DialogHeader>
-                    <DialogTitle>任务日志 - {taskName}</DialogTitle>
-                    <DialogDescription>该任务最近的调度执行记录。</DialogDescription>
+                    <DialogTitle>
+                        {t(`任务日志 - ${taskName}`, `Task logs - ${taskName}`)}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {t("该任务最近的调度执行记录。", "Recent scheduled runs for this task.")}
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="max-h-120 overflow-auto rounded-md border">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="min-w-28">触发方式</TableHead>
-                                <TableHead className="min-w-28">状态</TableHead>
-                                <TableHead className="min-w-44">计划时间</TableHead>
-                                <TableHead className="min-w-44">开始时间</TableHead>
-                                <TableHead className="min-w-44">完成时间</TableHead>
-                                <TableHead className="min-w-56">错误</TableHead>
+                                <TableHead className="min-w-28">
+                                    {t("触发方式", "Trigger")}
+                                </TableHead>
+                                <TableHead className="min-w-28">{t("状态", "Status")}</TableHead>
+                                <TableHead className="min-w-44">
+                                    {t("计划时间", "Scheduled for")}
+                                </TableHead>
+                                <TableHead className="min-w-44">
+                                    {t("开始时间", "Started at")}
+                                </TableHead>
+                                <TableHead className="min-w-44">
+                                    {t("完成时间", "Finished at")}
+                                </TableHead>
+                                <TableHead className="min-w-56">{t("错误", "Error")}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -173,7 +226,9 @@ function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: st
                                 rows.map((record) => (
                                     <TableRow key={record.id}>
                                         <TableCell>
-                                            {record.triggerType === "manual" ? "手动" : "定时"}
+                                            {record.triggerType === "manual"
+                                                ? t("手动", "Manual")
+                                                : t("定时", "Scheduled")}
                                         </TableCell>
                                         <TableCell>
                                             <TaskStatusBadge status={record.status} />
@@ -190,22 +245,30 @@ function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: st
                                 <DataTableState
                                     colSpan={6}
                                     kind="loading"
-                                    title="正在加载任务日志"
+                                    title={t("正在加载任务日志", "Loading task logs")}
                                 />
                             ) : error ? (
                                 <DataTableState
                                     colSpan={6}
                                     kind="error"
-                                    title="任务日志加载失败"
+                                    title={t("任务日志加载失败", "Failed to load task logs")}
                                     description={
-                                        error instanceof Error ? error.message : "请稍后重试。"
+                                        error instanceof Error
+                                            ? error.message
+                                            : t("请稍后重试。", "Please try again later.")
                                     }
                                     action={
-                                        <Button onClick={() => void refetch()}>重新加载</Button>
+                                        <Button onClick={() => void refetch()}>
+                                            {t("重新加载", "Reload")}
+                                        </Button>
                                     }
                                 />
                             ) : (
-                                <DataTableState colSpan={6} kind="empty" title="暂无任务执行记录" />
+                                <DataTableState
+                                    colSpan={6}
+                                    kind="empty"
+                                    title={t("暂无任务执行记录", "No task runs")}
+                                />
                             )}
                         </TableBody>
                     </Table>
@@ -227,7 +290,7 @@ function TaskRunLogDialog({ taskKey, taskName }: { taskKey: string; taskName: st
 function RunTaskDialog({ record, onSuccess }: { record: Task.Item; onSuccess: () => void }) {
     const submit = async () => {
         await manageAPI.task.run(record.taskKey);
-        appMessage.success("任务执行已提交");
+        appMessage.success(t("任务执行已提交", "Task run submitted"));
         onSuccess();
     };
 
@@ -239,14 +302,20 @@ function RunTaskDialog({ record, onSuccess }: { record: Task.Item; onSuccess: ()
                     variant="ghost"
                     size="icon-sm"
                     disabled={record.running}
-                    aria-label={record.running ? "执行中" : "执行任务"}
+                    aria-label={record.running ? t("执行中", "Running") : t("执行任务", "Run task")}
                 >
                     <PlayCircleIcon />
                 </Button>
             }
-            title={`执行 ${record.name}？`}
-            description={record.description || "立即提交此任务。"}
-            confirmLabel="执行"
+            title={t(
+                `执行 ${localizeBuiltInTaskName(record.taskKey, record.name)}？`,
+                `Run ${localizeBuiltInTaskName(record.taskKey, record.name)}?`,
+            )}
+            description={
+                localizeBuiltInTaskDescription(record.taskKey, record.description) ||
+                t("立即提交此任务。", "Submit this task immediately.")
+            }
+            confirmLabel={t("执行", "Run")}
             disabled={record.running}
             onConfirm={submit}
         />

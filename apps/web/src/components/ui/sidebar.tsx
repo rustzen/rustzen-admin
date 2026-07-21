@@ -16,6 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
@@ -186,8 +187,10 @@ function Sidebar({
                     side={side}
                 >
                     <SheetHeader className="sr-only">
-                        <SheetTitle>侧边栏</SheetTitle>
-                        <SheetDescription>显示移动端侧边栏。</SheetDescription>
+                        <SheetTitle>{t("侧边栏", "Sidebar")}</SheetTitle>
+                        <SheetDescription>
+                            {t("显示移动端侧边栏。", "Displays the mobile sidebar.")}
+                        </SheetDescription>
                     </SheetHeader>
                     <div className="flex h-full w-full flex-col">{children}</div>
                 </SheetContent>
@@ -260,7 +263,7 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
             {...props}
         >
             <PanelLeftIcon />
-            <span className="sr-only">切换侧边栏</span>
+            <span className="sr-only">{t("切换侧边栏", "Toggle sidebar")}</span>
         </Button>
     );
 }
@@ -272,10 +275,10 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
         <button
             data-sidebar="rail"
             data-slot="sidebar-rail"
-            aria-label="切换侧边栏"
+            aria-label={t("切换侧边栏", "Toggle sidebar")}
             tabIndex={-1}
             onClick={toggleSidebar}
-            title="切换侧边栏"
+            title={t("切换侧边栏", "Toggle sidebar")}
             className={cn(
                 "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-inset-e-4 group-data-[side=right]:inset-s-0 after:absolute after:inset-y-0 after:inset-s-1/2 after:w-0.5 hover:after:bg-sidebar-border sm:flex",
                 "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",

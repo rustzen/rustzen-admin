@@ -17,6 +17,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { localizeModuleName } from "@/lib/builtin-i18n";
+import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/system/module")({
     component: SystemModulePage,
@@ -42,19 +44,32 @@ function SystemModulePage() {
         await queryClient.invalidateQueries({
             queryKey: ["system", "modules", "navigation"],
         });
-        appMessage.success(`${module.name} 已${enabled ? "启用" : "禁用"}`);
+        const moduleName = localizeModuleName(module.id, module.name);
+        appMessage.success(
+            enabled
+                ? t(`${moduleName} 已启用`, `${moduleName} enabled.`)
+                : t(`${moduleName} 已禁用`, `${moduleName} disabled.`),
+        );
     };
 
     return (
-        <PageCard title="系统模块" description="启用内置模块并查看当前运行状态。">
+        <PageCard
+            title={t("系统模块", "System modules")}
+            description={t(
+                "启用内置模块并查看当前运行状态。",
+                "Enable built-in modules and view their current runtime status.",
+            )}
+        >
             <DataTableShell>
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>模块</TableHead>
-                            <TableHead className="w-32">启用状态</TableHead>
-                            <TableHead className="w-36">健康状态</TableHead>
-                            <TableHead className="w-28 text-right">操作</TableHead>
+                            <TableHead>{t("模块", "Module")}</TableHead>
+                            <TableHead className="w-32">{t("启用状态", "Enabled")}</TableHead>
+                            <TableHead className="w-36">{t("健康状态", "Health")}</TableHead>
+                            <TableHead className="w-28 text-right">
+                                {t("操作", "Actions")}
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -62,14 +77,18 @@ function SystemModulePage() {
                             data.map((module) => (
                                 <TableRow key={module.id}>
                                     <TableCell>
-                                        <div className="font-medium">{module.name}</div>
+                                        <div className="font-medium">
+                                            {localizeModuleName(module.id, module.name)}
+                                        </div>
                                         <div className="text-xs text-muted-foreground">
                                             {module.id}
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={module.enabled ? "secondary" : "outline"}>
-                                            {module.enabled ? "已启用" : "已禁用"}
+                                            {module.enabled
+                                                ? t("已启用", "Enabled")
+                                                : t("已禁用", "Disabled")}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
@@ -86,16 +105,38 @@ function SystemModulePage() {
                                                             module.enabled ? "outline" : "default"
                                                         }
                                                     >
-                                                        {module.enabled ? "禁用" : "启用"}
+                                                        {module.enabled
+                                                            ? t("禁用", "Disable")
+                                                            : t("启用", "Enable")}
                                                     </Button>
                                                 }
-                                                title={`${module.enabled ? "禁用" : "启用"}${module.name}`}
+                                                title={
+                                                    module.enabled
+                                                        ? t(
+                                                              `禁用${localizeModuleName(module.id, module.name)}`,
+                                                              `Disable ${localizeModuleName(module.id, module.name)}`,
+                                                          )
+                                                        : t(
+                                                              `启用${localizeModuleName(module.id, module.name)}`,
+                                                              `Enable ${localizeModuleName(module.id, module.name)}`,
+                                                          )
+                                                }
                                                 description={
                                                     module.enabled
-                                                        ? `禁用 ${module.name} 并移除对应导航入口？`
-                                                        : `启用 ${module.name} 并恢复 Manifest 同步？`
+                                                        ? t(
+                                                              `禁用 ${localizeModuleName(module.id, module.name)} 并移除对应导航入口？`,
+                                                              `Disable ${localizeModuleName(module.id, module.name)} and remove its navigation entry?`,
+                                                          )
+                                                        : t(
+                                                              `启用 ${localizeModuleName(module.id, module.name)} 并恢复 Manifest 同步？`,
+                                                              `Enable ${localizeModuleName(module.id, module.name)} and restore manifest synchronization?`,
+                                                          )
                                                 }
-                                                confirmLabel={module.enabled ? "禁用" : "启用"}
+                                                confirmLabel={
+                                                    module.enabled
+                                                        ? t("禁用", "Disable")
+                                                        : t("启用", "Enable")
+                                                }
                                                 destructive={module.enabled}
                                                 onConfirm={() => updateEnabled(module)}
                                             />
@@ -104,19 +145,33 @@ function SystemModulePage() {
                                 </TableRow>
                             ))
                         ) : isPending ? (
-                            <DataTableState colSpan={4} kind="loading" title="正在加载模块" />
+                            <DataTableState
+                                colSpan={4}
+                                kind="loading"
+                                title={t("正在加载模块", "Loading modules")}
+                            />
                         ) : error ? (
                             <DataTableState
                                 colSpan={4}
                                 kind="error"
-                                title="模块加载失败"
+                                title={t("模块加载失败", "Failed to load modules")}
                                 description={
-                                    error instanceof Error ? error.message : "请稍后重试。"
+                                    error instanceof Error
+                                        ? error.message
+                                        : t("请稍后重试。", "Please try again later.")
                                 }
-                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                                action={
+                                    <Button onClick={() => void refetch()}>
+                                        {t("重新加载", "Reload")}
+                                    </Button>
+                                }
                             />
                         ) : (
-                            <DataTableState colSpan={4} kind="empty" title="暂无模块" />
+                            <DataTableState
+                                colSpan={4}
+                                kind="empty"
+                                title={t("暂无模块", "No modules")}
+                            />
                         )}
                     </TableBody>
                 </Table>
@@ -127,24 +182,24 @@ function SystemModulePage() {
 
 function ModuleHealthBadge({ module }: { module: SystemModule.Item }) {
     if (!module.enabled) {
-        return <Badge variant="outline">已禁用</Badge>;
+        return <Badge variant="outline">{t("已禁用", "Disabled")}</Badge>;
     }
     if (module.available) {
-        return <Badge>可用</Badge>;
+        return <Badge>{t("可用", "Available")}</Badge>;
     }
     if (module.compatible) {
-        return <Badge variant="secondary">不可用</Badge>;
+        return <Badge variant="secondary">{t("不可用", "Unavailable")}</Badge>;
     }
     if (module.releaseVersion) {
         return (
             <Badge variant="destructive" title={module.error ?? undefined}>
-                不兼容
+                {t("不兼容", "Incompatible")}
             </Badge>
         );
     }
     return (
         <Badge variant="destructive" title={module.error ?? undefined}>
-            未就绪
+            {t("未就绪", "Not ready")}
         </Badge>
     );
 }

@@ -18,6 +18,11 @@ declare namespace Role {
         menus: Api.OptionItem<number>[];
     }
 
+    interface OptionItem extends Api.OptionItem<number> {
+        code: string;
+        isSystem: boolean;
+    }
+
     // 查询参数
     interface QueryParams {
         current?: number;

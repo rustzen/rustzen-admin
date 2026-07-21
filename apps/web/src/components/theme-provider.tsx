@@ -2,6 +2,7 @@ import { MoonIcon, PaletteIcon, SunIcon } from "lucide-react";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { t } from "@/lib/i18n";
 
 export type Theme = "light" | "white" | "dark";
 
@@ -35,9 +36,9 @@ export function ThemeSwitch() {
     const nextTheme: Theme =
         context.theme === "light" ? "white" : context.theme === "white" ? "dark" : "light";
     const labels: Record<Theme, string> = {
-        light: "彩色玻璃",
-        white: "白色",
-        dark: "暗色",
+        light: t("彩色玻璃", "Colorful glass"),
+        white: t("白色", "White"),
+        dark: t("暗色", "Dark"),
     };
     const icon =
         context.theme === "light" ? (
@@ -53,7 +54,10 @@ export function ThemeSwitch() {
             type="button"
             variant="ghost"
             size="icon"
-            aria-label={`当前主题：${labels[context.theme]}。切换到${labels[nextTheme]}主题`}
+            aria-label={t(
+                `当前主题：${labels[context.theme]}。切换到${labels[nextTheme]}主题`,
+                `Current theme: ${labels[context.theme]}. Switch to ${labels[nextTheme]} theme`,
+            )}
             onClick={() => context.setTheme(nextTheme)}
         >
             {icon}

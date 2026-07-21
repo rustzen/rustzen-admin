@@ -4,6 +4,7 @@ import { LogOutIcon, UserIcon } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 
 import { appMessage, authAPI, systemAPI } from "@/api";
+import { LanguageSwitch } from "@/components/language-switch";
 import { ThemeSwitch } from "@/components/theme-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,8 @@ import {
     SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { APP_BRAND_NAME } from "@/constant/brand";
+import { localizeBuiltInUserName } from "@/lib/builtin-i18n";
+import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -81,7 +84,7 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
     const handleLogout = async () => {
         await authAPI.logout();
         clearAuth();
-        appMessage.success("退出登录成功");
+        appMessage.success(t("退出登录成功", "Signed out successfully"));
         void router.navigate({ to: "/login" });
     };
 
@@ -101,7 +104,7 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
                         <div className="grid min-w-0 text-left leading-tight group-data-[collapsible=icon]:hidden">
                             <span className="truncate text-sm font-semibold">{APP_BRAND_NAME}</span>
                             <span className="truncate text-xs text-muted-foreground">
-                                管理控制台
+                                {t("管理控制台", "Admin console")}
                             </span>
                         </div>
                     </Link>
@@ -124,11 +127,12 @@ export const BaseLayout = ({ children, hidden = false }: BaseLayoutProps) => {
                     <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium">
                             {currentPath === "/profile"
-                                ? "个人资料"
+                                ? t("个人资料", "Profile")
                                 : (currentPageTitle(menuData, currentPath) ?? APP_BRAND_NAME)}
                         </div>
                     </div>
                     <AppSearch routes={searchRoutes} onSelect={handleSearchSelect} />
+                    <LanguageSwitch />
                     <ThemeSwitch />
                     <UserMenuTrigger userInfo={userInfo} onLogout={handleLogout} />
                 </header>
@@ -217,10 +221,14 @@ const UserMenu = ({
                         <UserAvatar userInfo={userInfo} />
                         <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
                             <span className="truncate font-medium">
-                                {userInfo?.realName || userInfo?.username || "账号"}
+                                {userInfo?.isSystem
+                                    ? localizeBuiltInUserName(userInfo.username, userInfo.realName)
+                                    : userInfo?.realName ||
+                                      userInfo?.username ||
+                                      t("账号", "Account")}
                             </span>
                             <span className="truncate text-xs text-muted-foreground">
-                                {userInfo?.username || "个人资料"}
+                                {userInfo?.username || t("个人资料", "Profile")}
                             </span>
                         </div>
                     </SidebarMenuButton>
@@ -242,7 +250,7 @@ const UserMenuTrigger = ({
         <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="size-9 rounded-full p-0">
                 <UserAvatar userInfo={userInfo} />
-                <span className="sr-only">打开账号菜单</span>
+                <span className="sr-only">{t("打开账号菜单", "Open account menu")}</span>
             </Button>
         </DropdownMenuTrigger>
         <UserMenuContent userInfo={userInfo} onLogout={onLogout} />
@@ -260,10 +268,12 @@ const UserMenuContent = ({
         <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col gap-1">
                 <p className="text-sm font-medium leading-none">
-                    {userInfo?.realName || userInfo?.username || "账号"}
+                    {userInfo?.isSystem
+                        ? localizeBuiltInUserName(userInfo.username, userInfo.realName)
+                        : userInfo?.realName || userInfo?.username || t("账号", "Account")}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
-                    {userInfo?.username || "个人资料"}
+                    {userInfo?.username || t("个人资料", "Profile")}
                 </p>
             </div>
         </DropdownMenuLabel>
@@ -272,14 +282,14 @@ const UserMenuContent = ({
             <DropdownMenuItem asChild>
                 <Link to="/profile">
                     <UserIcon />
-                    个人资料
+                    {t("个人资料", "Profile")}
                 </Link>
             </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onLogout} variant="destructive">
             <LogOutIcon />
-            退出登录
+            {t("退出登录", "Sign out")}
         </DropdownMenuItem>
     </DropdownMenuContent>
 );

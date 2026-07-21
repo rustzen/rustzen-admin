@@ -121,7 +121,14 @@ impl MenuService {
         Ok(MenuRepository::list_menu_options(pool, query.q.as_deref(), query.limit)
             .await?
             .into_iter()
-            .map(|(id, name, code)| MenuOptionResp { label: name, value: id, code })
+            .map(|(id, name, code, is_system, module_id, module_menu_code)| MenuOptionResp {
+                label: name,
+                value: id,
+                code,
+                is_system,
+                module_id,
+                module_menu_code,
+            })
             .collect())
     }
 }

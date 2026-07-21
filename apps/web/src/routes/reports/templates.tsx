@@ -37,6 +37,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/reports/templates")({ component: FlowsPage });
 const example: Reports.FlowStep[] = [
     { action: "goto", url: "/login" },
@@ -67,18 +68,21 @@ function FlowsPage() {
         mutationFn: (flow: Reports.Flow) =>
             reportsAPI.createFlow({
                 systemId: flow.systemId,
-                name: `${flow.name} 副本`,
+                name: t(`${flow.name} 副本`, `${flow.name} copy`),
                 steps: flow.steps,
             }),
         onSuccess: async () => {
             await refresh();
-            appMessage.success("流程已复制");
+            appMessage.success(t("流程已复制", "Template copied"));
         },
     });
     return (
         <PageCard
-            title="报表模板"
-            description="定义每个填报流程使用的目标系统和已验证步骤。"
+            title={t("报表模板", "Report templates")}
+            description={t(
+                "定义每个填报流程使用的目标系统和已验证步骤。",
+                "Define the target system and verified steps for each report workflow.",
+            )}
             actions={
                 <div className="flex gap-2">
                     <AuthWrap code="reports:system:manage">
@@ -94,11 +98,11 @@ function FlowsPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>名称</TableHead>
-                            <TableHead>系统</TableHead>
-                            <TableHead>步骤</TableHead>
-                            <TableHead>更新时间</TableHead>
-                            <TableHead className="text-right">操作</TableHead>
+                            <TableHead>{t("名称", "Name")}</TableHead>
+                            <TableHead>{t("系统", "System")}</TableHead>
+                            <TableHead>{t("步骤", "Steps")}</TableHead>
+                            <TableHead>{t("更新时间", "Updated at")}</TableHead>
+                            <TableHead className="text-right">{t("操作", "Actions")}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -125,7 +129,7 @@ function FlowsPage() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon-sm"
-                                                    aria-label="复制流程"
+                                                    aria-label={t("复制流程", "Copy template")}
                                                     onClick={() => clone.mutate(flow)}
                                                 >
                                                     <CopyIcon />
@@ -135,14 +139,20 @@ function FlowsPage() {
                                                         <Button
                                                             variant="ghost-destructive"
                                                             size="icon-sm"
-                                                            aria-label="删除流程"
+                                                            aria-label={t(
+                                                                "删除流程",
+                                                                "Delete template",
+                                                            )}
                                                         >
                                                             <Trash2Icon />
                                                         </Button>
                                                     }
-                                                    title="删除流程？"
-                                                    description="已有填报执行必须不再引用该流程。"
-                                                    confirmLabel="删除"
+                                                    title={t("删除流程？", "Delete template?")}
+                                                    description={t(
+                                                        "已有填报执行必须不再引用该流程。",
+                                                        "Existing report runs must no longer reference this template.",
+                                                    )}
+                                                    confirmLabel={t("删除", "Delete")}
                                                     destructive
                                                     onConfirm={() =>
                                                         reportsAPI
@@ -157,21 +167,35 @@ function FlowsPage() {
                                 </TableRow>
                             ))
                         ) : isPending ? (
-                            <DataTableState colSpan={5} kind="loading" title="正在加载报表模板" />
+                            <DataTableState
+                                colSpan={5}
+                                kind="loading"
+                                title={t("正在加载报表模板", "Loading report templates")}
+                            />
                         ) : error ? (
                             <DataTableState
                                 colSpan={5}
                                 kind="error"
-                                title="报表模板加载失败"
-                                description="无法读取模板，请检查 Reports 服务后重试。"
-                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                                title={t("报表模板加载失败", "Failed to load report templates")}
+                                description={t(
+                                    "无法读取模板，请检查 Reports 服务后重试。",
+                                    "Unable to read templates. Check the Reports service and try again.",
+                                )}
+                                action={
+                                    <Button onClick={() => void refetch()}>
+                                        {t("重新加载", "Reload")}
+                                    </Button>
+                                }
                             />
                         ) : (
                             <DataTableState
                                 colSpan={5}
                                 kind="empty"
-                                title="暂无报表模板"
-                                description="先添加目标系统，再创建包含已验证步骤的填报模板。"
+                                title={t("暂无报表模板", "No report templates")}
+                                description={t(
+                                    "先添加目标系统，再创建包含已验证步骤的填报模板。",
+                                    "Add a target system, then create a report template with verified steps.",
+                                )}
                             />
                         )}
                     </TableBody>
@@ -190,7 +214,7 @@ function TargetDialog({ onSaved }: { onSaved: () => Promise<unknown> }) {
             reportsAPI.createSystem({ name: name.trim(), baseUrl: baseUrl.trim(), enabled: true }),
         onSuccess: async () => {
             await onSaved();
-            appMessage.success("目标系统已添加");
+            appMessage.success(t("目标系统已添加", "Target system added"));
             setOpen(false);
         },
     });
@@ -199,23 +223,26 @@ function TargetDialog({ onSaved }: { onSaved: () => Promise<unknown> }) {
             <DialogTrigger asChild>
                 <Button variant="outline">
                     <Globe2Icon />
-                    添加目标系统
+                    {t("添加目标系统", "Add target system")}
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>添加报表目标</DialogTitle>
+                    <DialogTitle>{t("添加报表目标", "Add report target")}</DialogTitle>
                     <DialogDescription>
-                        Templates can only navigate within this trusted origin.
+                        {t(
+                            "模板只能在这个可信来源内导航。",
+                            "Templates can only navigate within this trusted origin.",
+                        )}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4">
                     <div className="grid gap-2">
-                        <Label>名称</Label>
+                        <Label>{t("名称", "Name")}</Label>
                         <Input value={name} onChange={(event) => setName(event.target.value)} />
                     </div>
                     <div className="grid gap-2">
-                        <Label>基础地址</Label>
+                        <Label>{t("基础地址", "Base URL")}</Label>
                         <Input
                             value={baseUrl}
                             placeholder="https://example.com"
@@ -228,7 +255,7 @@ function TargetDialog({ onSaved }: { onSaved: () => Promise<unknown> }) {
                         disabled={!name.trim() || !baseUrl.trim() || mutation.isPending}
                         onClick={() => mutation.mutate()}
                     >
-                        添加目标系统
+                        {t("添加目标系统", "Add target system")}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -260,7 +287,9 @@ function FlowDialog({
             flow ? reportsAPI.updateFlow(flow.id, input) : reportsAPI.createFlow(input),
         onSuccess: async () => {
             await onSaved();
-            appMessage.success(flow ? "流程已更新" : "流程已创建");
+            appMessage.success(
+                flow ? t("流程已更新", "Template updated") : t("流程已创建", "Template created"),
+            );
             setOpen(false);
         },
     });
@@ -270,7 +299,7 @@ function FlowDialog({
             if (!Array.isArray(steps)) throw new Error();
             mutation.mutate({ name, systemId, steps });
         } catch {
-            appMessage.error("步骤必须是有效的 JSON 数组");
+            appMessage.error(t("步骤必须是有效的 JSON 数组", "Steps must be a valid JSON array"));
         }
     };
     return (
@@ -286,26 +315,33 @@ function FlowDialog({
                     ) : (
                         <>
                             <PlusIcon />
-                            新建模板
+                            {t("新建模板", "New template")}
                         </>
                     )}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>{flow ? "编辑模板" : "新建报表模板"}</DialogTitle>
+                    <DialogTitle>
+                        {flow
+                            ? t("编辑模板", "Edit template")
+                            : t("新建报表模板", "New report template")}
+                    </DialogTitle>
                     <DialogDescription>
-                        支持的动作：goto、fill、click、waitFor、assertText、screenshot。
+                        {t(
+                            "支持的动作：goto、fill、click、waitFor、assertText、screenshot。",
+                            "Supported actions: goto, fill, click, waitFor, assertText, screenshot.",
+                        )}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="grid gap-2">
-                            <Label>名称</Label>
+                            <Label>{t("名称", "Name")}</Label>
                             <Input value={name} onChange={(e) => setName(e.target.value)} />
                         </div>
                         <div className="grid gap-2">
-                            <Label>系统</Label>
+                            <Label>{t("系统", "System")}</Label>
                             <Select value={systemId} onValueChange={setSystemId}>
                                 <SelectTrigger className="w-full">
                                     <SelectValue />
@@ -321,7 +357,7 @@ function FlowDialog({
                         </div>
                     </div>
                     <div className="grid gap-2">
-                        <Label>步骤 JSON</Label>
+                        <Label>{t("步骤 JSON", "Steps JSON")}</Label>
                         <Textarea
                             className="min-h-80 font-mono text-xs"
                             value={json}
@@ -331,7 +367,7 @@ function FlowDialog({
                 </div>
                 <DialogFooter>
                     <Button disabled={!name || !systemId || mutation.isPending} onClick={save}>
-                        校验并保存
+                        {t("校验并保存", "Validate and save")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

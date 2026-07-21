@@ -4,6 +4,7 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { accountAPI, appMessage } from "@/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { t } from "@/lib/i18n";
 import { useAuthStore } from "@/store/useAuthStore";
 
 const MAX_AVATAR_SIZE = 1024 * 1024;
@@ -22,11 +23,13 @@ export const UserAvatar = () => {
         }
 
         if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
-            appMessage.error("只能上传 JPG/JPEG/PNG 文件！");
+            appMessage.error(
+                t("只能上传 JPG/JPEG/PNG 文件！", "Only JPG, JPEG, and PNG files are supported."),
+            );
             return;
         }
         if (file.size > MAX_AVATAR_SIZE) {
-            appMessage.error("图片必须小于 1MB！");
+            appMessage.error(t("图片必须小于 1MB！", "The image must be smaller than 1 MB."));
             return;
         }
 
@@ -34,7 +37,7 @@ export const UserAvatar = () => {
         try {
             const avatarUrl = await accountAPI.updateAvatar({ file });
             updateAvatar(avatarUrl);
-            appMessage.success("头像已更新");
+            appMessage.success(t("头像已更新", "Avatar updated"));
         } finally {
             setUploading(false);
         }
@@ -63,11 +66,11 @@ export const UserAvatar = () => {
                 onClick={() => inputRef.current?.click()}
             >
                 <UploadIcon data-icon="inline-start" />
-                {uploading ? "正在上传" : "上传头像"}
+                {uploading ? t("正在上传", "Uploading") : t("上传头像", "Upload avatar")}
             </Button>
             <div className="text-sm text-muted-foreground">
-                <div>格式：JPG、PNG、JPEG</div>
-                <div>大小：小于 1 MB</div>
+                <div>{t("格式：JPG、PNG、JPEG", "Format: JPG, PNG, JPEG")}</div>
+                <div>{t("大小：小于 1 MB", "Size: under 1 MB")}</div>
             </div>
         </div>
     );

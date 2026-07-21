@@ -1,56 +1,54 @@
 # rustzen-admin
 
-`rustzen-admin` provides the RustZen Admin, Monitor, Insights, and Reports
-runtime in one source repository and one signed release bundle.
+简体中文 | [English](./README-en.md)
 
-A structured monorepo starting point for Rust full-stack admin systems.
+`rustzen-admin` 在一个源码仓库和一个签名发布包中提供 RustZen Admin、Monitor、Insights 和 Reports 运行时。
 
-> `rustzen-admin` combines an Axum backend, a React frontend, shared crates,
-> deployment assets, and repository-level documentation in a single codebase
-> designed for clear boundaries, maintainability, and AI-friendly collaboration.
+这是一个面向 Rust 全栈管理系统的结构化 monorepo 工程起点。
 
-## Overview
+> `rustzen-admin` 将 Axum 后端、React 前端、共享 crate、部署资产和仓库级文档组织在同一个代码库中，强调清晰边界、可维护性，以及对 AI 协作友好的工程结构。
 
-`rustzen-admin` is an open-source full-stack admin template built for real-world
-projects, not just isolated UI demos.
+## 概览
 
-The repository is organized as a monorepo:
+`rustzen-admin` 是一个面向真实项目的开源全栈管理后台工程模板，而不只是孤立的 UI 演示。
 
-- `crates/auth/` contains shared auth and permission capabilities for Rust services
-- `crates/ipc/` contains the shared Manifest, route, and HMAC delegation contract
-- `crates/storage/` contains shared SQLite pool and maintenance primitives
-- `apps/admin/` contains the Admin API, gateway, RBAC, release management, and Web asset host
-- `apps/monitor/` powers Monitoring and the optional managed-node Agent
-- `apps/insights/` powers product Analytics and its public tracker
-- `apps/reports/` powers report templates, filling runs, and live execution views
-- `apps/web/` contains the React frontend application
-- `deploy/` contains deployment assets and release support files
-- `docs/` contains repository-level architecture and development guides
-- the root keeps shared commands, workspace metadata, and collaboration entry documents
+仓库采用 monorepo 组织方式：
 
-This layout keeps backend, frontend, and repository rules explicit, making the codebase easier to understand, review, and evolve.
+- `crates/auth/` 包含 Rust 服务共享的认证与权限能力
+- `crates/ipc/` 包含共享 Manifest、路由和 HMAC 委托契约
+- `crates/storage/` 包含共享 SQLite 连接池和维护能力
+- `apps/admin/` 包含 Admin API、网关、RBAC、发布管理和 Web 资源托管
+- `apps/monitor/` 提供监控能力和可选的受管节点 Agent
+- `apps/insights/` 提供产品分析和公共追踪脚本
+- `apps/reports/` 提供报表模板、填报执行和实时运行视图
+- `apps/web/` 包含 React 前端应用
+- `deploy/` 包含部署资产和发布支持文件
+- `docs/` 包含仓库级架构与开发指南
+- 仓库根目录保存共享命令、工作区元数据和协作入口文档
 
-## Screenshots
+该结构明确了后端、前端和仓库规则，便于理解、审查和持续演进。
 
-| Dashboard | Scheduled Tasks |
+## 截图
+
+| 仪表盘 | 定时任务 |
 | --- | --- |
-| ![Dashboard](./docs/assets/screenshots/dashboard.jpg) | ![Scheduled Tasks](./docs/assets/screenshots/scheduled-tasks.jpg) |
+| ![仪表盘](./docs/assets/screenshots/dashboard.jpg) | ![定时任务](./docs/assets/screenshots/scheduled-tasks.jpg) |
 
-| Deploy Versions | Operation Logs |
+| 部署版本 | 操作日志 |
 | --- | --- |
-| ![Deploy Versions](./docs/assets/screenshots/deploy-versions.jpg) | ![Operation Logs](./docs/assets/screenshots/operation-logs.jpg) |
+| ![部署版本](./docs/assets/screenshots/deploy-versions.jpg) | ![操作日志](./docs/assets/screenshots/operation-logs.jpg) |
 
-## Repository Layout
+## 仓库结构
 
-→ Architecture summary: [docs/architecture.md](./docs/architecture.md)
+→ 架构概览：[docs/architecture.md](./docs/architecture.md)
 
-## Documentation
+## 文档
 
-→ Complete documentation index: [docs/README.md](./docs/README.md)
+→ 完整文档索引：[docs/README.md](./docs/README.md)
 
-## Command Source
+## 命令入口
 
-Use the root `justfile` as the command source of truth; inspect the relevant target before running it.
+根目录 `justfile` 是命令的事实来源；执行前请先查看对应目标。
 
 ```bash
 cargo run -p rustzen-admin -- serve
@@ -59,38 +57,31 @@ cargo run -p rustzen-insights -- serve
 cargo run -p rustzen-reports -- serve
 ```
 
-Local startup is SQLite-first and does not require PostgreSQL.
-SQLite connection primitives, role policy, runtime layout, and logging are owned
-inside this repository; there is no `rustzen-core` runtime dependency.
-Local development needs no `.env`: database paths, ports, connection-pool
-limits, runtime paths, logging, timezone, JWT lifetime, and development-only
-JWT/IPC secrets have built-in defaults. Use environment variables only to
-override those defaults.
+本地启动默认使用 SQLite，不需要 PostgreSQL。
+SQLite 连接能力、角色策略、运行时目录和日志均由本仓库维护，不依赖 `rustzen-core` 运行时。
+本地开发不需要 `.env`：数据库路径、端口、连接池限制、运行目录、日志、时区、JWT 有效期，以及仅用于开发的 JWT/IPC 密钥均有内置默认值。环境变量只用于覆盖这些默认值。
 
-If startup fails with `VersionMismatch`, your local database schema is out-of-date with current migration checksums. Run:
+如果启动出现 `VersionMismatch`，说明本地数据库结构与当前初始化 SQL 校验和不一致。请执行：
 
 ```bash
 just reset-db
 cargo run -p rustzen-admin -- serve
 ```
 
-If startup succeeds, the database will be recreated automatically.
+再次启动后会自动重建数据库。
 
-## Demo
+## 演示环境
 
-- Local demo URL: [https://admin.rustzen.dev](https://admin.rustzen.dev)
-- Demo username: `owner`
-- Demo password: `rustzen@123`
+- 本地演示地址：[https://admin.rustzen.dev](https://admin.rustzen.dev)
+- 演示用户名：`owner`
+- 演示密码：`rustzen@123`
 
-## Notes
+## 说明
 
-- `README.md` and `AGENTS.md` stay as lightweight entry documents.
-- `docs/history/` contains historical execution records and is not current implementation truth.
+- `README.md` 和 `AGENTS.md` 只保留轻量入口信息。
+- `docs/history/` 保存历史执行记录，不是当前实现事实来源。
 
-## License and Trademark
+## 许可证与商标
 
-Source code is licensed under the [Apache License 2.0](./LICENSE.md). Commercial
-use, modification, and distribution are permitted subject to that license.
-Rustzen names, logos, domains, official package namespaces, and official
-distribution channels are not included in the software license. See
-[NOTICE.md](./NOTICE.md) and [TRADEMARKS.md](./TRADEMARKS.md).
+源代码采用 [Apache License 2.0](./LICENSE.md) 许可，可在该许可证约束下进行商业使用、修改和分发。
+Rustzen 名称、Logo、域名、官方包命名空间和官方分发渠道不包含在软件许可证授权范围内。详见 [NOTICE.md](./NOTICE.md) 和 [TRADEMARKS.md](./TRADEMARKS.md)。

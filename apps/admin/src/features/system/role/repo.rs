@@ -209,10 +209,10 @@ impl RoleRepository {
         pool: &SqlitePool,
         search_query: Option<&str>,
         limit: Option<i64>,
-    ) -> Result<Vec<(i64, String)>, ServiceError> {
+    ) -> Result<Vec<(i64, String, String, bool)>, ServiceError> {
         fetch_with_filters(
             pool,
-            "SELECT id, name FROM roles WHERE status = 1 AND deleted_at IS NULL",
+            "SELECT id, name, code, is_system FROM roles WHERE status = 1 AND deleted_at IS NULL",
             |query_builder| {
                 push_ilike(query_builder, "name", search_query);
             },

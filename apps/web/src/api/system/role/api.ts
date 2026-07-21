@@ -37,7 +37,7 @@ export const roleAPI = {
         });
     },
     options: () => {
-        return apiRequest<Api.OptionItem<number>[]>({
+        return apiRequest<Role.OptionItem[]>({
             url: "/api/system/roles/options",
         });
     },

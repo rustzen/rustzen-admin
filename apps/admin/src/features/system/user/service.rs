@@ -40,8 +40,25 @@ impl UserService {
         let repo_query = UserListQuery { username, status, real_name, email };
 
         let (users, total) = UserRepository::list_users(pool, offset, limit, repo_query).await?;
+        let mut users =
+            users.into_iter().map(UserItemResp::try_from).collect::<Result<Vec<_>, _>>()?;
+        let role_ids = users
+            .iter()
+            .flat_map(|user| user.roles.iter().map(|role| role.value))
+            .collect::<Vec<_>>();
+        let role_identities = UserRepository::list_role_identities_by_ids(pool, &role_ids)
+            .await?
+            .into_iter()
+            .map(|(id, code, is_system)| (id, (code, is_system)))
+            .collect::<std::collections::HashMap<_, _>>();
+        for role in users.iter_mut().flat_map(|user| &mut user.roles) {
+            if let Some((code, is_system)) = role_identities.get(&role.value) {
+                role.code.clone_from(code);
+                role.is_system = *is_system;
+            }
+        }
 
-        Ok((users.into_iter().map(UserItemResp::try_from).collect::<Result<Vec<_>, _>>()?, total))
+        Ok((users, total))
     }
 
     /// Create user

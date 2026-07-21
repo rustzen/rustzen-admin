@@ -49,6 +49,8 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { ENABLE_OPTIONS } from "@/constant/options";
+import { localizeBuiltInRoleName, localizeBuiltInUserName } from "@/lib/builtin-i18n";
+import { t } from "@/lib/i18n";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export const Route = createFileRoute("/system/user")({
@@ -61,10 +63,10 @@ const statusMeta: Record<
     number,
     { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
 > = {
-    1: { label: "启用", variant: "secondary" },
-    2: { label: "禁用", variant: "outline" },
-    3: { label: "待审核", variant: "default" },
-    4: { label: "已锁定", variant: "destructive" },
+    1: { label: t("启用", "Enabled"), variant: "secondary" },
+    2: { label: t("禁用", "Disabled"), variant: "outline" },
+    3: { label: t("待审核", "Pending"), variant: "default" },
+    4: { label: t("已锁定", "Locked"), variant: "destructive" },
 };
 
 const formatResetDateSuffix = (date: Date) => {
@@ -144,14 +146,17 @@ function UserPage() {
 
     return (
         <PageCard
-            title="用户列表"
-            description="管理账号、角色和账号状态。"
+            title={t("用户列表", "Users")}
+            description={t(
+                "管理账号、角色和账号状态。",
+                "Manage accounts, roles, and account status.",
+            )}
             actions={
                 <AuthWrap code="system:user:create">
                     <UserDialog mode="create" onSuccess={refresh}>
                         <Button>
                             <PlusIcon data-icon="inline-start" />
-                            新建用户
+                            {t("新建用户", "New user")}
                         </Button>
                     </UserDialog>
                 </AuthWrap>
@@ -159,30 +164,33 @@ function UserPage() {
             toolbar={
                 <form className="grid gap-3 md:grid-cols-5" onSubmit={search}>
                     <Input
-                        aria-label="用户名"
+                        aria-label={t("用户名", "Username")}
                         value={username}
-                        placeholder="用户名"
+                        placeholder={t("用户名", "Username")}
                         onChange={(event) => setUsername(event.target.value)}
                     />
                     <Input
-                        aria-label="邮箱"
+                        aria-label={t("邮箱", "Email")}
                         value={email}
-                        placeholder="邮箱"
+                        placeholder={t("邮箱", "Email")}
                         onChange={(event) => setEmail(event.target.value)}
                     />
                     <Input
-                        aria-label="真实姓名"
+                        aria-label={t("真实姓名", "Real name")}
                         value={realName}
-                        placeholder="真实姓名"
+                        placeholder={t("真实姓名", "Real name")}
                         onChange={(event) => setRealName(event.target.value)}
                     />
                     <Select value={status} onValueChange={setStatus}>
-                        <SelectTrigger className="w-full" aria-label="账号状态">
-                            <SelectValue placeholder="状态" />
+                        <SelectTrigger
+                            className="w-full"
+                            aria-label={t("账号状态", "Account status")}
+                        >
+                            <SelectValue placeholder={t("状态", "Status")} />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
-                                <SelectItem value="all">全部状态</SelectItem>
+                                <SelectItem value="all">{t("全部状态", "All statuses")}</SelectItem>
                                 {ENABLE_OPTIONS.map((item) => (
                                     <SelectItem key={item.value} value={String(item.value)}>
                                         {item.label}
@@ -193,7 +201,7 @@ function UserPage() {
                     </Select>
                     <div className="flex gap-2">
                         <Button type="submit" disabled={isFetching}>
-                            查询
+                            {t("查询", "Search")}
                         </Button>
                         <Button
                             type="button"
@@ -201,7 +209,7 @@ function UserPage() {
                             disabled={isFetching}
                             onClick={reset}
                         >
-                            重置
+                            {t("重置", "Reset")}
                         </Button>
                     </div>
                 </form>
@@ -212,15 +220,21 @@ function UserPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-16">ID</TableHead>
-                            <TableHead className="w-20">头像</TableHead>
-                            <TableHead className="min-w-36">用户名</TableHead>
-                            <TableHead className="min-w-48">邮箱</TableHead>
-                            <TableHead className="min-w-36">真实姓名</TableHead>
-                            <TableHead className="min-w-28">状态</TableHead>
-                            <TableHead className="min-w-48">角色</TableHead>
-                            <TableHead className="min-w-44">最后登录</TableHead>
-                            <TableHead className="min-w-44">更新时间</TableHead>
-                            <TableHead className="w-20 text-right">操作</TableHead>
+                            <TableHead className="w-20">{t("头像", "Avatar")}</TableHead>
+                            <TableHead className="min-w-36">{t("用户名", "Username")}</TableHead>
+                            <TableHead className="min-w-48">{t("邮箱", "Email")}</TableHead>
+                            <TableHead className="min-w-36">{t("真实姓名", "Real name")}</TableHead>
+                            <TableHead className="min-w-28">{t("状态", "Status")}</TableHead>
+                            <TableHead className="min-w-48">{t("角色", "Roles")}</TableHead>
+                            <TableHead className="min-w-44">
+                                {t("最后登录", "Last sign-in")}
+                            </TableHead>
+                            <TableHead className="min-w-44">
+                                {t("更新时间", "Updated at")}
+                            </TableHead>
+                            <TableHead className="w-20 text-right">
+                                {t("操作", "Actions")}
+                            </TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -241,12 +255,25 @@ function UserPage() {
                                     </TableCell>
                                     <TableCell>{record.username}</TableCell>
                                     <TableCell>{record.email}</TableCell>
-                                    <TableCell>{record.realName || "-"}</TableCell>
+                                    <TableCell>
+                                        {record.isSystem
+                                            ? localizeBuiltInUserName(
+                                                  record.username,
+                                                  record.realName,
+                                              )
+                                            : record.realName || "-"}
+                                    </TableCell>
                                     <TableCell>
                                         <UserStatusBadge status={record.status} />
                                     </TableCell>
                                     <TableCell className="max-w-64 truncate">
-                                        {record.roles.map((role) => role.label).join(", ") || "-"}
+                                        {record.roles
+                                            .map((role) =>
+                                                role.isSystem
+                                                    ? localizeBuiltInRoleName(role.code, role.label)
+                                                    : role.label,
+                                            )
+                                            .join(", ") || "-"}
                                     </TableCell>
                                     <TableCell>{formatDateTime(record.lastLoginAt)}</TableCell>
                                     <TableCell>{formatDateTime(record.updatedAt)}</TableCell>
@@ -260,19 +287,33 @@ function UserPage() {
                                 </TableRow>
                             ))
                         ) : isPending ? (
-                            <DataTableState colSpan={10} kind="loading" title="正在加载用户" />
+                            <DataTableState
+                                colSpan={10}
+                                kind="loading"
+                                title={t("正在加载用户", "Loading users")}
+                            />
                         ) : error ? (
                             <DataTableState
                                 colSpan={10}
                                 kind="error"
-                                title="用户加载失败"
+                                title={t("用户加载失败", "Failed to load users")}
                                 description={
-                                    error instanceof Error ? error.message : "请稍后重试。"
+                                    error instanceof Error
+                                        ? error.message
+                                        : t("请稍后重试。", "Please try again later.")
                                 }
-                                action={<Button onClick={() => void refetch()}>重新加载</Button>}
+                                action={
+                                    <Button onClick={() => void refetch()}>
+                                        {t("重新加载", "Reload")}
+                                    </Button>
+                                }
                             />
                         ) : (
-                            <DataTableState colSpan={10} kind="empty" title="暂无用户" />
+                            <DataTableState
+                                colSpan={10}
+                                kind="empty"
+                                title={t("暂无用户", "No users")}
+                            />
                         )}
                     </TableBody>
                 </Table>
@@ -305,23 +346,49 @@ function UserActions({
         <div className="flex justify-end gap-2">
             <AuthWrap code="system:user:update">
                 <UserDialog mode="edit" initialValues={record} onSuccess={onSuccess}>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label="编辑用户">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("编辑用户", "Edit user")}
+                    >
                         <EditIcon />
                     </Button>
                 </UserDialog>
             </AuthWrap>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label="更多用户操作">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("更多用户操作", "More user actions")}
+                    >
                         <MoreHorizontalIcon />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <AuthWrap code="system:user:status">
                         <UserActionDialog
-                            title={record.status === 1 ? "禁用用户" : "启用用户"}
-                            description={`确定${record.status === 1 ? "禁用" : "启用"}用户 ${record.username}？`}
-                            actionLabel={record.status === 1 ? "禁用" : "启用"}
+                            title={
+                                record.status === 1
+                                    ? t("禁用用户", "Disable user")
+                                    : t("启用用户", "Enable user")
+                            }
+                            description={
+                                record.status === 1
+                                    ? t(
+                                          `确定禁用用户 ${record.username}？`,
+                                          `Disable user ${record.username}?`,
+                                      )
+                                    : t(
+                                          `确定启用用户 ${record.username}？`,
+                                          `Enable user ${record.username}?`,
+                                      )
+                            }
+                            actionLabel={
+                                record.status === 1 ? t("禁用", "Disable") : t("启用", "Enable")
+                            }
                             onConfirm={async () => {
                                 await systemAPI.user.status(record.id, record.status === 1 ? 2 : 1);
                                 onSuccess();
@@ -330,22 +397,30 @@ function UserActions({
                     </AuthWrap>
                     <AuthWrap code="system:user:password">
                         <UserActionDialog
-                            title="重置密码"
-                            description={`确定重置用户 ${record.username} 的密码吗？`}
-                            actionLabel="重置密码"
+                            title={t("重置密码", "Reset password")}
+                            description={t(
+                                `确定重置用户 ${record.username} 的密码吗？`,
+                                `Reset the password for user ${record.username}?`,
+                            )}
+                            actionLabel={t("重置密码", "Reset password")}
                             onConfirm={async () => {
                                 const password = buildResetPassword(record.username);
                                 await systemAPI.user.password(record.id, password);
-                                appMessage.success(`密码已重置为 ${password}`);
+                                appMessage.success(
+                                    t(`密码已重置为 ${password}`, `Password reset to ${password}`),
+                                );
                                 onSuccess();
                             }}
                         />
                     </AuthWrap>
                     <AuthWrap code="system:user:delete">
                         <UserActionDialog
-                            title="删除用户"
-                            description={`确定删除用户 ${record.username}？此操作无法撤销。`}
-                            actionLabel="删除用户"
+                            title={t("删除用户", "Delete user")}
+                            description={t(
+                                `确定删除用户 ${record.username}？此操作无法撤销。`,
+                                `Delete user ${record.username}? This action cannot be undone.`,
+                            )}
+                            actionLabel={t("删除用户", "Delete user")}
                             destructive
                             onConfirm={async () => {
                                 await systemAPI.user.delete(record.id);
@@ -400,23 +475,27 @@ const UserDialog = ({ children, initialValues, mode = "create", onSuccess }: Use
         const trimmedPassword = password.trim();
 
         if (mode === "create" && trimmedUsername.length < 3) {
-            appMessage.error("用户名至少需要 3 个字符");
+            appMessage.error(
+                t("用户名至少需要 3 个字符", "The username must be at least 3 characters."),
+            );
             return;
         }
         if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-            appMessage.error("请输入有效的邮箱");
+            appMessage.error(t("请输入有效的邮箱", "Enter a valid email address."));
             return;
         }
         if (!trimmedRealName) {
-            appMessage.error("请输入真实姓名");
+            appMessage.error(t("请输入真实姓名", "Enter the real name."));
             return;
         }
         if (mode === "create" && trimmedPassword.length < 6) {
-            appMessage.error("密码至少需要 6 个字符");
+            appMessage.error(
+                t("密码至少需要 6 个字符", "The password must be at least 6 characters."),
+            );
             return;
         }
         if (roleIds.length === 0) {
-            appMessage.error("请至少选择一个角色");
+            appMessage.error(t("请至少选择一个角色", "Select at least one role."));
             return;
         }
 
@@ -431,14 +510,14 @@ const UserDialog = ({ children, initialValues, mode = "create", onSuccess }: Use
                     status: Number(status),
                     roleIds,
                 });
-                appMessage.success("用户已创建");
+                appMessage.success(t("用户已创建", "User created."));
             } else if (initialValues?.id) {
                 await systemAPI.user.update(initialValues.id, {
                     email: trimmedEmail,
                     realName: trimmedRealName,
                     roleIds,
                 });
-                appMessage.success("用户已更新");
+                appMessage.success(t("用户已更新", "User updated."));
             }
             onSuccess?.();
             setOpen(false);
@@ -452,50 +531,56 @@ const UserDialog = ({ children, initialValues, mode = "create", onSuccess }: Use
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>{mode === "create" ? "创建用户" : "编辑用户"}</DialogTitle>
+                    <DialogTitle>
+                        {mode === "create"
+                            ? t("创建用户", "Create user")
+                            : t("编辑用户", "Edit user")}
+                    </DialogTitle>
                     <DialogDescription>
-                        {mode === "create" ? "创建账号并分配角色。" : "更新账号信息和角色。"}
+                        {mode === "create"
+                            ? t("创建账号并分配角色。", "Create an account and assign roles.")
+                            : t("更新账号信息和角色。", "Update account details and roles.")}
                     </DialogDescription>
                 </DialogHeader>
                 <form className="grid gap-4" onSubmit={submit}>
                     <TextField
                         id="user-username"
-                        label="用户名"
+                        label={t("用户名", "Username")}
                         value={username}
-                        placeholder="请输入用户名"
+                        placeholder={t("请输入用户名", "Enter a username")}
                         disabled={mode === "edit"}
                         onChange={setUsername}
                     />
                     <TextField
                         id="user-email"
-                        label="邮箱"
+                        label={t("邮箱", "Email")}
                         value={email}
-                        placeholder="请输入邮箱"
+                        placeholder={t("请输入邮箱", "Enter an email address")}
                         onChange={setEmail}
                     />
                     <TextField
                         id="user-real-name"
-                        label="真实姓名"
+                        label={t("真实姓名", "Real name")}
                         value={realName}
-                        placeholder="请输入真实姓名"
+                        placeholder={t("请输入真实姓名", "Enter the real name")}
                         onChange={setRealName}
                     />
                     {mode === "create" && (
                         <TextField
                             id="user-password"
-                            label="密码"
+                            label={t("密码", "Password")}
                             value={password}
                             type="password"
-                            placeholder="请输入密码"
+                            placeholder={t("请输入密码", "Enter a password")}
                             onChange={setPassword}
                         />
                     )}
                     {mode === "create" && (
                         <div className="grid gap-2">
-                            <Label htmlFor="user-status">状态</Label>
+                            <Label htmlFor="user-status">{t("状态", "Status")}</Label>
                             <Select value={status} onValueChange={setStatus}>
                                 <SelectTrigger id="user-status" className="w-full">
-                                    <SelectValue placeholder="请选择状态" />
+                                    <SelectValue placeholder={t("请选择状态", "Select a status")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
@@ -512,10 +597,10 @@ const UserDialog = ({ children, initialValues, mode = "create", onSuccess }: Use
                     <RolePicker options={roleOptions} value={roleIds} onChange={setRoleIds} />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                            取消
+                            {t("取消", "Cancel")}
                         </Button>
                         <Button type="submit" disabled={submitting}>
-                            {mode === "create" ? "创建" : "保存"}
+                            {mode === "create" ? t("创建", "Create") : t("保存", "Save")}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -529,7 +614,7 @@ function RolePicker({
     value,
     onChange,
 }: {
-    options: Api.OptionItem<number>[];
+    options: Role.OptionItem[];
     value: number[];
     onChange: (value: number[]) => void;
 }) {
@@ -543,7 +628,7 @@ function RolePicker({
 
     return (
         <div className="grid gap-2">
-            <Label>角色</Label>
+            <Label>{t("角色", "Roles")}</Label>
             <div className="max-h-40 overflow-auto rounded-md border p-3">
                 {options.length > 0 ? (
                     <div className="grid gap-3">
@@ -555,12 +640,16 @@ function RolePicker({
                                         toggleRole(role.value, checked === true)
                                     }
                                 />
-                                {role.label}
+                                {role.isSystem
+                                    ? localizeBuiltInRoleName(role.code, role.label)
+                                    : role.label}
                             </Label>
                         ))}
                     </div>
                 ) : (
-                    <div className="text-sm text-muted-foreground">暂无可用角色。</div>
+                    <div className="text-sm text-muted-foreground">
+                        {t("暂无可用角色。", "No roles available.")}
+                    </div>
                 )}
             </div>
         </div>
@@ -600,12 +689,15 @@ function UserActionDialog({
 }
 
 function UserStatusBadge({ status }: { status: number }) {
-    const meta = statusMeta[status] ?? { label: "未知", variant: "outline" as const };
+    const meta = statusMeta[status] ?? { label: t("未知", "Unknown"), variant: "outline" as const };
     return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 
 function getUserInitial(record: User.Item) {
-    return (record.realName || record.username).slice(0, 1).toUpperCase();
+    const name = record.isSystem
+        ? localizeBuiltInUserName(record.username, record.realName)
+        : record.realName || record.username;
+    return name.slice(0, 1).toUpperCase();
 }
 
 function formatDateTime(value?: string | null) {

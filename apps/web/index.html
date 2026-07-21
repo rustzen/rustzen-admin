@@ -8,6 +8,8 @@
                 const theme = localStorage.getItem("rustzen-admin-theme");
                 document.documentElement.classList.toggle("white", theme === "white");
                 document.documentElement.classList.toggle("dark", theme === "dark");
+                document.documentElement.lang =
+                    localStorage.getItem("rustzen-admin-locale") === "en-US" ? "en-US" : "zh-CN";
             } catch {}
         </script>
         <link href="/src/style.css" rel="stylesheet" />

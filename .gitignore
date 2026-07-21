@@ -22,6 +22,8 @@
 # Cursor / AI
 # .cursor/
 *.ai.md
+/.codex/handoffs/
+/.codex/reviews/
 /.tmp/
 /.rustzen-admin/
 

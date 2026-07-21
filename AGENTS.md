@@ -37,6 +37,10 @@
 ## Working Rules
 
 - Prefer the smallest viable change.
+- Use `.codex/` as the local task workspace. Keep unfinished cross-session handoffs
+  under `.codex/handoffs/<task-id>.md` and raw review packages, responses, ledgers,
+  and attachments under `.codex/reviews/<review-id>/`; both directories are ignored.
+  Put only explicitly requested, sanitized, durable artifacts under `docs/`.
 - Do not add fallback or compatibility logic.
 - Keep stable rules in `docs/architecture.md` and `docs/guides/`.
 - Keep subdirectory `AGENTS.md` files thin.

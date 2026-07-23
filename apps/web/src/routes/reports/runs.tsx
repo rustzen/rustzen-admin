@@ -4,6 +4,7 @@ import { BanIcon, EyeIcon, PlayIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { appMessage, reportsAPI } from "@/api";
+import { reportsQueryOptions } from "@/api/reports/query-options";
 import { AuthWrap } from "@/components/auth";
 import { DataState, DataTableState } from "@/components/feedback/data-state";
 import { PageCard } from "@/components/page/page-card";
@@ -44,6 +45,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { formatDateTime } from "@/lib/format-date-time";
 import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/reports/runs")({ component: RunsPage });
 const size = 20;
@@ -74,10 +76,7 @@ function RunsPage() {
     const [current, setCurrent] = useState(1),
         [selected, setSelected] = useState<Reports.Run>();
     const client = useQueryClient();
-    const { data: flows = [] } = useQuery({
-        queryKey: ["reports", "flows"],
-        queryFn: () => reportsAPI.flows(),
-    });
+    const { data: flows = [] } = useQuery(reportsQueryOptions.flows());
     const { data, error, isFetching, isPending, refetch } = useQuery({
         queryKey: ["reports", "runs", current],
         queryFn: () => reportsAPI.runs({ current, pageSize: size }),
@@ -134,7 +133,7 @@ function RunsPage() {
                                             {runStatusLabel(run.status)}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell>{date(run.createdAt)}</TableCell>
+                                    <TableCell>{formatDateTime(run.createdAt)}</TableCell>
                                     <TableCell className="max-w-80 truncate text-muted-foreground">
                                         {run.error ?? "-"}
                                     </TableCell>
@@ -352,11 +351,11 @@ function RunDetails({ run, onClose }: { run?: Reports.Run; onClose: () => void }
                             </p>
                             <p>
                                 {t("开始时间：", "Started at: ")}
-                                {currentRun?.startedAt ? date(currentRun.startedAt) : "-"}
+                                {formatDateTime(currentRun?.startedAt)}
                             </p>
                             <p>
                                 {t("完成时间：", "Finished at: ")}
-                                {currentRun?.finishedAt ? date(currentRun.finishedAt) : "-"}
+                                {formatDateTime(currentRun?.finishedAt)}
                             </p>
                             {currentRun?.error && (
                                 <p className="mt-2 text-destructive">{currentRun.error}</p>
@@ -514,7 +513,4 @@ function Choice({
             </Select>
         </div>
     );
-}
-function date(value: string) {
-    return new Date(value).toLocaleString();
 }

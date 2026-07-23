@@ -86,7 +86,16 @@ stop_service() {
     [ -f "$pid_file" ] || return 0
     pid="$(cat "$pid_file")"
     if kill -0 "$pid" 2>/dev/null; then
-        kill "$pid" 2>/dev/null || true
+        kill -TERM "$pid" 2>/dev/null || true
+        count=0
+        while kill -0 "$pid" 2>/dev/null && [ "$count" -lt 50 ]; do
+            count=$((count + 1))
+            sleep 0.1
+        done
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "verify-services: $name did not stop after SIGTERM; sending SIGKILL" >&2
+            kill -KILL "$pid" 2>/dev/null || true
+        fi
     fi
     wait "$pid" 2>/dev/null || true
     rm -f "$pid_file" "$ROOT/pids/$name.log"

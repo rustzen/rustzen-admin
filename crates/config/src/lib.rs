@@ -15,6 +15,19 @@ pub use shared::{ConfigError, DatabaseConfig, RuntimeConfig, load_dotenv_if_pres
 /// Fixed retention period for Admin logs, task runs, metrics, events, and reports.
 pub const RETENTION_DAYS: u64 = 30;
 
+/// Sets the process time zone before a runtime creates worker threads.
+///
+/// # Safety
+///
+/// The caller must invoke this during synchronous process startup, before any
+/// other threads can read or write the process environment.
+pub unsafe fn initialize_process_timezone(timezone: &str) {
+    // SAFETY: upheld by the caller contract above.
+    unsafe {
+        std::env::set_var("TZ", timezone.trim());
+    }
+}
+
 #[cfg(test)]
 mod contract_tests {
     use figment::{Figment, providers::Serialized};

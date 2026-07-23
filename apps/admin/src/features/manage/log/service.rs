@@ -1,8 +1,6 @@
 use super::{
     repo::LogRepository,
-    types::{
-        LogItemResp, LogListQuery, LogMetricsSummary, LogQuery, LogTrendPoint, LogWriteCommand,
-    },
+    types::{LogItemResp, LogListQuery, LogQuery, LogWriteCommand},
 };
 use crate::common::{
     error::ServiceError,
@@ -49,24 +47,6 @@ impl LogService {
         let LogQuery { search, username, action, description, ip_address, .. } = query;
         let repo_query = LogListQuery { search, username, action, description, ip_address };
         Self::create_csv_chunk(LogRepository::list_logs_for_export(pool, repo_query).await?, true)
-    }
-
-    pub async fn system_uptime_label(pool: &SqlitePool) -> Result<String, ServiceError> {
-        LogRepository::system_uptime_label(pool).await
-    }
-
-    pub async fn metrics_summary(pool: &SqlitePool) -> Result<LogMetricsSummary, ServiceError> {
-        LogRepository::metrics_summary(pool).await
-    }
-
-    pub async fn daily_login_trends(pool: &SqlitePool) -> Result<Vec<LogTrendPoint>, ServiceError> {
-        LogRepository::daily_login_trends(pool).await
-    }
-
-    pub async fn hourly_active_users(
-        pool: &SqlitePool,
-    ) -> Result<Vec<LogTrendPoint>, ServiceError> {
-        LogRepository::hourly_active_users(pool).await
     }
 
     /// Create CSV chunk for a batch of logs

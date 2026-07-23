@@ -1,17 +1,14 @@
 import {
-    BookOpenIcon,
     BoxesIcon,
     ChartNoAxesCombinedIcon,
     ClockIcon,
     CloudUploadIcon,
-    GaugeIcon,
     HistoryIcon,
     LayoutDashboardIcon,
     MenuIcon,
     MonitorIcon,
     FileTextIcon,
     SettingsIcon,
-    ShieldAlertIcon,
     UserIcon,
     UsersIcon,
 } from "lucide-react";
@@ -31,18 +28,11 @@ export type AppRoutePath =
     | "/system/menu"
     | "/system/module"
     | "/system/status"
-    | "/manage/dict"
     | "/manage/log"
     | "/manage/task"
     | "/manage/deploy";
 
-type AppRouteGroupPath =
-    | "/monitoring"
-    | "/analytics"
-    | "/reports"
-    | "/system"
-    | "/manage"
-    | "/demo";
+type AppRouteGroupPath = "/monitoring" | "/analytics" | "/reports" | "/system" | "/manage";
 
 export type AppRouteItem = {
     name: string;
@@ -130,11 +120,6 @@ const systemRoutes = (): AppRouteItem => ({
             icon: <MenuIcon />,
         },
         {
-            path: "/manage/dict",
-            name: t("字典", "Dictionaries"),
-            icon: <BookOpenIcon />,
-        },
-        {
             path: "/manage/log",
             name: t("日志", "Logs"),
             icon: <HistoryIcon />,
@@ -170,26 +155,6 @@ const manageRoutes = (): AppRouteItem => ({
     ],
 });
 
-const demoRoutes = (): AppRouteItem => ({
-    name: t("示例", "Examples"),
-    icon: <GaugeIcon />,
-    path: "/demo",
-    children: [
-        {
-            path: "/403",
-            name: "403",
-            icon: <ShieldAlertIcon />,
-            requiresPermission: false,
-        },
-        {
-            path: "/404",
-            name: "404",
-            icon: <ShieldAlertIcon />,
-            requiresPermission: false,
-        },
-    ],
-});
-
 const appRoutePaths = new Set<string>([
     "/",
     "/profile",
@@ -207,7 +172,6 @@ const appRoutePaths = new Set<string>([
     "/system/menu",
     "/system/module",
     "/system/status",
-    "/manage/dict",
     "/manage/log",
     "/manage/task",
     "/manage/deploy",
@@ -232,7 +196,6 @@ export const getMenuData = (
         ...getModuleRoutes(moduleNavigation),
         systemRoutes(),
         manageRoutes(),
-        demoRoutes(),
     ];
     const getMenuList = (menuList: AppRouteItem[]): AppRouteItem[] => {
         return menuList
@@ -267,7 +230,6 @@ export const getSearchRouteItems = (
         ...getModuleRoutes(moduleNavigation),
         systemRoutes(),
         manageRoutes(),
-        demoRoutes(),
     ];
     const flattenRoutes = (
         routes: AppRouteItem[],

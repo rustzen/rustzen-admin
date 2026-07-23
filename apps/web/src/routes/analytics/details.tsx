@@ -18,6 +18,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { formatDateTime } from "@/lib/format-date-time";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/analytics/details")({ component: AnalyticsEventsPage });
@@ -85,7 +86,7 @@ function AnalyticsEventsPage() {
                                 <TableCell>
                                     {row.durationMs == null ? "-" : `${row.durationMs} ms`}
                                 </TableCell>
-                                <TableCell>{new Date(row.occurredAt).toLocaleString()}</TableCell>
+                                <TableCell>{formatDateTime(row.occurredAt)}</TableCell>
                             </TableRow>
                         ))}
                         {!data?.data.length &&

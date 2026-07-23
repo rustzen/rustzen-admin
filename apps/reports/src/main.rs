@@ -21,7 +21,8 @@ pub static RUSTZEN_RELEASE_MARKER: &str = concat!(
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     rustzen_config::load_dotenv_if_present()?;
     let command = Command::parse(std::env::args().skip(1))?;
-    init_process_timezone();
+    // SAFETY: this runs in synchronous main before Tokio creates worker threads.
+    unsafe { rustzen_config::initialize_process_timezone(CONFIG.timezone()) };
     let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
     runtime.block_on(async move {
         let _logging = init_logging()?;
@@ -55,13 +56,6 @@ impl std::fmt::Display for CommandError {
 }
 
 impl std::error::Error for CommandError {}
-
-fn init_process_timezone() {
-    // SAFETY: this runs before the Tokio runtime and worker threads are created.
-    unsafe {
-        std::env::set_var("TZ", CONFIG.timezone().trim());
-    }
-}
 
 #[cfg(test)]
 mod tests {

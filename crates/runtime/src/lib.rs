@@ -1,12 +1,105 @@
 //! Runtime layout helpers for sqlite-first runtime startup.
 
-use std::path::PathBuf;
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    time::Duration,
+};
+
+use chrono::{Days, Local, NaiveDate};
+use tracing_appender::non_blocking::WorkerGuard;
+use tracing_subscriber::{EnvFilter, fmt::writer::MakeWriterExt};
 
 /// Default runtime root used by local development and packaging.
 pub const DEFAULT_RUNTIME_ROOT: &str = ".rustzen-admin";
 
 /// Default public files prefix for uploaded assets.
 pub const DEFAULT_FILES_PREFIX: &str = "/resources";
+
+/// Keeps the non-blocking file writer alive for a process lifetime.
+pub struct FileLoggingGuard {
+    _file_guard: WorkerGuard,
+}
+
+/// Initializes the shared stdout and daily-file logging policy for a server process.
+pub fn init_file_logging(
+    log_dir: impl AsRef<Path>,
+    file_prefix: &str,
+    retention_days: u64,
+    cleanup_error_message: &'static str,
+) -> Result<FileLoggingGuard, Box<dyn std::error::Error>> {
+    let log_dir = log_dir.as_ref().to_path_buf();
+    fs::create_dir_all(&log_dir)?;
+    let appender = tracing_appender::rolling::daily(&log_dir, file_prefix);
+    let (file_writer, file_guard) = tracing_appender::non_blocking(appender);
+    let filter = EnvFilter::try_new(log_env_filter())?;
+    tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_ansi(false)
+        .with_target(false)
+        .compact()
+        .with_writer(std::io::stdout.and(file_writer))
+        .try_init()
+        .map_err(|error| std::io::Error::other(error.to_string()))?;
+
+    cleanup_expired_log_files(&log_dir, file_prefix, retention_days, Local::now().date_naive())?;
+    spawn_log_cleanup_task(log_dir, file_prefix.to_string(), retention_days, cleanup_error_message);
+    Ok(FileLoggingGuard { _file_guard: file_guard })
+}
+
+fn log_env_filter() -> String {
+    std::env::var("RUST_LOG")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "info".to_string())
+}
+
+fn spawn_log_cleanup_task(
+    log_dir: PathBuf,
+    file_prefix: String,
+    retention_days: u64,
+    cleanup_error_message: &'static str,
+) {
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(24 * 60 * 60)).await;
+            if let Err(error) = cleanup_expired_log_files(
+                &log_dir,
+                &file_prefix,
+                retention_days,
+                Local::now().date_naive(),
+            ) {
+                tracing::error!(%error, "{}", cleanup_error_message);
+            }
+        }
+    });
+}
+
+/// Deletes daily log files that fall outside the inclusive retention window.
+pub fn cleanup_expired_log_files(
+    log_dir: &Path,
+    file_prefix: &str,
+    retention_days: u64,
+    today: NaiveDate,
+) -> Result<(), std::io::Error> {
+    let cutoff = today - Days::new(retention_days);
+    for entry in fs::read_dir(log_dir)? {
+        let path = entry?.path();
+        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
+        let Some(date) = name
+            .strip_prefix(&format!("{file_prefix}."))
+            .and_then(|date| NaiveDate::parse_from_str(date, "%Y-%m-%d").ok())
+        else {
+            continue;
+        };
+        if date < cutoff {
+            fs::remove_file(path)?;
+        }
+    }
+    Ok(())
+}
 
 /// Shared runtime paths under a single root path.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -105,7 +198,11 @@ fn normalize_prefix(value: String) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{DEFAULT_RUNTIME_ROOT, RuntimeLayout, resolve_path_with_runtime_root};
+    use super::{
+        DEFAULT_RUNTIME_ROOT, RuntimeLayout, cleanup_expired_log_files,
+        resolve_path_with_runtime_root,
+    };
+    use chrono::NaiveDate;
     use std::path::Path;
     use std::path::PathBuf;
 
@@ -134,5 +231,27 @@ mod tests {
 
         assert_eq!(resolved, PathBuf::from("/tmp/data.db"));
         assert!(Path::new("/tmp/data.db").is_absolute());
+    }
+
+    #[test]
+    fn cleanup_keeps_log_files_inside_the_retention_window() {
+        let dir = std::env::temp_dir().join(format!("rz-logs-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).expect("log dir");
+        for name in ["monitor.2026-06-13", "monitor.2026-06-14", "unrelated.txt"] {
+            std::fs::write(dir.join(name), name).expect("log file");
+        }
+
+        cleanup_expired_log_files(
+            &dir,
+            "monitor",
+            30,
+            NaiveDate::from_ymd_opt(2026, 7, 14).expect("date"),
+        )
+        .expect("cleanup");
+
+        assert!(!dir.join("monitor.2026-06-13").exists());
+        assert!(dir.join("monitor.2026-06-14").exists());
+        assert!(dir.join("unrelated.txt").exists());
+        std::fs::remove_dir_all(dir).expect("remove log dir");
     }
 }

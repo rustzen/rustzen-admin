@@ -41,10 +41,3 @@ pub struct OptionsQuery {
     pub q: Option<String>,
     pub limit: Option<i64>,
 }
-
-#[derive(Debug, Deserialize)]
-pub struct DictOptionsQuery {
-    pub dict_type: Option<String>,
-    pub q: Option<String>,
-    pub limit: Option<i64>,
-}

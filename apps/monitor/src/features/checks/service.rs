@@ -1,6 +1,7 @@
 use std::time::{Duration, Instant};
 
 use chrono::Utc;
+use rustzen_ipc::{Page, Pagination};
 use rustzen_storage::SqlitePool;
 use tokio::net::TcpStream;
 use uuid::Uuid;
@@ -12,26 +13,23 @@ const MAX_CHECK_CONCURRENCY: usize = 16;
 use super::{
     repo,
     types::{
-        Check, CheckExecution, CheckResult, ListQuery, Page, ProbeResult, ResultQuery, SaveCheck,
+        Check, CheckExecution, CheckResult, ListQuery, ProbeResult, ResultQuery, SaveCheck,
         TestCheck,
     },
 };
 
 pub(crate) async fn list(pool: &SqlitePool, query: ListQuery) -> Result<Page<Check>, AppError> {
-    let (current, page_size) = page(query.current, query.page_size)?;
+    let page = Pagination::parse(query.current, query.page_size).map_err(|_| {
+        AppError::invalid_input("current must be positive and pageSize must be between 1 and 100")
+    })?;
     if let Some(status) = query.status.as_deref()
         && !matches!(status, "up" | "down")
     {
         return Err(AppError::invalid_input("status must be up or down"));
     }
-    let (data, total) = repo::list(
-        pool,
-        (current - 1) * page_size,
-        page_size,
-        query.enabled,
-        query.status.as_deref(),
-    )
-    .await?;
+    let (data, total) =
+        repo::list(pool, page.offset(), page.page_size(), query.enabled, query.status.as_deref())
+            .await?;
     Ok(Page { data, total, success: true })
 }
 
@@ -133,8 +131,10 @@ pub(crate) async fn results(
     query: ResultQuery,
 ) -> Result<Page<CheckResult>, AppError> {
     get(pool, id).await?;
-    let (current, page_size) = page(query.current, query.page_size)?;
-    let (data, total) = repo::results(pool, id, (current - 1) * page_size, page_size).await?;
+    let page = Pagination::parse(query.current, query.page_size).map_err(|_| {
+        AppError::invalid_input("current must be positive and pageSize must be between 1 and 100")
+    })?;
+    let (data, total) = repo::results(pool, id, page.offset(), page.page_size()).await?;
     Ok(Page { data, total, success: true })
 }
 
@@ -236,17 +236,6 @@ fn validate_target(host: &str, port: i64, timeout_ms: i64) -> Result<(), AppErro
         return Err(AppError::invalid_input("timeoutMs must be between 100 and 30000"));
     }
     Ok(())
-}
-
-fn page(current: Option<i64>, page_size: Option<i64>) -> Result<(i64, i64), AppError> {
-    let current = current.unwrap_or(1);
-    let page_size = page_size.unwrap_or(20);
-    if current < 1 || !(1..=100).contains(&page_size) {
-        return Err(AppError::invalid_input(
-            "current must be positive and pageSize must be between 1 and 100",
-        ));
-    }
-    Ok((current, page_size))
 }
 
 pub(crate) async fn cleanup(pool: &SqlitePool) -> Result<u64, AppError> {

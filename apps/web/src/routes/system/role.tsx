@@ -4,6 +4,7 @@ import { EditIcon, PlusIcon, TrashIcon } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import { appMessage, systemAPI } from "@/api";
+import { menuQueryOptions } from "@/api/system/menu/query-options";
 import { AuthWrap } from "@/components/auth";
 import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { DataTableState } from "@/components/feedback/data-state";
@@ -48,6 +49,7 @@ import {
     localizeBuiltInRoleDescription,
     localizeBuiltInRoleName,
 } from "@/lib/builtin-i18n";
+import { formatDateTime } from "@/lib/format-date-time";
 import { t } from "@/lib/i18n";
 
 const OWNER_ROLE_CODE = "owner";
@@ -318,8 +320,7 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
     const [permissionSearch, setPermissionSearch] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const { data: menuOptions = [] } = useQuery({
-        queryKey: ["system", "menus", "options"],
-        queryFn: systemAPI.menu.options,
+        ...menuQueryOptions.options(),
         enabled: open,
     });
     const permissionOptions = useMemo(
@@ -626,11 +627,4 @@ function isAssignableRolePermission(code: string) {
     }
     const wildcardPrefix = code.slice(0, -1);
     return !ownerOnlyRoots.some((root) => `${root}:`.startsWith(wildcardPrefix));
-}
-
-function formatDateTime(value?: string | null) {
-    if (!value) {
-        return "-";
-    }
-    return new Date(value).toLocaleString();
 }

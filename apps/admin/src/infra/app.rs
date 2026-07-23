@@ -30,7 +30,7 @@ use axum::{
     routing::get,
 };
 use rustzen_auth::auth::auth_middleware;
-use rustzen_ipc::DelegationSigner;
+use rustzen_ipc::{DelegationSigner, HealthResponse};
 use serde_json::json;
 use std::net::SocketAddr;
 use tower_http::{cors::CorsLayer, services::ServeDir};
@@ -126,12 +126,8 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn health() -> axum::Json<serde_json::Value> {
-    axum::Json(json!({
-        "status": "ok",
-        "contractVersion": rustzen_ipc::CONTRACT_VERSION,
-        "releaseVersion": env!("CARGO_PKG_VERSION"),
-    }))
+async fn health() -> axum::Json<HealthResponse> {
+    axum::Json(HealthResponse::ok(env!("CARGO_PKG_VERSION")))
 }
 
 fn server_addr() -> String {

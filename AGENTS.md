@@ -2,7 +2,11 @@
 
 ## Source of Truth
 
-- Current facts: source code, then [docs/architecture.md](./docs/architecture.md), then [docs/guides/](./docs/guides/).
+- Product positioning, direction, and module-purpose facts:
+  [docs/product/product.md](./docs/product/product.md).
+- Current implementation facts: source code, then
+  [docs/architecture.md](./docs/architecture.md), then
+  [docs/guides/](./docs/guides/).
 - AI contribution constraints: [docs/guides/ai-coding-rules.md](./docs/guides/ai-coding-rules.md).
 - Command source: root `justfile`; inspect the target before running it.
 
@@ -10,9 +14,11 @@
 
 1. Read `README.md`.
 2. Read `AGENTS.md`.
-3. Read the nearest subdirectory `AGENTS.md`.
-4. Read only the relevant guide in `docs/guides/`.
-5. Use `docs/reference/` only for deeper context.
+3. For product boundary, positioning, direction, or module-purpose decisions,
+   read `docs/product/product.md`.
+4. Read the nearest subdirectory `AGENTS.md`.
+5. Read only the relevant guide in `docs/guides/`.
+6. Use `docs/reference/` only for deeper context.
 
 ## Boundaries
 
@@ -42,7 +48,8 @@
   and attachments under `.codex/reviews/<review-id>/`; both directories are ignored.
   Put only explicitly requested, sanitized, durable artifacts under `docs/`.
 - Do not add fallback or compatibility logic.
-- Keep stable rules in `docs/architecture.md` and `docs/guides/`.
+- Keep stable product decisions in `docs/product/product.md`; keep stable
+  implementation facts and rules in `docs/architecture.md` and `docs/guides/`.
 - Keep subdirectory `AGENTS.md` files thin.
 - Do not use `docs/reference/` or `docs/history/` as default implementation truth.
 - SQLite is the default storage backend.

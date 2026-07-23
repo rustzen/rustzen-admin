@@ -24,6 +24,8 @@
 *.ai.md
 /.codex/handoffs/
 /.codex/reviews/
+/.codex/artifacts/
+/.codex/tmp/
 /.tmp/
 /.rustzen-admin/
 

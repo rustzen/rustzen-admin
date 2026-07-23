@@ -4,13 +4,13 @@
 
 `rustzen-admin` 在一个源码仓库和一个签名发布包中提供 RustZen Admin、Monitor、Insights 和 Reports 运行时。
 
-这是一个面向 Rust 全栈管理系统的结构化 monorepo 工程起点。
+这是一个面向小型自托管环境的轻量运维与管理产品，同时也是结构化的 Rust 全栈参考实现。
 
 > `rustzen-admin` 将 Axum 后端、React 前端、共享 crate、部署资产和仓库级文档组织在同一个代码库中，强调清晰边界、可维护性，以及对 AI 协作友好的工程结构。
 
 ## 概览
 
-`rustzen-admin` 是一个面向真实项目的开源全栈管理后台工程模板，而不只是孤立的 UI 演示。
+`rustzen-admin` 首先是一个可直接部署的开源管理产品，并保留清晰、可复用的工程结构供二次开发参考，而不只是孤立的 UI 演示。
 
 仓库采用 monorepo 组织方式：
 
@@ -41,6 +41,10 @@
 ## 仓库结构
 
 → 架构概览：[docs/architecture.md](./docs/architecture.md)
+
+## 产品方向
+
+→ 产品定位、发展方向与模块边界：[docs/product/product.md](./docs/product/product.md)
 
 ## 文档
 

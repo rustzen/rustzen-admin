@@ -4,6 +4,8 @@ This is a current guide for AI-assisted contributions.
 
 ## Current Truth
 
+- Product positioning, direction, module purposes, and product non-goals are
+  defined in `docs/product/product.md`.
 - Source of truth for implementation decisions remains:
   - source code
   - `docs/architecture.md`
@@ -15,6 +17,9 @@ This is a current guide for AI-assisted contributions.
 - Prefer the smallest meaningful change that matches the current task.
 - Prefer existing modules and abstractions over speculative layers.
 - Do not add compatibility fallback logic unless there is a user-facing migration requirement.
+- Keep product proposals within the module purposes and non-goals in
+  `docs/product/product.md`; record a new product decision before widening a
+  module or adding a product area.
 - Keep `docs/architecture.md` and command surface (`justfile`) aligned with structure changes.
 - Keep module ownership boundaries explicit and stable.
 - Update code and docs together for API, config, or schema changes.

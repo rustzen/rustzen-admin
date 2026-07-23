@@ -11,10 +11,21 @@ This is the documentation entrypoint for `rustzen-admin`.
 5. [reference/](./reference/)
 6. [history/](./history/)
 
+For product positioning, direction, and module-purpose decisions, use
+[product/product.md](./product/product.md). Delivered behavior remains grounded
+in source code, and runtime structure remains grounded in
+[architecture.md](./architecture.md).
+
 ## Files
 
 | File | Role | Value |
 | --- | --- | --- |
+| [product.md](./product/product.md) | Current product fact | Defines product positioning, direction, module purposes, scope, non-goals, and decision status. |
+| [product/index.md](./product/index.md) | Current product index | Lists independently consumable feature specifications and readiness. |
+| [role-definition-management](./product/features/role-definition-management/spec.md) | Current product specification | Defines custom-role behavior, permission safety, failure states, and acceptance. |
+| [user-role-assignment-readiness](./product/features/user-role-assignment-readiness/spec.md) | Current product specification | Defines role retrieval and assignment readiness in user dialogs. |
+| [ui/index.md](./ui/index.md) | Current UI feature index | Lists independently consumable UI contracts and their product basis. |
+| [role-definition-management UI](./ui/features/role-definition-management.md) | Current UI specification | Defines role permission-loading states, interaction, responsive behavior, and acceptance. |
 | [ai-coding-rules.md](./guides/ai-coding-rules.md) | Current rule | Defines source-of-truth order, module ownership, and task verification expectations for AI-assisted changes. |
 | [architecture.md](./architecture.md) | Current fact | Defines repository boundaries, runtime topology, data flow, and command source. |
 | [project-map.md](./project-map.md) | Current fact | Maps important directories without implementation detail. |
@@ -37,6 +48,7 @@ This is the documentation entrypoint for `rustzen-admin`.
 
 ## Placement Rules
 
+- Put current product positioning, direction, and module-purpose boundaries in [product.md](./product/product.md).
 - Put current implementation facts in `architecture.md` or `project-map.md`.
 - Put current development rules in `guides/`.
 - Put optional diagrams, audits, specs, and checklists in `reference/`.

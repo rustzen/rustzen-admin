@@ -5,7 +5,8 @@
 `rustzen-admin` provides the RustZen Admin, Monitor, Insights, and Reports
 runtime in one source repository and one signed release bundle.
 
-A structured monorepo starting point for Rust full-stack admin systems.
+A lightweight operations and administration product for small self-hosted
+environments, and a structured Rust full-stack reference implementation.
 
 > `rustzen-admin` combines an Axum backend, a React frontend, shared crates,
 > deployment assets, and repository-level documentation in a single codebase
@@ -13,8 +14,9 @@ A structured monorepo starting point for Rust full-stack admin systems.
 
 ## Overview
 
-`rustzen-admin` is an open-source full-stack admin template built for real-world
-projects, not just isolated UI demos.
+`rustzen-admin` is primarily a deployable open-source administration product. It
+also keeps a clear, reusable engineering structure for secondary development
+and reference use, rather than serving as an isolated UI demo.
 
 The repository is organized as a monorepo:
 
@@ -45,6 +47,10 @@ This layout keeps backend, frontend, and repository rules explicit, making the c
 ## Repository Layout
 
 → Architecture summary: [docs/architecture.md](./docs/architecture.md)
+
+## Product Direction
+
+→ Product positioning, direction, and module boundaries: [docs/product/product.md](./docs/product/product.md)
 
 ## Documentation
 

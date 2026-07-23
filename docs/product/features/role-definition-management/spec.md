@@ -1,0 +1,141 @@
+# Role Definition Management
+
+## Goal and implementation slice
+
+Allow an authorized operator to create and maintain custom roles without
+weakening the built-in owner boundary or confusing unavailable permission data
+with an empty permission catalog.
+
+## Users and scenarios
+
+- An operator with role-list access can find roles by name, code, and status.
+- An operator with role-create or role-update access can define one custom role
+  with at least one assignable permission.
+- An operator with role-delete access can remove an unused custom role.
+- Operators can inspect built-in roles but cannot edit or delete them.
+
+## Confirmed decisions
+
+- `owner`, `admin`, and `viewer` are built-in roles and remain immutable through
+  generic role management.
+- Built-in role codes are reserved and cannot be reused by custom roles.
+- A custom role requires at least one assignable permission.
+- Ordinary custom roles cannot receive the full `*` grant, owner-only
+  capabilities, or wildcards that cover owner-only capabilities.
+- Disabling a role preserves its definition and user assignments but stops that
+  role from contributing capabilities. Disabled roles are not offered for new
+  user assignments.
+- A role that is still assigned to one or more users cannot be deleted.
+- Successful role creation, update, or deletion refreshes effective user
+  permissions.
+- Fixed user-facing copy is available in Simplified Chinese and English.
+
+## Scope and non-goals
+
+In scope:
+
+- paginated role discovery with name, code, and status filters;
+- distinct initial loading, empty, and error states with retry;
+- custom-role creation and editing with name, code, status, description, and
+  assignable permissions;
+- distinct permission loading, empty, and error states inside the role dialog;
+- permission search without changing the selected permission set;
+- explicit destructive confirmation and an assigned-role deletion refusal;
+- capability-gated list, create, update, and delete actions.
+
+Non-goals:
+
+- editing or deleting built-in roles;
+- assigning owner-only capabilities to custom roles;
+- changing the capability vocabulary or module Manifest ownership;
+- bulk role operations, role cloning, or role hierarchy;
+- changing user-role assignment behavior, which has its own feature slice;
+- redesigning the role page or shared form system.
+
+## Main and failure flows
+
+1. The role page loads a paginated list and exposes only actions allowed by the
+   current operator's capabilities.
+2. Initial list failure shows an error and retry action rather than a valid
+   empty table.
+3. Opening a create or edit dialog loads the current assignable permission
+   catalog without clearing entered role fields.
+4. Permission loading, failure, and a successful empty result remain distinct.
+   Failure provides a retry action that preserves current form input and
+   selected permission IDs.
+5. Submission remains unavailable until the permission catalog is ready, at
+   least one assignable permission is selected, local fields are valid, and no
+   request is already running.
+6. Successful creation or update closes the dialog, refreshes the role list,
+   and refreshes effective user permissions.
+7. Deletion requires confirmation. An assigned role remains intact and returns
+   a clear refusal; an unused custom role is soft-deleted and the list refreshes.
+
+## Business rules and permissions
+
+- Listing, creating, updating, deleting, and retrieving role options use their
+  existing capability boundaries.
+- UI visibility is not the security boundary; the backend validates immutable
+  built-in roles, reserved codes, non-empty permissions, owner-only capability
+  exclusions, and assigned-role deletion refusal.
+- Unknown or stale permission IDs do not authorize a role. Existing database
+  and service validation remain authoritative for request failure.
+- Disabling a role takes effect when the permission cache refresh completes as
+  part of the successful update.
+
+## User-visible states and data effects
+
+- **List loading/error/empty/populated:** one explicit state at a time.
+- **Permission loading/error/empty/populated:** contained within the open role
+  dialog; retry preserves role fields and selected permissions.
+- **Submitting:** one request at a time; the primary action remains disabled.
+- **Delete blocked:** the role and assignments remain unchanged.
+- **Create/update/delete success:** role persistence and effective permission
+  cache are updated together through the existing service path.
+
+## Acceptance criteria
+
+- A role-list request failure is never rendered as an empty role list and can
+  be retried.
+- Built-in roles expose no edit or delete action, and direct backend requests to
+  mutate them fail.
+- Creating or updating a custom role with zero permissions fails in both the UI
+  flow and backend service.
+- Owner-only grants and covering wildcards cannot be assigned to a custom role.
+- Permission retrieval failure is distinct from a successful empty catalog and
+  provides retry without resetting name, code, status, description, or selected
+  permissions.
+- Disabling a role removes its capabilities from affected users after the
+  successful update while preserving the role and its user associations.
+- Deleting an assigned role fails without removing the role or assignments.
+- Every new fixed message has Simplified Chinese and English presentation.
+
+## Assumptions, open questions, rejected and deferred decisions
+
+### Assumptions
+
+- The existing capability catalog remains the authority for assignable
+  permissions.
+
+### Open questions
+
+- None that block this slice.
+
+### Rejected
+
+- Permissionless custom roles.
+- Editing built-in roles through the generic role form.
+- Treating permission-load failure as an empty catalog.
+- Granting owner-only capabilities through a custom role.
+
+### Deferred
+
+- Role templates, cloning, bulk operations, hierarchy, and time-limited grants.
+- Field-level mapping of every backend validation error.
+
+## Ready for role-definition management completion
+
+The product behavior, permission boundary, failure semantics, data effects,
+non-goals, and acceptance criteria are fixed. Selected-source visual details
+remain with `ui-spec`, and source changes remain with their implementation
+owners.

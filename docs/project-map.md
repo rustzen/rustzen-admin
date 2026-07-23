@@ -2,6 +2,16 @@
 
 This is a practical path index for task orientation.
 
+## Authority and reading paths
+
+| Question | Read in order |
+| --- | --- |
+| Product positioning, direction, or module purpose | `docs/product/product.md` → delivered source behavior |
+| Runtime topology or repository ownership | source code → `docs/architecture.md` → the nearest guide |
+| Frontend page or interaction change | target route → owning `apps/web/src/api/` module → shared component owner → matching backend route |
+| Shared UI semantics or visual tokens | `docs/ui/component-map.json` and `docs/ui/design-tokens.json` → live definitions and consumers → `apps/web/src/styles/theme.css` |
+| Build, check, or runtime verification | the matching root `justfile` recipe → scripts invoked by that recipe |
+
 ## Root
 
 | Path | Value | Inspect when |
@@ -65,6 +75,39 @@ Rust route registration, not in `module.toml`.
 | `apps/web/src/components/layout/` | Admin shell and runtime navigation. | You change menus, header, or layout. |
 | `apps/web/src/store/` | Shared frontend state. | You change auth or persisted cross-page state. |
 
+The frontend uses React 19, TanStack Router, React Query, Zustand, Tailwind CSS,
+and the repository's shadcn-compatible primitives. `apps/web/package.json` pins
+Bun 1.3.14, Vite 8.1.3, and Vite+ 0.2.4; `apps/web/bun.lock` is its only lockfile.
+
+### Reuse entry points
+
+| Product or design term | Canonical owner | Representative consumers | Reuse boundary |
+| --- | --- | --- | --- |
+| Authenticated application shell | `apps/web/src/components/layout/index.tsx` | `apps/web/src/routes/__root.tsx` | Adapt the existing route, permission, locale, theme, and account owner; do not create another shell. |
+| Page heading and actions | `apps/web/src/components/page/page-header.tsx` (`PageHeader`) | dashboard, profile, system status | Reuse for overview/detail surfaces; list and management pages use `PageCard`. |
+| List and management page surface | `apps/web/src/components/page/page-card.tsx` (`PageCard`) | Monitoring, Analytics, Reports, Admin lists | Reuse title, toolbar, action, and content hierarchy without nesting a second page title. |
+| Query state vocabulary | `apps/web/src/components/feedback/data-state.tsx` (`DataState`, `DataTableState`) | Monitoring, Analytics, Reports, Admin tables | Reuse loading, empty, error, permission, and processing states; retry calls the owning query. |
+| Operational metric | `apps/web/src/components/page/metric-card.tsx` (`MetricCard`) | Monitoring and Analytics overviews | Reuse for factual compact metrics; do not turn it into decorative KPI cards. |
+| Table surface and pagination | `apps/web/src/components/table/` | module and Admin list routes | Reuse `DataTableShell` and `TablePagination`; keep columns and page-local actions with the route. |
+
+`docs/ui/component-map.json` records the current reuse candidates and
+`docs/ui/design-tokens.json` records the current token-owner mapping. Their shared
+artifact manifest is not an accepted baseline while approval is absent. Revalidate
+the live definition and at least one current consumer before using either artifact.
+
+## Common task routes
+
+| Task | Shortest evidence chain | Verification entry |
+| --- | --- | --- |
+| Change a frontend page | route → domain API module → shared UI owner → backend route when the contract changes | `just build-web`, then the focused runtime or browser check |
+| Change a module HTTP contract | Rust `ModuleRouter` registration → handler/types → `apps/web/src/api/<module>/contract.ts` → route consumer | `just verify-services` |
+| Change authentication or permission behavior | `crates/auth/` → Admin auth/system feature → `apps/web/src/routes/__root.tsx` and auth store | focused tests, then `just check` |
+| Change release or deployment behavior | Admin deploy feature → bundle/signing script → installer/systemd assets → architecture contract | focused script tests, then `just check` |
+| Change product scope or module purpose | `docs/product/product.md` → affected source and acceptance evidence | documentation checks plus the implementation slice's own gate |
+
+OpenAPI is not a universal task gate. Use the repository-native route and client
+authority unless an existing generated pipeline or an explicit task introduces one.
+
 ## Deployment and verification
 
 | Path | Value | Inspect when |
@@ -86,3 +129,19 @@ Rust route registration, not in `module.toml`.
 | `docs/guides/` | Current development rules. | You edit backend, frontend, permission, or deployment behavior. |
 | `docs/reference/` | Optional deeper current context. | Current facts and guides are not enough. |
 | `docs/history/` | Non-current plans and records. | You need historical rationale. |
+| `docs/product/product.md` | Product positioning, direction, module purposes, and non-goals. | You make or verify a product-boundary decision. |
+| `docs/ui/component-map.json` | Current shared-component candidates; not an accepted baseline while manifest approval is absent. | You consider a new shared component or change an existing semantic owner. |
+| `docs/ui/design-tokens.json` | Current visual-token owner mapping; verify live source before use. | You change product-wide visual semantics or themes. |
+
+## Commands
+
+Run recipes from the repository root and inspect their current bodies in the
+`justfile` before use.
+
+| Need | Command |
+| --- | --- |
+| Start Admin, module services, or Web | `just dev-server`, `just dev-monitor`, `just dev-insights`, `just dev-reports`, `just dev-web` |
+| Build only the Web application | `just build-web` |
+| Run the complete repository check | `just check` |
+| Verify module topology, Manifests, gateway, and client route contracts | `just verify-services` |
+| Verify the debug module MVP runtime | `just verify-modules-mvp` |

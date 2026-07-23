@@ -124,5 +124,6 @@ mod tests {
     fn should_log_keeps_business_and_non_get_requests() {
         assert!(should_log(&Method::POST, "/api/dashboard/stats"));
         assert!(should_log(&Method::GET, "/api/system/user"));
+        assert!(should_log(&Method::PUT, "/api/system/modules/monitor/enabled"));
     }
 }

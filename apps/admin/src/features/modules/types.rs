@@ -94,6 +94,14 @@ impl From<&ModuleRuntime> for ModuleStatusResponse {
     }
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModuleHealthResponse {
+    pub module: &'static str,
+    pub available: bool,
+    pub release_version: Option<String>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateModuleRequest {
@@ -127,4 +135,26 @@ pub enum GatewayLookup {
     NotFound,
     MethodNotAllowed,
     ServiceUnavailable,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ModuleHealthResponse;
+
+    #[test]
+    fn dashboard_health_keeps_its_wire_contract() {
+        assert_eq!(
+            serde_json::to_value(ModuleHealthResponse {
+                module: "monitor",
+                available: true,
+                release_version: Some("1.2.3".to_string()),
+            })
+            .expect("serialize module health"),
+            serde_json::json!({
+                "module": "monitor",
+                "available": true,
+                "releaseVersion": "1.2.3",
+            })
+        );
+    }
 }

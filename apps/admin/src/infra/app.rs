@@ -84,6 +84,7 @@ pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
     let public_api: Router =
         Router::new().nest("/auth", public_auth_routes()).with_state(pool.clone());
     let module_control: Router = control_routes()
+        .route_layer(middleware::from_fn_with_state(pool.clone(), log_middleware))
         .route_layer(middleware::from_fn_with_state(
             (jwt_codec(), ServerAuthContextLoader::new()),
             auth_middleware,

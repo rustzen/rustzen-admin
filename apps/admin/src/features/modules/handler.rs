@@ -4,13 +4,11 @@ use axum::{
 };
 use rustzen_auth::auth::CurrentUser;
 
-use crate::common::api::{ApiResponse, AppResult};
-use crate::features::dashboard::types::ModuleHealthResp;
-
 use super::{
     service::{ModuleControlState, ModuleService},
-    types::{ModuleStatusResponse, RuntimeMenuResponse, UpdateModuleRequest},
+    types::{ModuleHealthResponse, ModuleStatusResponse, RuntimeMenuResponse, UpdateModuleRequest},
 };
+use crate::common::api::{ApiResponse, AppResult};
 
 pub async fn list(State(state): State<ModuleControlState>) -> AppResult<Vec<ModuleStatusResponse>> {
     Ok(ApiResponse::success(ModuleService::statuses(&state)))
@@ -25,7 +23,7 @@ pub async fn navigation(
 
 pub async fn dashboard(
     State(state): State<ModuleControlState>,
-) -> AppResult<Vec<ModuleHealthResp>> {
+) -> AppResult<Vec<ModuleHealthResponse>> {
     Ok(ApiResponse::success(ModuleService::dashboard_health(&state)))
 }
 

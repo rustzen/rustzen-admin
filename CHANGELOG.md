@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   preserving the TanStack Router, React, and Tailwind plugin order.
 - Retired stale core route permissions during startup sync while preserving
   manual menus and module-owned capabilities.
+- Restored operation-log coverage for authenticated module enable and disable
+  requests, and moved the module-health response DTO to the Modules owner.
 
 ### Removed
 

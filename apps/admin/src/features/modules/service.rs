@@ -6,14 +6,14 @@ use rustzen_ipc::{DelegationSigner, ModuleManifest};
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 
-use crate::features::dashboard::types::ModuleHealthResp;
 use crate::{common::error::ServiceError, infra::permission::PermissionService};
 
 use super::{
     registry::ModuleRegistry,
     repo::ModuleRepository,
     types::{
-        ModuleCondition, ModuleRuntime, ModuleSpec, ModuleStatusResponse, RuntimeMenuResponse,
+        ModuleCondition, ModuleHealthResponse, ModuleRuntime, ModuleSpec, ModuleStatusResponse,
+        RuntimeMenuResponse,
     },
 };
 
@@ -48,13 +48,13 @@ impl ModuleService {
         state.registry.snapshot().statuses()
     }
 
-    pub fn dashboard_health(state: &ModuleControlState) -> Vec<ModuleHealthResp> {
+    pub fn dashboard_health(state: &ModuleControlState) -> Vec<ModuleHealthResponse> {
         let snapshot = state.registry.snapshot();
         ["monitor", "insights", "reports"]
             .into_iter()
             .map(|module| {
                 let runtime = snapshot.modules().get(module);
-                ModuleHealthResp {
+                ModuleHealthResponse {
                     module,
                     available: runtime.is_some_and(ModuleRuntime::available),
                     release_version: runtime

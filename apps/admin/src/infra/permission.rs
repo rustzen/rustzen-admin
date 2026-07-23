@@ -1114,6 +1114,40 @@ mod tests {
         .await
         .expect("legacy and manual permissions");
 
+        let stale_menu_id: i64 =
+            sqlx::query_scalar("SELECT id FROM menus WHERE code = 'manage:dict:options'")
+                .fetch_one(&pool)
+                .await
+                .expect("stale menu id");
+        let custom_role_id: i64 = sqlx::query_scalar(
+            "INSERT INTO roles (name, code, status, is_system)
+             VALUES ('Legacy dictionary role', 'legacy_dictionary', 1, FALSE)
+             RETURNING id",
+        )
+        .fetch_one(&pool)
+        .await
+        .expect("legacy custom role");
+        let custom_user_id: i64 = sqlx::query_scalar(
+            "INSERT INTO users (username, email, password_hash, status)
+             VALUES ('legacy-dictionary-user', 'legacy-dictionary@example.com', 'hash', 1)
+             RETURNING id",
+        )
+        .fetch_one(&pool)
+        .await
+        .expect("legacy custom user");
+        sqlx::query("INSERT INTO role_menus (role_id, menu_id) VALUES (?, ?)")
+            .bind(custom_role_id)
+            .bind(stale_menu_id)
+            .execute(&pool)
+            .await
+            .expect("legacy dictionary grant");
+        sqlx::query("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)")
+            .bind(custom_user_id)
+            .bind(custom_role_id)
+            .execute(&pool)
+            .await
+            .expect("legacy dictionary user role");
+
         let seeded_accounts = sqlx::query_as::<_, (String, String)>(
             "SELECT u.username, r.code
              FROM users u
@@ -1190,6 +1224,20 @@ mod tests {
                 .await
                 .expect("current manual override");
         assert_eq!(current_core_name, "当前手工覆盖");
+
+        let stale_effective_permissions = sqlx::query_scalar::<_, String>(
+            "SELECT menu_code FROM user_permissions WHERE user_id = ? ORDER BY menu_code",
+        )
+        .bind(custom_user_id)
+        .fetch_all(&pool)
+        .await
+        .expect("legacy dictionary effective permissions");
+        assert!(stale_effective_permissions.is_empty());
+        let cached_user =
+            PermissionService::load_current_user(custom_user_id, "legacy-dictionary-user")
+                .expect("legacy user permission cache");
+        assert!(!cached_user.has_capability("manage:dict:options"));
+        PermissionService::clear_user_cache(custom_user_id);
 
         let owner_wildcard_count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*)

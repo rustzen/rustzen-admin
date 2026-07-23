@@ -51,53 +51,15 @@
 @layer components {
     .rz-shell {
         background-color: var(--background);
-        background-image: url("/ui/admin-glass-background.png");
-        background-position: center;
-        background-size: cover;
-    }
-
-    .dark .rz-shell {
-        background-color: var(--background);
-        background-image:
-            linear-gradient(rgba(5, 12, 28, 0.82), rgba(8, 18, 38, 0.9)),
-            url("/ui/admin-glass-background.png");
-        background-blend-mode: multiply, normal;
-    }
-
-    .white .rz-shell {
-        background-color: var(--background);
-        background-image: none;
     }
 
     .rz-sidebar [data-slot="sidebar-inner"] {
         border-inline-end: 1px solid var(--sidebar-border);
         background: var(--sidebar);
-        box-shadow:
-            12px 0 36px rgba(62, 101, 145, 0.12),
-            inset -1px 0 rgba(255, 255, 255, 0.46);
-        backdrop-filter: blur(30px) saturate(1.25);
     }
 
     .rz-topbar {
-        background: rgba(244, 249, 255, 0.5);
-        backdrop-filter: blur(28px) saturate(1.25);
-        box-shadow: inset 0 -1px rgba(255, 255, 255, 0.44);
-    }
-
-    .dark .rz-topbar {
-        border-color: var(--border);
-        background: color-mix(in oklab, var(--background) 72%, transparent);
-        box-shadow: inset 0 -1px rgba(255, 255, 255, 0.04);
-        backdrop-filter: blur(28px) saturate(1.2);
-    }
-
-    .white .rz-sidebar [data-slot="sidebar-inner"],
-    .white .rz-topbar,
-    .white .rz-page [data-slot="card"] {
-        border-color: var(--border);
         background: var(--card);
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
-        backdrop-filter: none;
     }
 
     .rz-content {
@@ -105,30 +67,9 @@
     }
 
     .rz-page [data-slot="card"] {
-        border-color: rgba(255, 255, 255, 0.72);
-        background: var(--panel);
-        box-shadow:
-            0 18px 46px rgba(67, 90, 129, 0.11),
-            inset 0 1px rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(24px) saturate(1.18);
-    }
-
-    .dark .rz-page [data-slot="card"] {
         border-color: var(--border);
-        background: var(--card);
-        box-shadow:
-            0 16px 42px rgba(0, 0, 0, 0.28),
-            inset 0 1px rgba(255, 255, 255, 0.04);
-        backdrop-filter: blur(24px) saturate(1.15);
-    }
-
-    .dark .rz-sidebar [data-slot="sidebar-inner"] {
-        border-color: var(--sidebar-border);
-        background: var(--sidebar);
-        box-shadow:
-            12px 0 36px rgba(0, 0, 0, 0.24),
-            inset -1px 0 rgba(255, 255, 255, 0.04);
-        backdrop-filter: blur(30px) saturate(1.2);
+        background: var(--panel);
+        box-shadow: 0 1px 2px color-mix(in oklab, var(--foreground) 8%, transparent);
     }
 
     .rz-page {
@@ -162,10 +103,6 @@
     }
     -ms-overflow-style: none;
     scrollbar-width: none;
-}
-
-@utility faded-bottom {
-    @apply after:pointer-events-none after:absolute after:inset-s-0 after:bottom-0 after:hidden after:h-32 after:w-full after:rounded-b-lg after:bg-[linear-gradient(180deg,transparent_10%,var(--background)_70%)] md:after:block;
 }
 
 #root {

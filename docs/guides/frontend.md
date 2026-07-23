@@ -53,9 +53,10 @@ Rules for frontend work under `apps/web/`.
   page title in both components.
 - Use `MetricCard` for compact operational metrics shared by overview pages.
   Keep visual metrics factual and do not create a grid of decorative KPIs.
-- Colorful glass, white, and dark are equal supported themes. Decorative ambient
-  color belongs to the shell; page cards and table surfaces must remain readable
-  through the shared `--panel` token in every theme.
+- Standard light and dark are the only supported themes, with light as the
+  default. The shell, page cards, dialogs, forms, and tables use solid semantic
+  surfaces; gradients, ambient imagery, glow, and decorative glass are not part
+  of the Admin visual system.
 - The UI defaults to Simplified Chinese and also supports English. Write fixed
   user-facing copy with `t(chinese, english)` from `apps/web/src/lib/i18n.ts`.
   Retain untranslated product names, protocol/method names, file formats, role

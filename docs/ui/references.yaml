@@ -1,29 +1,13 @@
 version: 1
-revision: 2
+revision: 3
 references:
-  - id: figure-2-web-console
-    source: chatgpt-conversation://6a58734e-e99c-83e8-9a9d-0c322b1c0134#figure-2
-    rights_status: reference-only
-    local_copy_allowed: true
-    local_copy: docs/ui/reference-assets/figure-2-light-glass-dashboard.png
+  - id: rustzen-admin-product-foundation
+    source: docs/product/product.md
+    rights_status: project-owned
+    local_copy_allowed: false
     use:
-      - page-density
-      - navigation-proportion
-      - hierarchy
-      - powder-blue-and-coral-ambient-light
-      - translucent-three-column-shell
+      - product-boundary
+      - operator-audience
+      - operational-information-priority
     ignore:
-      - exact-brand
-      - exact-business-content
-      - unverified-metrics
-      - unverified-navigation
-  - id: generated-admin-glass-background
-    source: apps/web/public/ui/admin-glass-background.png
-    rights_status: generated-for-project
-    local_copy_allowed: true
-    use:
-      - production-background
-      - blue-coral-ambient-field
-    ignore:
-      - ui-layout
-      - business-content
+      - speculative-capabilities

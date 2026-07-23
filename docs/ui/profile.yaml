@@ -1,5 +1,5 @@
 version: 1
-revision: 2
+revision: 3
 product:
   name: rustzen-admin
   type: operations-console
@@ -23,16 +23,15 @@ layout:
     - 1440x900
 surface:
   themes:
-    - colorful-glass
-    - white
+    - light
     - dark
-  default_theme: colorful-glass
-  material: translucent-shell-with-readable-panels
+  default_theme: light
+  material: solid-semantic-surfaces
 typography:
   display: inter-system
   body: inter-system
   utility: ui-monospace
-density: medium
+density: compact-readable
 preferred_patterns:
   - single-page-container
   - page-header-or-page-card-title
@@ -48,6 +47,9 @@ restricted_patterns:
   - oversized-hero
   - neon-gradient
   - decorative-glass
+  - ambient-background-image
+  - strong-card-shadow
+  - marketing-login-hero
 required_states:
   - loading
   - empty

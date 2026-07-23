@@ -1,37 +1,41 @@
-# 页面 UI 审查矩阵
+# UI Route Audit Matrix
 
-本矩阵覆盖当前 21 个前端路由。统一标准以 `layout/` 为全局宽度边界，
-`PageHeader` 或 `PageCard` 为页面层级所有者，`DataState` / `DataTableState`
-为数据状态所有者，并同时支持彩色玻璃、白色和暗色主题。
+This matrix covers the current 21 frontend routes. The application `layout/`
+owns the global width boundary, `PageHeader` or `PageCard` owns page hierarchy,
+and `DataState` or `DataTableState` owns data feedback. Every route supports the
+standard light and dark themes.
 
-| # | 路由 | 页面类型 | 本轮审查与统一结果 |
+| # | Route | Surface | Current audit result |
 | ---: | --- | --- | --- |
-| 1 | `/login` | 登录 | 保留品牌画面，验证表单、中文文案与无横向溢出。 |
-| 2 | `/` | 仪表盘 | 统一标题、模块中文名、台账与资源卡片表面。 |
-| 3 | `/profile` | 详情 | 增加页面标题层级，统一账号卡片与对话框中文文案。 |
-| 4 | `/403` | 权限状态 | 复用权限状态组件，保留返回操作。 |
-| 5 | `/404` | 错误状态 | 复用错误状态组件，保留返回操作。 |
-| 6 | `/monitoring/overview` | 概览 | 复用 `MetricCard`，统一空、加载和错误状态。 |
-| 7 | `/monitoring/nodes` | 列表/详情 | 统一页面卡片、表格状态、中文操作与节点详情状态。 |
-| 8 | `/monitoring/checks` | 列表/表单 | 统一表格状态、TCP 检查表单与测试反馈。 |
-| 9 | `/analytics/overview` | 概览 | 复用 `MetricCard`，统一指标密度和图表表面。 |
-| 10 | `/analytics/details` | 筛选列表 | 统一筛选工具栏、可访问名称、表格状态和分页。 |
-| 11 | `/reports/templates` | 列表/表单 | 统一模板、目标系统操作和表格状态。 |
-| 12 | `/reports/runs` | 列表/流程 | 统一填报操作、流程状态、执行明细和实时画面状态。 |
-| 13 | `/system/user` | 筛选列表 | 统一筛选、账号状态、表格反馈与中文操作。 |
-| 14 | `/system/role` | 筛选列表 | 统一筛选、权限摘要、表格反馈与中文对话框。 |
-| 15 | `/system/menu` | 树形列表 | 统一树形层级、表格反馈和中文操作。 |
-| 16 | `/system/module` | 状态列表 | 统一模块健康、启停确认和表格反馈。 |
-| 17 | `/system/status` | 资源概览 | 统一页面标题、存储与资源卡片，并完成中文化。 |
-| 18 | `/manage/dict` | 列表/表单 | 统一表格反馈、中文操作和删除确认。 |
-| 19 | `/manage/log` | 筛选列表 | 统一筛选、状态标签、常见日志描述和表格反馈。 |
-| 20 | `/manage/task` | 列表/明细 | 统一任务与运行日志状态、分页和中文确认。 |
-| 21 | `/manage/deploy` | 列表/流程 | 统一上传、部署、过期、清理和表格反馈。 |
+| 1 | `/login` | Sign-in | Uses one compact sign-in form with localized copy and no horizontal overflow. |
+| 2 | `/` | Dashboard | Uses one heading owner with consistent module, ledger, and resource-card surfaces. |
+| 3 | `/profile` | Detail | Uses one page heading with consistent account cards and localized dialogs. |
+| 4 | `/403` | Permission status | Reuses the permission-state component and preserves the return action. |
+| 5 | `/404` | Error status | Reuses the error-state component and preserves the return action. |
+| 6 | `/monitoring/overview` | Overview | Reuses `MetricCard` with explicit empty, loading, and error states. |
+| 7 | `/monitoring/nodes` | List and detail | Uses the shared page card, table states, actions, and node-detail states. |
+| 8 | `/monitoring/checks` | List and form | Uses shared table states, the TCP-check form, and test feedback. |
+| 9 | `/analytics/overview` | Overview | Reuses `MetricCard` with consistent metric density and chart surfaces. |
+| 10 | `/analytics/details` | Filtered list | Uses the shared filter toolbar, accessible names, table states, and pagination. |
+| 11 | `/reports/templates` | List and form | Uses consistent template, target-system, action, and table states. |
+| 12 | `/reports/runs` | List and workflow | Uses consistent fill actions, workflow states, run details, and live-frame states. |
+| 13 | `/system/user` | Filtered list | Uses consistent filters, account status, table feedback, and localized actions. |
+| 14 | `/system/role` | Filtered list | Uses consistent filters, permission summaries, table feedback, and dialog states. |
+| 15 | `/system/menu` | Tree list | Uses consistent tree hierarchy, table feedback, and localized actions. |
+| 16 | `/system/module` | Status list | Uses consistent module health, start/stop confirmation, and table feedback. |
+| 17 | `/system/status` | Resource overview | Uses one page heading with consistent storage and resource cards. |
+| 18 | `/manage/dict` | List and form | Uses consistent table feedback, actions, and delete confirmation. |
+| 19 | `/manage/log` | Filtered list | Uses consistent filters, status labels, common log descriptions, and table feedback. |
+| 20 | `/manage/task` | List and detail | Uses consistent task and run-log states, pagination, and confirmation. |
+| 21 | `/manage/deploy` | List and workflow | Uses consistent upload, deployment, expiry, cleanup, and table states. |
 
-## 验收标准
+## Acceptance
 
-- 1920×1080 全路由无页面级横向溢出。
-- 1440×900 代表页面无页面级横向溢出。
-- 彩色玻璃、白色、暗色主题首页均保持清晰层级和可读表面。
-- 查询列表具备初始加载、空、错误和有数据状态；错误状态提供重试入口。
-- 用户可见文案默认中文，仅保留产品名、协议、方法、格式和技术缩写。
+- No page-level horizontal overflow at 1920x1080.
+- No page-level horizontal overflow on representative routes at 1440x900.
+- Core shell, form, dialog, and table surfaces retain clear hierarchy and
+  readable solid surfaces in standard light and dark themes.
+- Query-backed lists expose distinct initial loading, empty, error, and populated
+  states, with retry available after errors.
+- User-visible copy defaults to Simplified Chinese and retains only product names,
+  protocols, methods, formats, and technical abbreviations untranslated.

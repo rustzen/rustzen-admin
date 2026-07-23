@@ -1,10 +1,24 @@
-import { MoonIcon, PaletteIcon, SunIcon } from "lucide-react";
+import { MoonIcon, SunIcon } from "lucide-react";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/i18n";
 
-export type Theme = "light" | "white" | "dark";
+export type Theme = "light" | "dark";
+
+const THEME_STORAGE_KEY = "rustzen-admin-theme";
+
+function readStoredTheme(): Theme {
+    if (typeof window === "undefined") {
+        return "light";
+    }
+
+    try {
+        return localStorage.getItem(THEME_STORAGE_KEY) === "dark" ? "dark" : "light";
+    } catch {
+        return "light";
+    }
+}
 
 const ThemeContext = createContext<{
     theme: Theme;
@@ -12,20 +26,16 @@ const ThemeContext = createContext<{
 } | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-    const [theme, setTheme] = useState<Theme>(() => {
-        if (typeof window === "undefined") {
-            return "light";
-        }
-        if (document.documentElement.classList.contains("dark")) {
-            return "dark";
-        }
-        return document.documentElement.classList.contains("white") ? "white" : "light";
-    });
+    const [theme, setTheme] = useState<Theme>(readStoredTheme);
 
     useEffect(() => {
-        document.documentElement.classList.toggle("white", theme === "white");
+        document.documentElement.classList.remove("white");
         document.documentElement.classList.toggle("dark", theme === "dark");
-        localStorage.setItem("rustzen-admin-theme", theme);
+        try {
+            localStorage.setItem(THEME_STORAGE_KEY, theme);
+        } catch {
+            // The selected theme still applies when storage is unavailable.
+        }
     }, [theme]);
 
     return <ThemeContext value={{ theme, setTheme }}>{children}</ThemeContext>;
@@ -33,21 +43,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function ThemeSwitch() {
     const context = useTheme();
-    const nextTheme: Theme =
-        context.theme === "light" ? "white" : context.theme === "white" ? "dark" : "light";
+    const nextTheme: Theme = context.theme === "light" ? "dark" : "light";
     const labels: Record<Theme, string> = {
-        light: t("彩色玻璃", "Colorful glass"),
-        white: t("白色", "White"),
+        light: t("亮色", "Light"),
         dark: t("暗色", "Dark"),
     };
-    const icon =
-        context.theme === "light" ? (
-            <PaletteIcon />
-        ) : context.theme === "white" ? (
-            <SunIcon />
-        ) : (
-            <MoonIcon />
-        );
+    const icon = context.theme === "light" ? <MoonIcon /> : <SunIcon />;
 
     return (
         <Button

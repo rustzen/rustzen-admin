@@ -1,19 +1,19 @@
 version: 1
 artifact:
   id: rustzen-admin-application-ui-standardization
-  revision: 4
+  revision: 6
 source:
   repository: rustzen-admin
-  ref: refact/modules-mvp
+  ref: main
 inputs:
-  profile_revision: 2
-  task_revision: 2
-  reference_revision: 2
+  profile_revision: 3
+  task_revision: 3
+  reference_revision: 3
   rubric_revision: 1
 generation:
   provider: not-used
   model: not-used
-  generated_at: 2026-07-18T00:00:00+08:00
+  generated_at: 2026-07-23T00:00:00+08:00
 outputs:
   profile: docs/ui/profile.yaml
   references: docs/ui/references.yaml
@@ -22,8 +22,16 @@ outputs:
   component_map: docs/ui/component-map.json
   page_audit: docs/ui/page-audit.md
   evaluation: docs/ui/evaluation.yaml
+hashes:
+  profile_sha256: 50f3bb67f90868c02f8b8076d3de4b517a94b77ece17ce9785bb7ad0c9ff9487
+  references_sha256: 41b4b9d4d5d6a15beefe06b3b99df0880a922d07ce52150e94c714641d4a819e
+  task_sha256: 38f3c650b562160e315c126d00cbd59f11d083606ee587ab18b28d6e4f646907
+  tokens_sha256: 127960c7f648ed2072f6b9c194d07d1691f894a17f0cfa58f57fc14538baec46
+  component_map_sha256: 6b507bdfa8356aa093b63f60017b5c7e8718ac063fa0fecfc154d3562dbb3239
+  page_audit_sha256: a1163109598b2b162e43ef3ecd6c801d6243c61ec74991d34c48b7b5b27461e3
+  evaluation_sha256: bbe1446e8c20965155801197d68458154109636dded7a80414e64eb5ba0004cb
 evaluation:
-  score: 95
+  score: 97
   status: verified
 approval:
   approved_by: null

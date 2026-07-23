@@ -1,10 +1,10 @@
 version: 1
-revision: 2
+revision: 3
 task:
   id: application-ui-standardization
   project: rustzen-admin
   surface: all-web-routes-and-shared-page-components
-  goal: Unify the 21 current routes around one layout, surface, component, state, language, and three-theme standard without changing business contracts.
+  goal: Converge all Web routes on a restrained, compact Admin visual language with only standard light and dark themes, without changing business contracts.
 scope:
   include:
     - application-shell
@@ -26,7 +26,7 @@ scope:
 facts:
   available:
     - twenty-one-existing-routes
-    - colorful-glass-white-dark-themes
+    - existing-light-white-dark-storage-values
     - dashboard-stats
     - module-health
     - system-health
@@ -37,11 +37,11 @@ facts:
     - confidence-score
     - recommended-remediation
 references:
-  - id: figure-2-web-console
+  - id: rustzen-admin-product-foundation
     use:
-      - hierarchy
-      - density
-      - navigation-proportion
+      - product-boundary
+      - operator-audience
+      - operational-information-priority
 required_states:
   - loading
   - empty
@@ -58,7 +58,8 @@ validation:
     - web-test
     - web-build
     - all-routes-browser-review
-    - three-theme-homepage-review
+    - light-dark-core-surface-review
+    - legacy-theme-storage-fallback
     - no-horizontal-overflow
     - no-console-errors
 acceptance:
@@ -67,8 +68,8 @@ acceptance:
   - no-nested-dashboard
   - route-and-permission-contracts-preserved
 budget:
-  max_variants: 3
-  max_generation_rounds: 2
+  max_variants: 1
+  max_generation_rounds: 0
   max_runtime_runs: 8
   max_duration_minutes: 120
   max_cost_usd: 3

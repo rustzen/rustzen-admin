@@ -1,34 +1,38 @@
 version: 1
-revision: 4
+revision: 5
 status: verified
 deterministic:
   results:
     - check: ui-artifact-contract
-      result: pass
+      result: pass-yaml-and-json-parse
     - check: web-production-build
       result: pass
     - check: web-typecheck-and-lint
       result: pass
-    - check: all-routes-browser-review-1920x1080
-      result: pass-no-horizontal-overflow
-    - check: three-theme-dashboard-review
-      result: pass-colorful-glass-white-dark
-    - check: representative-routes-1440x900
-      result: pass-no-horizontal-overflow
+    - check: light-dark-core-browser-review-1920x1080
+      result: pass-no-page-horizontal-overflow
+    - check: light-dark-core-browser-review-narrow
+      result: pass-390x844-and-390x667
     - check: authenticated-browser-console
       result: pass-no-warnings-or-errors
+    - check: text-and-control-contrast
+      result: pass-minimum-observed-ratio-6.25
+    - check: keyboard-focus
+      result: pass-visible-focus-ring
 hard_blockers: []
 scores:
   product_truth: 15
   user_task: 15
   information_architecture: 14
-  visual_coherence: 14
+  visual_coherence: 15
   components_layout: 15
   interaction_states: 9
-  engineering_fit: 9
+  engineering_fit: 10
   evidence: 4
-total: 95
+total: 97
 decision: pass
 reviewer: codex-design-qa
 gaps:
-  - failure-responses-were-source-reviewed-but-not-forced-on-every-runtime-route
+  - representative-core-surfaces-verified-not-all-twenty-one-routes
+  - legacy-storage-fallback-source-verified-not-directly-inspected-in-browser-storage
+  - isolated-admin-runtime-emitted-an-existing-dashboard-average-response-column-decode-error

@@ -24,8 +24,8 @@ export function PageCard({
 }: PageCardProps) {
     return (
         <Card className={cn("flex h-full min-h-0 flex-col overflow-hidden", className)}>
-            <CardHeader className="flex flex-col gap-4 border-b pb-4">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+            <CardHeader className="flex flex-col gap-3 border-b pb-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                         <CardTitle className="text-base">{title}</CardTitle>
                         {description ? (
@@ -37,7 +37,7 @@ export function PageCard({
                     ) : null}
                 </div>
                 {toolbar ? (
-                    <div className="rounded-lg border bg-muted/35 p-3">{toolbar}</div>
+                    <div className="rounded-md border bg-muted/35 p-2">{toolbar}</div>
                 ) : null}
             </CardHeader>
             <CardContent

@@ -51,13 +51,15 @@ export const AppSearch = ({ routes, onSelect }: AppSearchProps) => {
             <Button
                 type="button"
                 variant="outline"
-                className="h-9 w-45 justify-start gap-2 px-3 text-muted-foreground xl:w-90"
+                className="size-9 shrink-0 justify-center px-0 text-muted-foreground sm:w-45 sm:justify-start sm:gap-2 sm:px-3 xl:w-90"
                 onClick={() => setOpen(true)}
                 aria-label={t("打开页面搜索", "Open page search")}
             >
                 <SearchIcon data-icon="inline-start" />
-                <span className="min-w-0 flex-1 truncate text-left">{t("搜索", "Search")}</span>
-                <kbd className="rounded border bg-muted px-1.5 py-0.5 text-xs leading-none text-muted-foreground">
+                <span className="hidden min-w-0 flex-1 truncate text-left sm:inline">
+                    {t("搜索", "Search")}
+                </span>
+                <kbd className="hidden rounded border bg-muted px-1.5 py-0.5 text-xs leading-none text-muted-foreground sm:inline">
                     ⌘ K
                 </kbd>
             </Button>

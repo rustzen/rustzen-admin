@@ -1,7 +1,10 @@
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import viteReact from "@vitejs/plugin-react";
-import { defineConfig } from "vite-plus";
+import { defineConfig, lazyPlugins } from "vite-plus";
+
+// Vite+ and Vite 8 expose compatible plugins through distinct type identities.
+type VitePlusPluginList = NonNullable<ReturnType<typeof lazyPlugins>>;
 
 const WEB_DEV_PORT = 9800;
 const BACKEND_PORT = 9801;
@@ -13,7 +16,14 @@ export default defineConfig({
     staged: {
         "*": "vp check --fix",
     },
-    plugins: [tanstackRouter({ autoCodeSplitting: true }), viteReact(), tailwindcss()],
+    plugins: lazyPlugins(
+        () =>
+            [
+                tanstackRouter({ autoCodeSplitting: true }),
+                viteReact(),
+                tailwindcss(),
+            ] as unknown as VitePlusPluginList,
+    ),
     resolve: {
         tsconfigPaths: true,
     },

@@ -1,6 +1,6 @@
-version: 1
-revision: 4
-status: verified
+version: 2
+revision: 8
+status: pending-human-approval
 deterministic:
   results:
     - check: ui-artifact-contract
@@ -10,7 +10,7 @@ deterministic:
     - check: web-typecheck-and-lint
       result: pass
     - check: all-routes-browser-review-1920x1080
-      result: pass-no-horizontal-overflow
+      result: pass-current-routes-no-horizontal-overflow
     - check: three-theme-dashboard-review
       result: pass-colorful-glass-white-dark
     - check: representative-routes-1440x900
@@ -20,15 +20,18 @@ deterministic:
 hard_blockers: []
 scores:
   product_truth: 15
-  user_task: 15
-  information_architecture: 14
-  visual_coherence: 14
-  components_layout: 15
-  interaction_states: 9
-  engineering_fit: 9
-  evidence: 4
+  source_fidelity: 14
+  information_architecture: 10
+  interaction_states: 13
+  responsive_accessibility: 13
+  component_token_mapping: 15
+  engineering_fit: 10
+  evidence: 5
 total: 95
-decision: pass
+decision: pending
 reviewer: codex-design-qa
 gaps:
   - failure-responses-were-source-reviewed-but-not-forced-on-every-runtime-route
+  - historical-global-package-does-not-contain-independent-contracts-for-every-domain
+  - human-approval-not-recorded
+promotion_approvals: []

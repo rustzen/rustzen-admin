@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "revision": 3,
+  "version": 2,
+  "revision": 4,
   "source": "apps/web/src/styles/theme.css",
   "color": {
     "paper": "#E8F3FC",

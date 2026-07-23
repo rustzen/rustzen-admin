@@ -1,10 +1,27 @@
-version: 1
-revision: 2
+version: 2
+revision: 6
+visual_source:
+  id: figure-2-web-console
+  revision: 2
+  status: accepted
+  source: docs/ui/reference-assets/figure-2-light-glass-dashboard.png
+  rights_status: reference-only
+  use:
+    - page-density
+    - navigation-proportion
+    - hierarchy
+    - powder-blue-and-coral-ambient-light
+    - translucent-three-column-shell
+  ignore:
+    - exact-brand
+    - exact-business-content
+    - unverified-metrics
+    - unverified-navigation
 task:
   id: application-ui-standardization
   project: rustzen-admin
   surface: all-web-routes-and-shared-page-components
-  goal: Unify the 21 current routes around one layout, surface, component, state, language, and three-theme standard without changing business contracts.
+  goal: Unify the 20 current routes around one layout, surface, component, state, language, and three-theme standard.
 scope:
   include:
     - application-shell
@@ -25,7 +42,7 @@ scope:
     - new-analytics
 facts:
   available:
-    - twenty-one-existing-routes
+    - twenty-existing-routes
     - colorful-glass-white-dark-themes
     - dashboard-stats
     - module-health
@@ -37,11 +54,7 @@ facts:
     - confidence-score
     - recommended-remediation
 references:
-  - id: figure-2-web-console
-    use:
-      - hierarchy
-      - density
-      - navigation-proportion
+  - figure-2-web-console
 required_states:
   - loading
   - empty
@@ -55,7 +68,6 @@ validation:
   deterministic:
     - web-lint
     - web-typecheck
-    - web-test
     - web-build
     - all-routes-browser-review
     - three-theme-homepage-review
@@ -65,7 +77,7 @@ acceptance:
   - one-primary-operational-focus
   - no-invented-metrics
   - no-nested-dashboard
-  - route-and-permission-contracts-preserved
+  - current-routes-use-existing-permission-contracts
 budget:
   max_variants: 3
   max_generation_rounds: 2

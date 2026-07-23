@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** Reduced Dashboard to account totals and module health, removing
+  the duplicated Dashboard health, metrics, and trends endpoints and leaving
+  detailed resource and trend views with their owning System and product modules.
+- Reused shared module response, pagination, timezone, logging, date display,
+  form-field, and query-option mechanisms where wire and UI semantics match.
+- Reused one date-time formatter across management and system tables that share
+  the same empty-value and locale behavior.
+- Centralized the four service health responses and the deployment health-gate
+  deserialization contract in `crates/ipc`.
+- Documented the current product boundary, shared-capability gate, verified
+  reuse index, and live former-product comparison for future module work.
+
+### Fixed
+
+- Restored lint and TypeScript checks for the Vite configuration while
+  preserving the TanStack Router, React, and Tailwind plugin order.
+- Retired stale core route permissions during startup sync while preserving
+  manual menus and module-owned capabilities.
+
+### Removed
+
+- **Breaking:** Removed the unconsumed Dictionary HTTP/UI surface, permission,
+  and navigation. The historical SQLite table remains dormant for upgrade
+  compatibility.
+- Removed dead module capability constants, an orphan Monitor settings handler,
+  unused frontend Alert source, demo navigation entries, and Admin placeholder
+  endpoints.
+
 ## [0.5.0] - 2026-07-02
 
 ### Added

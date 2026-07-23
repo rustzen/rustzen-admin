@@ -1,5 +1,22 @@
-version: 1
-revision: 2
+version: 2
+revision: 3
+visual_source:
+  id: figure-2-web-console
+  revision: 2
+  status: accepted
+  source: docs/ui/reference-assets/figure-2-light-glass-dashboard.png
+  rights_status: reference-only
+  use:
+    - page-density
+    - navigation-proportion
+    - hierarchy
+    - powder-blue-and-coral-ambient-light
+    - translucent-three-column-shell
+  ignore:
+    - exact-brand
+    - exact-business-content
+    - unverified-metrics
+    - unverified-navigation
 product:
   name: rustzen-admin
   type: operations-console

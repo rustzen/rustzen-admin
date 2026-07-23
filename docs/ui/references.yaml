@@ -1,11 +1,10 @@
-version: 1
-revision: 2
+version: 2
+revision: 3
 references:
   - id: figure-2-web-console
     source: chatgpt-conversation://6a58734e-e99c-83e8-9a9d-0c322b1c0134#figure-2
     rights_status: reference-only
     local_copy_allowed: true
-    local_copy: docs/ui/reference-assets/figure-2-light-glass-dashboard.png
     use:
       - page-density
       - navigation-proportion

@@ -1,35 +1,52 @@
-version: 1
+version: 2
 artifact:
   id: rustzen-admin-application-ui-standardization
-  revision: 4
+  revision: 10
 source:
   repository: rustzen-admin
-  ref: refact/modules-mvp
+  ref: 31252540f1facfb3205f7166451b93d9e2d563c1
+  visual_source_id: figure-2-web-console
+  visual_source_revision: 2
 inputs:
-  profile_revision: 2
-  task_revision: 2
-  reference_revision: 2
+  profile_revision: 3
+  task_revision: 6
+  reference_revision: 3
+  tokens_revision: 4
+  component_map_revision: 3
+  evaluation_revision: 8
   rubric_revision: 1
-generation:
-  provider: not-used
-  model: not-used
-  generated_at: 2026-07-18T00:00:00+08:00
 outputs:
-  profile: docs/ui/profile.yaml
-  references: docs/ui/references.yaml
-  task: docs/ui/task.yaml
-  tokens: docs/ui/design-tokens.json
-  component_map: docs/ui/component-map.json
-  page_audit: docs/ui/page-audit.md
-  evaluation: docs/ui/evaluation.yaml
+  profile:
+    root: task-local
+    path: profile.yaml
+    sha256: 51a190822139f29a45b1b8a0e86522e1de5070b17f50ce6ea8ff8651fc25dd5a
+  references:
+    root: task-local
+    path: references.yaml
+    sha256: 99a9815a76d1eea2cac622e9b6f0e5094715f0a88a15b5f907d63de3980d7499
+  task:
+    root: task-local
+    path: task.yaml
+    sha256: 751b9b5a858838ae24cc49f373f919468e62a34b4256d54ebfbce72f30a9a226
+  tokens:
+    root: task-local
+    path: design-tokens.json
+    sha256: 60377cf72dd3831aae3e8744ee7bf3fe7ec5575db518dc852241610f6d2f8410
+  component_map:
+    root: task-local
+    path: component-map.json
+    sha256: f1e4c2d670965094c98ad3ce21cebda74292c70470adefa54b79dbc85a89ba24
+  evaluation:
+    root: task-local
+    path: evaluation.yaml
+    sha256: 4a8b5ab99f3cf12040b8370abd482215b0b4eef89157986da43f4351f57af8ac
 evaluation:
   score: 95
-  status: verified
+  status: pending-human-approval
 approval:
   approved_by: null
   approved_at: null
-cost:
-  usd: 0
+effort:
   duration_minutes: 75
 rollback:
   accepted_revision: 3

@@ -10,6 +10,7 @@ use std::{
 };
 
 use axum::extract::Multipart;
+use rustzen_ipc::HealthResponse;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tokio::process::Command;
@@ -920,13 +921,6 @@ async fn wait_for_health(
     }
     Err(std::io::Error::other(format!("health gate failed for release {expected_version}: {url}"))
         .into())
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct HealthResponse {
-    status: String,
-    release_version: String,
 }
 
 fn release_version_from_target(target: &Path) -> Result<&str, Box<dyn std::error::Error>> {

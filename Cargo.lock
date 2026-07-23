@@ -2527,6 +2527,7 @@ dependencies = [
  "rustzen-auth",
  "rustzen-config",
  "rustzen-ipc",
+ "rustzen-runtime",
  "rustzen-storage",
  "serde",
  "serde_json",
@@ -2540,8 +2541,6 @@ dependencies = [
  "tower",
  "tower-http",
  "tracing",
- "tracing-appender",
- "tracing-subscriber",
  "uuid",
 ]
 
@@ -2621,6 +2620,7 @@ dependencies = [
  "rustzen-auth",
  "rustzen-config",
  "rustzen-ipc",
+ "rustzen-runtime",
  "rustzen-storage",
  "serde",
  "serde_json",
@@ -2628,8 +2628,6 @@ dependencies = [
  "sysinfo",
  "tokio",
  "tracing",
- "tracing-appender",
- "tracing-subscriber",
  "uuid",
 ]
 
@@ -2644,6 +2642,7 @@ dependencies = [
  "rustzen-auth",
  "rustzen-config",
  "rustzen-ipc",
+ "rustzen-runtime",
  "rustzen-storage",
  "serde",
  "serde_json",
@@ -2653,8 +2652,6 @@ dependencies = [
  "tokio-util",
  "tower",
  "tracing",
- "tracing-appender",
- "tracing-subscriber",
  "url",
  "uuid",
 ]
@@ -2662,6 +2659,14 @@ dependencies = [
 [[package]]
 name = "rustzen-runtime"
 version = "0.5.0"
+dependencies = [
+ "chrono",
+ "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
+ "uuid",
+]
 
 [[package]]
 name = "rustzen-storage"

@@ -144,6 +144,10 @@ impl PermissionService {
             ServiceError::DatabaseQueryFailed
         })?;
 
+        if !seed_records.is_empty() {
+            retire_stale_core_permissions(&mut tx, &seed_records).await?;
+        }
+
         for record in &seed_records {
             upsert_menu_seed_record(&mut tx, record).await?;
         }
@@ -488,7 +492,6 @@ fn localize_segment(segment: &str) -> String {
         "module" => "模块",
         "status" => "状态",
         "manage" => "管理",
-        "dict" => "字典",
         "log" => "日志",
         "task" => "任务",
         "deploy" => "部署",
@@ -541,6 +544,38 @@ fn humanize_segment(segment: &str) -> String {
 
 fn localize_segments(segments: &[&str]) -> String {
     segments.iter().map(|segment| localize_segment(segment)).collect::<Vec<_>>().join("")
+}
+
+async fn retire_stale_core_permissions(
+    tx: &mut sqlx::Transaction<'_, Sqlite>,
+    current_records: &[MenuSeedRecord],
+) -> Result<(), ServiceError> {
+    let now = Utc::now().naive_utc();
+    let mut query = sqlx::QueryBuilder::<Sqlite>::new(
+        "UPDATE menus
+         SET is_active = FALSE, updated_at = ",
+    );
+    query
+        .push_bind(now)
+        .push(
+            " WHERE module_id IS NULL
+               AND is_system = TRUE
+               AND code <> ",
+        )
+        .push_bind(SYSTEM_WILDCARD)
+        .push(" AND deleted_at IS NULL AND code NOT IN (");
+    let mut codes = query.separated(", ");
+    for record in current_records {
+        codes.push_bind(&record.permission_code);
+    }
+    codes.push_unseparated(")");
+    query
+        .build()
+        .execute(&mut **tx)
+        .await
+        .map_err(database_error("retiring stale core permissions"))?;
+
+    Ok(())
 }
 
 async fn upsert_menu_seed_record(
@@ -1031,7 +1066,6 @@ mod tests {
             "manage:deploy:*".to_string(),
             "manage:deploy:list".to_string(),
             "manage:log:export".to_string(),
-            "manage:dict:options".to_string(),
         ];
 
         let owner_codes = builtin_role_permission_codes(BUILTIN_OWNER_ROLE_CODE, &menu_codes);
@@ -1050,7 +1084,6 @@ mod tests {
 
         assert!(viewer_codes.contains(&"system:user:list".to_string()));
         assert!(viewer_codes.contains(&"dashboard:view".to_string()));
-        assert!(viewer_codes.contains(&"manage:dict:options".to_string()));
         assert!(!viewer_codes.contains(&"manage:deploy:list".to_string()));
         assert!(!viewer_codes.contains(&"system:user:create".to_string()));
         assert!(!viewer_codes.contains(&"manage:task:run".to_string()));
@@ -1067,6 +1100,53 @@ mod tests {
             .await
             .expect("in-memory sqlite pool");
         crate::infra::db::run_migrations(&pool).await.expect("migrations");
+
+        sqlx::query(
+            "INSERT INTO menus (
+                 parent_id, name, code, menu_type, sort_order, status, is_system, is_manual,
+                 is_active, created_at, updated_at
+             ) VALUES
+                 (0, '过期权限', 'manage:dict:options', 3, 1, 1, TRUE, TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+                 (0, '当前手工覆盖', 'dashboard:view', 3, 1, 1, TRUE, TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+                 (0, '手工权限', 'custom:manual:view', 3, 1, 1, FALSE, TRUE, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        )
+        .execute(&pool)
+        .await
+        .expect("legacy and manual permissions");
+
+        let stale_menu_id: i64 =
+            sqlx::query_scalar("SELECT id FROM menus WHERE code = 'manage:dict:options'")
+                .fetch_one(&pool)
+                .await
+                .expect("stale menu id");
+        let custom_role_id: i64 = sqlx::query_scalar(
+            "INSERT INTO roles (name, code, status, is_system)
+             VALUES ('Legacy dictionary role', 'legacy_dictionary', 1, FALSE)
+             RETURNING id",
+        )
+        .fetch_one(&pool)
+        .await
+        .expect("legacy custom role");
+        let custom_user_id: i64 = sqlx::query_scalar(
+            "INSERT INTO users (username, email, password_hash, status)
+             VALUES ('legacy-dictionary-user', 'legacy-dictionary@example.com', 'hash', 1)
+             RETURNING id",
+        )
+        .fetch_one(&pool)
+        .await
+        .expect("legacy custom user");
+        sqlx::query("INSERT INTO role_menus (role_id, menu_id) VALUES (?, ?)")
+            .bind(custom_role_id)
+            .bind(stale_menu_id)
+            .execute(&pool)
+            .await
+            .expect("legacy dictionary grant");
+        sqlx::query("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)")
+            .bind(custom_user_id)
+            .bind(custom_role_id)
+            .execute(&pool)
+            .await
+            .expect("legacy dictionary user role");
 
         let seeded_accounts = sqlx::query_as::<_, (String, String)>(
             "SELECT u.username, r.code
@@ -1096,7 +1176,6 @@ mod tests {
             "manage:task:run",
             "manage:deploy:list",
             "manage:deploy:run",
-            "manage:dict:options",
         ]);
 
         PermissionService::sync_permissions(&pool).await.expect("permission sync");
@@ -1115,12 +1194,50 @@ mod tests {
 
         assert!(viewer_permissions.contains(&"dashboard:view".to_string()));
         assert!(viewer_permissions.contains(&"system:user:list".to_string()));
-        assert!(viewer_permissions.contains(&"manage:dict:options".to_string()));
         assert!(!viewer_permissions.contains(&"manage:deploy:list".to_string()));
         assert!(!viewer_permissions.contains(&"system:user:create".to_string()));
         assert!(!viewer_permissions.contains(&"manage:task:run".to_string()));
         assert!(!viewer_permissions.contains(&"manage:deploy:run".to_string()));
         assert!(!viewer_permissions.iter().any(|code| code == "*" || code.ends_with(":*")));
+
+        let stale_core_active: bool =
+            sqlx::query_scalar("SELECT is_active FROM menus WHERE code = 'manage:dict:options'")
+                .fetch_one(&pool)
+                .await
+                .expect("stale core permission");
+        let manual_active: bool =
+            sqlx::query_scalar("SELECT is_active FROM menus WHERE code = 'custom:manual:view'")
+                .fetch_one(&pool)
+                .await
+                .expect("manual permission");
+        let current_core_active: bool =
+            sqlx::query_scalar("SELECT is_active FROM menus WHERE code = 'dashboard:view'")
+                .fetch_one(&pool)
+                .await
+                .expect("current core permission");
+        assert!(!stale_core_active);
+        assert!(manual_active);
+        assert!(current_core_active);
+        let current_core_name: String =
+            sqlx::query_scalar("SELECT name FROM menus WHERE code = 'dashboard:view'")
+                .fetch_one(&pool)
+                .await
+                .expect("current manual override");
+        assert_eq!(current_core_name, "当前手工覆盖");
+
+        let stale_effective_permissions = sqlx::query_scalar::<_, String>(
+            "SELECT menu_code FROM user_permissions WHERE user_id = ? ORDER BY menu_code",
+        )
+        .bind(custom_user_id)
+        .fetch_all(&pool)
+        .await
+        .expect("legacy dictionary effective permissions");
+        assert!(stale_effective_permissions.is_empty());
+        let cached_user =
+            PermissionService::load_current_user(custom_user_id, "legacy-dictionary-user")
+                .expect("legacy user permission cache");
+        assert!(!cached_user.has_capability("manage:dict:options"));
+        PermissionService::clear_user_cache(custom_user_id);
 
         let owner_wildcard_count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*)

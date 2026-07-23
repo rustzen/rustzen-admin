@@ -1,6 +1,15 @@
 # Project Map
 
-This is a practical path index for task orientation.
+This is the authoritative repository navigation index. Source code, manifests,
+the root `justfile`, and the nearest `AGENTS.md` remain proof.
+
+- Scope class: versioned Web/Rust monorepo.
+- Map and Git root: the repository root.
+- Specialist maps: `docs/ui/component-map.json` owns the declared UI component
+  mapping, while `docs/ui/evaluation.yaml` owns its current approval status;
+  `docs/reference/capability-map.md` owns the short capability-owner view. This
+  file links those boundaries instead of duplicating their complete
+  inventories.
 
 ## Authority and reading paths
 
@@ -22,15 +31,26 @@ This is a practical path index for task orientation.
 | `justfile` | Command source of truth. | You run, check, build, package, or verify. |
 | `.env.example` | Minimal production configuration template. | You change runtime configuration or deployment. |
 
+## Commands
+
+| Task | Authoritative command |
+| --- | --- |
+| Start Admin, Monitor, Insights, Reports, or Web | `just dev-server`, `just dev-monitor`, `just dev-insights`, `just dev-reports`, `just dev-web` |
+| Format, lint, typecheck, build, clippy, and test | `just check` |
+| Exercise the four-service module contract | `just verify-modules-mvp` |
+| Exercise real Reports browser filling | `just verify-automation-browser <browser-path>` |
+| Build the native four-binary release | `just build-native` |
+| Build the signed Linux release bundle | `just build` |
+
 ## Shared crates
 
 | Path | Value | Inspect when |
 | --- | --- | --- |
 | `crates/auth/` | JWT/auth context, permission checks, and capability constants. | You change authentication or authorization policy. |
-| `crates/ipc/` | Manifest, method-aware module router, and HMAC delegation contract. | You change module routes or the Admin-to-module boundary. |
+| `crates/ipc/` | Shared module response and pagination, health responses, Manifest, method-aware module router, and HMAC delegation contract. | You change a compatible module HTTP envelope, service health, module routes, or the Admin-to-module boundary. |
 | `crates/config/` | Focused Admin, Monitor, Insights, and Reports configuration. | You change `RUSTZEN_*` parsing, defaults, or runtime paths. |
 | `crates/storage/` | SQLite pool and maintenance primitives. | You change shared SQLite behavior. |
-| `crates/runtime/` | Stable runtime-layout helpers. | You change runtime-root topology. |
+| `crates/runtime/` | Stable runtime-layout and compatible process-logging helpers. | You change runtime-root topology or shared daily-file logging mechanics. |
 
 ## Admin
 
@@ -42,8 +62,8 @@ This is a practical path index for task orientation.
 | `apps/admin/src/features/manage/deploy/` | Signed bundle validation, update worker, rollback, and recovery. | You change release behavior. |
 | `apps/admin/src/features/auth/` | Login, logout, and current-session bootstrap. | You change sessions or token flows. |
 | `apps/admin/src/features/account/` | Current-account profile, avatar, and password flows. | You change self-service account behavior. |
-| `apps/admin/src/features/dashboard/` | Admin dashboard aggregation. | You change dashboard cards or module health display. |
-| `apps/admin/src/features/manage/` | Dictionaries, logs, scheduled tasks, and deploy versions. | You change Admin management features. |
+| `apps/admin/src/features/dashboard/` | Account totals and module-health landing data. | You change dashboard cards or module health display. |
+| `apps/admin/src/features/manage/` | Logs, scheduled tasks, and deploy versions. | You change Admin management features. |
 | `apps/admin/src/features/system/` | Menu, role, user, and status management. | You change RBAC or system administration. |
 | `apps/admin/migrations/sqlite/` | Admin, RBAC, module-state, and release migrations. | You change Admin schema. |
 
@@ -104,9 +124,39 @@ the live definition and at least one current consumer before using either artifa
 | Change authentication or permission behavior | `crates/auth/` → Admin auth/system feature → `apps/web/src/routes/__root.tsx` and auth store | focused tests, then `just check` |
 | Change release or deployment behavior | Admin deploy feature → bundle/signing script → installer/systemd assets → architecture contract | focused script tests, then `just check` |
 | Change product scope or module purpose | `docs/product/product.md` → affected source and acceptance evidence | documentation checks plus the implementation slice's own gate |
+| Add or expand a module capability | `docs/product/product.md` → `docs/reference/legacy-module-comparison.md` → `docs/guides/shared-capabilities.md` → owning feature and route registration | focused tests, then `just verify-modules-mvp` |
+| Add a shared Rust capability | `docs/guides/shared-capabilities.md` → closest named crate → exports → two representative consumers | focused tests, then `just check` |
+| Add or change shared UI | target UI feature contract → current component/token owner → representative routes → `docs/ui/evaluation.yaml` | frontend checks and browser verification |
 
 OpenAPI is not a universal task gate. Use the repository-native route and client
 authority unless an existing generated pipeline or an explicit task introduces one.
+
+## Verified reuse index
+
+| Capability or product job | Canonical definition and access | Representative consumers | Boundary and evidence |
+| --- | --- | --- | --- |
+| Module route and Manifest | `ModuleRouter`, `Require` in `crates/ipc/src/router.rs`, exported by `crates/ipc/src/lib.rs` | Monitor checks/metrics; Insights overview/query; Reports automation | Reuse for module routes; Rust registration is the only method/path/access/capability source. Tested in `crates/ipc`. |
+| Service health | `HealthResponse` in `crates/ipc/src/health.rs` | Four service health producers; Admin deploy health gate | Reuse for the fixed release health contract; module-specific diagnostics stay local. |
+| Authentication and capabilities | `crates/auth/src/` exports | Admin permission checks and three module routers | Reuse policy and constants; business authorization decisions remain with the owner. |
+| SQLite connection and maintenance | `crates/storage/src/{sqlite,maintenance}.rs`, exported by `crates/storage/src/lib.rs` | Four databases and retention jobs | Reuse mechanics; schemas, SQL, and retention selection stay application-owned. |
+| HTTP transport | `apiRequest`, `apiUpload`, `apiDownload` in `apps/web/src/api/request.ts` | Admin and module API packages | Reuse transport; keep URLs, DTOs, and shaping in the domain API module. |
+| Page hierarchy | `PageHeader`, `PageCard` in `apps/web/src/components/page/` | Dashboard/status and list/management routes | Reuse the mapped semantics and check current approval in `docs/ui/evaluation.yaml`. |
+| Query feedback and table surface | `DataState`, `DataTableState`, `DataTableShell`, `TablePagination` | System, management, and module lists | Reuse states and surface; keep filters and columns route-local until semantics repeat. |
+| Operational metrics | `MetricCard` in `apps/web/src/components/page/metric-card.tsx` | Monitoring and Analytics overviews | Reuse factual metrics; do not create module copies. |
+| Nullable locale date-time | `formatDateTime` in `apps/web/src/lib/format-date-time.ts` | Management and system tables | Reuse only for the same `null`/empty to `-` and locale-display contract. |
+| Module API envelope and page | `ApiResponse<T>`, `Page<T>`, and bounded pagination in `crates/ipc/src/response.rs` | Monitor, Insights, and Reports HTTP boundaries | Reuse only for the shared `{code,message,data}` and `{data,total,success}` wire contracts; Admin's historical top-level `total` stays local. |
+
+Before a new declaration, search the named owner, its export or registration,
+and representative consumers. Decide `reuse`, `extend`, `wrap`, justified
+`new`, or `Not verified`; a map miss is not proof that no implementation exists.
+
+## Former product references
+
+`docs/reference/legacy-module-comparison.md` fixes the current comparison basis
+for `rustzen-inspect`, `rustzen-analytics`, and `rustzen-report`. Those
+repositories are behavior references only. They are not current owners or
+package dependencies. New module work must select capabilities row by row and
+must not copy their duplicate Admin, auth, RBAC, deployment, or Web-shell code.
 
 ## Deployment and verification
 
@@ -126,10 +176,12 @@ authority unless an existing generated pipeline or an explicit task introduces o
 | --- | --- | --- |
 | `docs/README.md` | Documentation index. | You choose current guidance. |
 | `docs/architecture.md` | Current repository and runtime facts. | You need architecture or data flow. |
+| `docs/product/product.md` | Product positioning, current boundary, module purposes, non-goals, and deferred slices. | You make or verify a product-boundary decision. |
 | `docs/guides/` | Current development rules. | You edit backend, frontend, permission, or deployment behavior. |
+| `docs/guides/shared-capabilities.md` | Shared-code ownership and new-module intake gate. | You consider copying, extracting, or creating a shared declaration. |
 | `docs/reference/` | Optional deeper current context. | Current facts and guides are not enough. |
+| `docs/reference/legacy-module-comparison.md` | Fixed live-source comparison with former standalone products. | You decide which former behaviors to retain, reproduce, defer, or drop. |
 | `docs/history/` | Non-current plans and records. | You need historical rationale. |
-| `docs/product/product.md` | Product positioning, direction, module purposes, and non-goals. | You make or verify a product-boundary decision. |
 | `docs/ui/component-map.json` | Current shared-component candidates; not an accepted baseline while manifest approval is absent. | You consider a new shared component or change an existing semantic owner. |
 | `docs/ui/design-tokens.json` | Current visual-token owner mapping; verify live source before use. | You change product-wide visual semantics or themes. |
 
@@ -145,3 +197,14 @@ Run recipes from the repository root and inspect their current bodies in the
 | Run the complete repository check | `just check` |
 | Verify module topology, Manifests, gateway, and client route contracts | `just verify-services` |
 | Verify the debug module MVP runtime | `just verify-modules-mvp` |
+
+## High-risk and not-verified boundaries
+
+- Adding a fifth server changes the signed bundle, target units, health gates,
+  database backup/restore transaction, and rollback boundary.
+- Multi-project Analytics changes event identity, permissions, navigation, and
+  migration semantics.
+- Reports credentials, datasets, uploads, DSL expansion, suspend/resume, and
+  scheduling each require a separate product and failure-state specification.
+- Former repository runtime behavior is not verified by this map; re-run its
+  current tests and the selected `rustzen-admin` acceptance path before reuse.

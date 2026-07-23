@@ -4,6 +4,7 @@ import { EditIcon, PlusIcon, StopCircleIcon } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 import { appMessage, systemAPI } from "@/api";
+import { menuQueryOptions } from "@/api/system/menu/query-options";
 import { AuthWrap } from "@/components/auth";
 import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { DataTableState } from "@/components/feedback/data-state";
@@ -41,6 +42,7 @@ import {
 } from "@/components/ui/table";
 import { getEnableOptions, getMenuTypeOptions, getModuleIconOptions } from "@/constant/options";
 import { localizeBuiltInMenuName } from "@/lib/builtin-i18n";
+import { formatDateTime } from "@/lib/format-date-time";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/system/menu")({
@@ -214,8 +216,7 @@ const MenuDialog = ({ children, initialValues, mode = "create", onSuccess }: Men
     const [icon, setIcon] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const { data: menuOptions = [] } = useQuery({
-        queryKey: ["system", "menus", "options"],
-        queryFn: systemAPI.menu.options,
+        ...menuQueryOptions.options(),
         enabled: open && !isModuleOwned,
     });
     const selectableParents = useMemo(
@@ -505,11 +506,4 @@ function flattenMenuTree(items: Menu.Item[], depth = 0): FlatMenuItem[] {
         { ...item, depth },
         ...flattenMenuTree(item.children ?? [], depth + 1),
     ]);
-}
-
-function formatDateTime(value?: string | null) {
-    if (!value) {
-        return "-";
-    }
-    return new Date(value).toLocaleString();
 }

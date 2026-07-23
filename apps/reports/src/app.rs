@@ -1,9 +1,8 @@
 use std::{path::PathBuf, sync::Arc};
 
 use axum::{Json, Router, routing::get};
-use rustzen_ipc::{DelegationVerifier, ModuleDefinition, ModuleRouter};
+use rustzen_ipc::{DelegationVerifier, HealthResponse, ModuleDefinition, ModuleRouter};
 use rustzen_storage::SqlitePool;
-use serde_json::json;
 
 use crate::{config, features::automation, infra::db};
 
@@ -66,10 +65,8 @@ fn build_router(state: AppState, ipc_token: &str) -> Result<Router, rustzen_ipc:
         .with_state(state))
 }
 
-async fn health() -> Json<serde_json::Value> {
-    Json(
-        json!({"status":"ok","contractVersion":rustzen_ipc::CONTRACT_VERSION,"releaseVersion":env!("CARGO_PKG_VERSION")}),
-    )
+async fn health() -> Json<HealthResponse> {
+    Json(HealthResponse::ok(env!("CARGO_PKG_VERSION")))
 }
 
 #[cfg(test)]

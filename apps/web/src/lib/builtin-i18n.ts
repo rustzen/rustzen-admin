@@ -67,7 +67,6 @@ const permissionSegments: Record<string, string> = {
     module: "Module",
     status: "Status",
     manage: "Management",
-    dict: "Dictionary",
     log: "Log",
     task: "Task",
     deploy: "Deployment",
@@ -120,20 +119,6 @@ export const localizeBuiltInMenuName = (
     const segments = record.code.split(":").filter((segment) => segment !== "*");
     const localized = segments.map((segment) => permissionSegments[segment] ?? segment).join(" · ");
     return localized || record.name;
-};
-
-const builtInDictLabels: Record<string, [string, string]> = {
-    "user_status:1": ["启用", "Enabled"],
-    "user_status:2": ["禁用", "Disabled"],
-    "user_status:3": ["待审核", "Pending"],
-    "user_status:4": ["已锁定", "Locked"],
-    "role_type:1": ["系统角色", "System role"],
-    "role_type:2": ["自定义角色", "Custom role"],
-};
-
-export const localizeBuiltInDictLabel = (dictType: string, value: string, fallback: string) => {
-    const label = builtInDictLabels[`${dictType}:${value}`];
-    return label ? t(...label) : fallback;
 };
 
 const taskText: Record<string, { name: [string, string]; description: [string, string] }> = {

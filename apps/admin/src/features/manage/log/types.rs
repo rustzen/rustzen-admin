@@ -54,16 +54,3 @@ pub struct LogWriteCommand {
     pub ip_address: String,
     pub user_agent: String,
 }
-
-#[derive(Debug, Clone)]
-pub struct LogMetricsSummary {
-    pub total_requests: i64,
-    pub error_requests: i64,
-    pub avg_response_time: f64,
-}
-
-#[derive(Debug, Clone, sqlx::FromRow)]
-pub struct LogTrendPoint {
-    pub date: Option<String>,
-    pub count: Option<i64>,
-}

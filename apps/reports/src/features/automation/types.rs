@@ -152,14 +152,6 @@ pub struct SystemFilter {
     pub system_id: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Page<T> {
-    pub data: Vec<T>,
-    pub total: i64,
-    pub success: bool,
-}
-
 #[derive(Debug, Clone, FromRow, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {

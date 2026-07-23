@@ -1,5 +1,21 @@
-version: 1
-revision: 3
+version: 2
+revision: 5
+visual_source:
+  id: rustzen-admin-solid-surface-baseline
+  revision: 1
+  status: accepted
+  source: apps/web/src/styles/theme.css
+  rights_status: project-owned
+  use:
+    - semantic-light-dark-color-system
+    - compact-solid-surface-treatment
+    - restrained-radius-and-shadow
+    - application-shell-density
+  ignore:
+    - historical-glass-theme
+    - historical-ambient-background
+    - speculative-business-content
+    - unverified-metrics
 task:
   id: application-ui-standardization
   project: rustzen-admin
@@ -25,8 +41,8 @@ scope:
     - new-analytics
 facts:
   available:
-    - twenty-one-existing-routes
-    - existing-light-white-dark-storage-values
+    - twenty-existing-routes
+    - standard-light-dark-themes-with-legacy-storage-fallback
     - dashboard-stats
     - module-health
     - system-health
@@ -37,11 +53,8 @@ facts:
     - confidence-score
     - recommended-remediation
 references:
-  - id: rustzen-admin-product-foundation
-    use:
-      - product-boundary
-      - operator-audience
-      - operational-information-priority
+  - rustzen-admin-solid-surface-baseline
+  - rustzen-admin-product-foundation
 required_states:
   - loading
   - empty
@@ -55,7 +68,6 @@ validation:
   deterministic:
     - web-lint
     - web-typecheck
-    - web-test
     - web-build
     - all-routes-browser-review
     - light-dark-core-surface-review

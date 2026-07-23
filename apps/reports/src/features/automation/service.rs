@@ -1,4 +1,5 @@
 use chrono::Utc;
+use rustzen_ipc::{Page, Pagination};
 use rustzen_storage::SqlitePool;
 use serde_json::Value;
 use url::Url;
@@ -191,9 +192,10 @@ pub async fn create_run(pool: &SqlitePool, input: CreateRun) -> Result<Run, AppE
     run(pool, &id).await
 }
 pub async fn runs(pool: &SqlitePool, query: ListQuery) -> Result<Page<Run>, AppError> {
-    let (current, size) = pagination(query.current, query.page_size)?;
+    let page = Pagination::parse(query.current, query.page_size)
+        .map_err(|_| AppError::InvalidInput("invalid pagination".into()))?;
     let (data, total) =
-        repo::runs(pool, (current - 1) * size, size, query.status.as_deref()).await?;
+        repo::runs(pool, page.offset(), page.page_size(), query.status.as_deref()).await?;
     Ok(Page { data, total, success: true })
 }
 pub async fn run(pool: &SqlitePool, id: &str) -> Result<Run, AppError> {
@@ -233,16 +235,6 @@ fn required(value: String, name: &str, max: usize) -> Result<String, AppError> {
         Ok(value)
     }
 }
-fn pagination(current: Option<i64>, size: Option<i64>) -> Result<(i64, i64), AppError> {
-    let current = current.unwrap_or(1);
-    let size = size.unwrap_or(20);
-    if current < 1 || !(1..=100).contains(&size) {
-        Err(AppError::InvalidInput("invalid pagination".into()))
-    } else {
-        Ok((current, size))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use serde_json::json;

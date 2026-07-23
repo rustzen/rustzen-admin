@@ -1,43 +1,52 @@
-version: 1
+version: 2
 artifact:
   id: rustzen-admin-application-ui-standardization
-  revision: 6
+  revision: 11
 source:
   repository: rustzen-admin
-  ref: main
+  ref: refact/modules-mvp
+  visual_source_id: rustzen-admin-solid-surface-baseline
+  visual_source_revision: 1
 inputs:
-  profile_revision: 3
-  task_revision: 3
-  reference_revision: 3
+  profile_revision: 4
+  task_revision: 5
+  reference_revision: 4
+  tokens_revision: 5
+  component_map_revision: 4
+  evaluation_revision: 7
   rubric_revision: 1
-generation:
-  provider: not-used
-  model: not-used
-  generated_at: 2026-07-23T00:00:00+08:00
 outputs:
-  profile: docs/ui/profile.yaml
-  references: docs/ui/references.yaml
-  task: docs/ui/task.yaml
-  tokens: docs/ui/design-tokens.json
-  component_map: docs/ui/component-map.json
-  page_audit: docs/ui/page-audit.md
-  evaluation: docs/ui/evaluation.yaml
-hashes:
-  profile_sha256: 50f3bb67f90868c02f8b8076d3de4b517a94b77ece17ce9785bb7ad0c9ff9487
-  references_sha256: 41b4b9d4d5d6a15beefe06b3b99df0880a922d07ce52150e94c714641d4a819e
-  task_sha256: 38f3c650b562160e315c126d00cbd59f11d083606ee587ab18b28d6e4f646907
-  tokens_sha256: 127960c7f648ed2072f6b9c194d07d1691f894a17f0cfa58f57fc14538baec46
-  component_map_sha256: 6b507bdfa8356aa093b63f60017b5c7e8718ac063fa0fecfc154d3562dbb3239
-  page_audit_sha256: a1163109598b2b162e43ef3ecd6c801d6243c61ec74991d34c48b7b5b27461e3
-  evaluation_sha256: bbe1446e8c20965155801197d68458154109636dded7a80414e64eb5ba0004cb
+  profile:
+    root: task-local
+    path: profile.yaml
+    sha256: 3b3d306e3a3ecb2a556fbd01edf49593d408a3368601087e3733509642bcd538
+  references:
+    root: task-local
+    path: references.yaml
+    sha256: 1a756ae1d67bff6b7ab8f4ed3dc25ec4135e5dd6dda17d267dbd692236eb2945
+  task:
+    root: task-local
+    path: task.yaml
+    sha256: b8d7fcdda42c40f720646e5524e0d12f2cf79a412c1d02c928ef0a8460dca387
+  tokens:
+    root: task-local
+    path: design-tokens.json
+    sha256: 7d0e912029dd331fa715fc749c8c80d71e1b618ae7a3831642dbea466006e035
+  component_map:
+    root: task-local
+    path: component-map.json
+    sha256: 1018aaf2d92762d14adc855bb3601bfd62fe131861f04507a3e416bf4867ea34
+  evaluation:
+    root: task-local
+    path: evaluation.yaml
+    sha256: 3e51ba1ba927a5e5f04c9a92ce1cba07fd514c56086ba2e7e52e2e7ac8586edb
 evaluation:
   score: 97
-  status: verified
+  status: pending-human-approval
 approval:
   approved_by: null
   approved_at: null
-cost:
-  usd: 0
+effort:
   duration_minutes: 75
 rollback:
   accepted_revision: 3

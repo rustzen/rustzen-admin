@@ -29,7 +29,6 @@ import { Route as MonitoringNodesRouteImport } from './routes/monitoring/nodes'
 import { Route as MonitoringChecksRouteImport } from './routes/monitoring/checks'
 import { Route as ManageTaskRouteImport } from './routes/manage/task'
 import { Route as ManageLogRouteImport } from './routes/manage/log'
-import { Route as ManageDictRouteImport } from './routes/manage/dict'
 import { Route as ManageDeployRouteImport } from './routes/manage/deploy'
 import { Route as AnalyticsOverviewRouteImport } from './routes/analytics/overview'
 import { Route as AnalyticsDetailsRouteImport } from './routes/analytics/details'
@@ -134,11 +133,6 @@ const ManageLogRoute = ManageLogRouteImport.update({
   path: '/manage/log',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ManageDictRoute = ManageDictRouteImport.update({
-  id: '/manage/dict',
-  path: '/manage/dict',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ManageDeployRoute = ManageDeployRouteImport.update({
   id: '/manage/deploy',
   path: '/manage/deploy',
@@ -167,7 +161,6 @@ export interface FileRoutesByFullPath {
   '/analytics/details': typeof AnalyticsDetailsRoute
   '/analytics/overview': typeof AnalyticsOverviewRoute
   '/manage/deploy': typeof ManageDeployRoute
-  '/manage/dict': typeof ManageDictRoute
   '/manage/log': typeof ManageLogRoute
   '/manage/task': typeof ManageTaskRoute
   '/monitoring/checks': typeof MonitoringChecksRoute
@@ -193,7 +186,6 @@ export interface FileRoutesByTo {
   '/analytics/details': typeof AnalyticsDetailsRoute
   '/analytics/overview': typeof AnalyticsOverviewRoute
   '/manage/deploy': typeof ManageDeployRoute
-  '/manage/dict': typeof ManageDictRoute
   '/manage/log': typeof ManageLogRoute
   '/manage/task': typeof ManageTaskRoute
   '/monitoring/checks': typeof MonitoringChecksRoute
@@ -220,7 +212,6 @@ export interface FileRoutesById {
   '/analytics/details': typeof AnalyticsDetailsRoute
   '/analytics/overview': typeof AnalyticsOverviewRoute
   '/manage/deploy': typeof ManageDeployRoute
-  '/manage/dict': typeof ManageDictRoute
   '/manage/log': typeof ManageLogRoute
   '/manage/task': typeof ManageTaskRoute
   '/monitoring/checks': typeof MonitoringChecksRoute
@@ -248,7 +239,6 @@ export interface FileRouteTypes {
     | '/analytics/details'
     | '/analytics/overview'
     | '/manage/deploy'
-    | '/manage/dict'
     | '/manage/log'
     | '/manage/task'
     | '/monitoring/checks'
@@ -274,7 +264,6 @@ export interface FileRouteTypes {
     | '/analytics/details'
     | '/analytics/overview'
     | '/manage/deploy'
-    | '/manage/dict'
     | '/manage/log'
     | '/manage/task'
     | '/monitoring/checks'
@@ -300,7 +289,6 @@ export interface FileRouteTypes {
     | '/analytics/details'
     | '/analytics/overview'
     | '/manage/deploy'
-    | '/manage/dict'
     | '/manage/log'
     | '/manage/task'
     | '/monitoring/checks'
@@ -325,7 +313,6 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   ReportsRoute: typeof ReportsRouteWithChildren
   ManageDeployRoute: typeof ManageDeployRoute
-  ManageDictRoute: typeof ManageDictRoute
   ManageLogRoute: typeof ManageLogRoute
   ManageTaskRoute: typeof ManageTaskRoute
   SystemMenuRoute: typeof SystemMenuRoute
@@ -477,13 +464,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManageLogRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/manage/dict': {
-      id: '/manage/dict'
-      path: '/manage/dict'
-      fullPath: '/manage/dict'
-      preLoaderRoute: typeof ManageDictRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/manage/deploy': {
       id: '/manage/deploy'
       path: '/manage/deploy'
@@ -561,7 +541,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   ReportsRoute: ReportsRouteWithChildren,
   ManageDeployRoute: ManageDeployRoute,
-  ManageDictRoute: ManageDictRoute,
   ManageLogRoute: ManageLogRoute,
   ManageTaskRoute: ManageTaskRoute,
   SystemMenuRoute: SystemMenuRoute,

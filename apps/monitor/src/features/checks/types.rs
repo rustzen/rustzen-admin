@@ -81,14 +81,6 @@ pub(crate) struct ProbeResult {
     pub error: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct Page<T> {
-    pub data: Vec<T>,
-    pub total: i64,
-    pub success: bool,
-}
-
 #[derive(Debug, Clone)]
 pub(super) struct CheckExecution {
     pub status: &'static str,

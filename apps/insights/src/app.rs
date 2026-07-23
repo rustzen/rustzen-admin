@@ -2,7 +2,7 @@ use std::{error::Error, sync::Arc};
 
 use axum::{Json, Router, extract::State, routing::get};
 use rustzen_ipc::{
-    CONTRACT_VERSION, DelegationVerifier, ModuleDefinition, ModuleManifest, ModuleRouter,
+    DelegationVerifier, HealthResponse, ModuleDefinition, ModuleManifest, ModuleRouter,
 };
 use rustzen_storage::SqlitePool;
 
@@ -46,12 +46,8 @@ pub fn build_router(pool: SqlitePool, ipc_token: &str) -> StartupResult<Router> 
         .with_state(state))
 }
 
-async fn health() -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "status": "ok",
-        "contractVersion": CONTRACT_VERSION,
-        "releaseVersion": env!("CARGO_PKG_VERSION"),
-    }))
+async fn health() -> Json<HealthResponse> {
+    Json(HealthResponse::ok(env!("CARGO_PKG_VERSION")))
 }
 
 async fn runtime_manifest(State(state): State<AppState>) -> Json<ModuleManifest> {

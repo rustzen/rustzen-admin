@@ -21,7 +21,7 @@ and reference use, rather than serving as an isolated UI demo.
 The repository is organized as a monorepo:
 
 - `crates/auth/` contains shared auth and permission capabilities for Rust services
-- `crates/ipc/` contains the shared Manifest, route, and HMAC delegation contract
+- `crates/ipc/` contains shared module response and pagination, health, Manifest, route, and HMAC delegation contracts
 - `crates/storage/` contains shared SQLite pool and maintenance primitives
 - `apps/admin/` contains the Admin API, gateway, RBAC, release management, and Web asset host
 - `apps/monitor/` powers Monitoring and the optional managed-node Agent
@@ -55,6 +55,8 @@ This layout keeps backend, frontend, and repository rules explicit, making the c
 ## Documentation
 
 → Complete documentation index: [docs/README.md](./docs/README.md)
+
+→ Former standalone product comparison: [docs/reference/legacy-module-comparison.md](./docs/reference/legacy-module-comparison.md)
 
 ## Command Source
 

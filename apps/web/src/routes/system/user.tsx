@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/table";
 import { getEnableOptions } from "@/constant/options";
 import { localizeBuiltInRoleName, localizeBuiltInUserName } from "@/lib/builtin-i18n";
+import { formatDateTime } from "@/lib/format-date-time";
 import { t } from "@/lib/i18n";
 import { useAuthStore } from "@/store/useAuthStore";
 
@@ -791,11 +792,4 @@ function getUserInitial(record: User.Item) {
         ? localizeBuiltInUserName(record.username, record.realName)
         : record.realName || record.username;
     return name.slice(0, 1).toUpperCase();
-}
-
-function formatDateTime(value?: string | null) {
-    if (!value) {
-        return "-";
-    }
-    return new Date(value).toLocaleString();
 }

@@ -30,6 +30,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { localizeBuiltInTaskDescription, localizeBuiltInTaskName } from "@/lib/builtin-i18n";
+import { formatDateTime } from "@/lib/format-date-time";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/manage/task")({
@@ -321,11 +322,4 @@ function TaskStatusBadge({ status }: { status?: Task.RunStatus | null }) {
     };
     const meta = taskStatusMeta[status ?? "never"];
     return <Badge variant={meta.variant}>{meta.label}</Badge>;
-}
-
-function formatDateTime(value?: string | null) {
-    if (!value) {
-        return "-";
-    }
-    return new Date(value).toLocaleString();
 }

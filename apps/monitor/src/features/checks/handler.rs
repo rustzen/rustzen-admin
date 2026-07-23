@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use axum::extract::{Path, State};
-use rustzen_ipc::{ModuleJson, ModuleQuery};
+use rustzen_ipc::{ModuleJson, ModuleQuery, Page};
 use rustzen_storage::{SqliteMaintenancePlan, SqlitePool, run_sqlite_maintenance};
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
 use super::{
     service,
     types::{
-        Check, CheckResult, ListQuery, Page, ProbeResult, ResultQuery, SaveCheck, SetCheckEnabled,
+        Check, CheckResult, ListQuery, ProbeResult, ResultQuery, SaveCheck, SetCheckEnabled,
         TestCheck,
     },
 };

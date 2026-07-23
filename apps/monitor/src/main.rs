@@ -29,7 +29,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn run_controller_process() -> Result<(), Box<dyn std::error::Error>> {
     let config = config::controller();
-    init_process_timezone(config.timezone());
+    // SAFETY: this runs before Tokio creates worker threads.
+    unsafe { rustzen_config::initialize_process_timezone(config.timezone()) };
     let log_dir = config.log_dir();
     let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
     runtime.block_on(async move {
@@ -40,7 +41,8 @@ fn run_controller_process() -> Result<(), Box<dyn std::error::Error>> {
 
 fn run_agent_process() -> Result<(), Box<dyn std::error::Error>> {
     let config = config::agent();
-    init_process_timezone(config.timezone());
+    // SAFETY: this runs before Tokio creates worker threads.
+    unsafe { rustzen_config::initialize_process_timezone(config.timezone()) };
     let log_dir = config.log_dir();
     let endpoint = config.heartbeat_endpoint();
     let agent_token = config.monitor_agent_token.clone();
@@ -49,13 +51,6 @@ fn run_agent_process() -> Result<(), Box<dyn std::error::Error>> {
         let _logging = init_logging(log_dir)?;
         run_agent(endpoint, agent_token).await
     })
-}
-
-fn init_process_timezone(timezone: &str) {
-    // SAFETY: called in synchronous startup before the Tokio runtime creates worker threads.
-    unsafe {
-        std::env::set_var("TZ", timezone.trim());
-    }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]

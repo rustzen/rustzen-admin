@@ -14,10 +14,7 @@ use std::{net::SocketAddr, time::Instant};
 fn should_log(method: &Method, path: &str) -> bool {
     !matches!(
         (method, path),
-        (&Method::GET, "/api/dashboard/health")
-            | (&Method::GET, "/api/dashboard/metrics")
-            | (&Method::GET, "/api/dashboard/stats")
-            | (&Method::GET, "/api/dashboard/trends")
+        (&Method::GET, "/api/dashboard/stats") | (&Method::GET, "/api/dashboard/modules")
     )
 }
 
@@ -119,15 +116,14 @@ mod tests {
 
     #[test]
     fn should_log_skips_dashboard_read_endpoints() {
-        assert!(!should_log(&Method::GET, "/api/dashboard/health"));
-        assert!(!should_log(&Method::GET, "/api/dashboard/metrics"));
         assert!(!should_log(&Method::GET, "/api/dashboard/stats"));
-        assert!(!should_log(&Method::GET, "/api/dashboard/trends"));
+        assert!(!should_log(&Method::GET, "/api/dashboard/modules"));
     }
 
     #[test]
     fn should_log_keeps_business_and_non_get_requests() {
-        assert!(should_log(&Method::POST, "/api/dashboard/health"));
+        assert!(should_log(&Method::POST, "/api/dashboard/stats"));
         assert!(should_log(&Method::GET, "/api/system/user"));
+        assert!(should_log(&Method::PUT, "/api/system/modules/monitor/enabled"));
     }
 }

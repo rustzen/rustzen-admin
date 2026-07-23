@@ -43,6 +43,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { formatDateTime } from "@/lib/format-date-time";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/monitoring/nodes")({ component: MonitoringNodesPage });
@@ -114,9 +115,7 @@ function MonitoringNodesPage() {
                                             total={node.diskTotalBytes}
                                         />
                                     </TableCell>
-                                    <TableCell>
-                                        {new Date(node.lastSeenAt).toLocaleString()}
-                                    </TableCell>
+                                    <TableCell>{formatDateTime(node.lastSeenAt)}</TableCell>
                                     <TableCell className="text-right">
                                         <Button
                                             variant="outline"

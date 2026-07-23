@@ -1,10 +1,10 @@
-version: 1
-revision: 5
-status: verified
+version: 2
+revision: 7
+status: pending-human-approval
 deterministic:
   results:
     - check: ui-artifact-contract
-      result: pass-yaml-and-json-parse
+      result: pass-v2-schema-and-hash-validation
     - check: web-production-build
       result: pass
     - check: web-typecheck-and-lint
@@ -22,17 +22,19 @@ deterministic:
 hard_blockers: []
 scores:
   product_truth: 15
-  user_task: 15
-  information_architecture: 14
-  visual_coherence: 15
-  components_layout: 15
-  interaction_states: 9
+  source_fidelity: 15
+  information_architecture: 10
+  interaction_states: 13
+  responsive_accessibility: 14
+  component_token_mapping: 15
   engineering_fit: 10
-  evidence: 4
+  evidence: 5
 total: 97
-decision: pass
+decision: pending
 reviewer: codex-design-qa
 gaps:
-  - representative-core-surfaces-verified-not-all-twenty-one-routes
+  - representative-core-surfaces-verified-after-theme-convergence-not-all-twenty-routes-after-branch-integration
   - legacy-storage-fallback-source-verified-not-directly-inspected-in-browser-storage
-  - isolated-admin-runtime-emitted-an-existing-dashboard-average-response-column-decode-error
+  - human-approval-not-recorded-for-integrated-twenty-route-basis
+  - historical-global-package-does-not-contain-independent-contracts-for-every-domain
+promotion_approvals: []

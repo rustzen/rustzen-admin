@@ -1,6 +1,6 @@
 # UI Route Audit Matrix
 
-This matrix covers the current 21 frontend routes. The application `layout/`
+This matrix covers the current 20 frontend routes. The application `layout/`
 owns the global width boundary, `PageHeader` or `PageCard` owns page hierarchy,
 and `DataState` or `DataTableState` owns data feedback. Every route supports the
 standard light and dark themes.
@@ -8,7 +8,7 @@ standard light and dark themes.
 | # | Route | Surface | Current audit result |
 | ---: | --- | --- | --- |
 | 1 | `/login` | Sign-in | Uses one compact sign-in form with localized copy and no horizontal overflow. |
-| 2 | `/` | Dashboard | Uses one heading owner with consistent module, ledger, and resource-card surfaces. |
+| 2 | `/` | Dashboard | Uses one heading owner with account totals and module-health cards; detailed resources and trends stay on their owning routes. |
 | 3 | `/profile` | Detail | Uses one page heading with consistent account cards and localized dialogs. |
 | 4 | `/403` | Permission status | Reuses the permission-state component and preserves the return action. |
 | 5 | `/404` | Error status | Reuses the error-state component and preserves the return action. |
@@ -24,10 +24,9 @@ standard light and dark themes.
 | 15 | `/system/menu` | Tree list | Uses consistent tree hierarchy, table feedback, and localized actions. |
 | 16 | `/system/module` | Status list | Uses consistent module health, start/stop confirmation, and table feedback. |
 | 17 | `/system/status` | Resource overview | Uses one page heading with consistent storage and resource cards. |
-| 18 | `/manage/dict` | List and form | Uses consistent table feedback, actions, and delete confirmation. |
-| 19 | `/manage/log` | Filtered list | Uses consistent filters, status labels, common log descriptions, and table feedback. |
-| 20 | `/manage/task` | List and detail | Uses consistent task and run-log states, pagination, and confirmation. |
-| 21 | `/manage/deploy` | List and workflow | Uses consistent upload, deployment, expiry, cleanup, and table states. |
+| 18 | `/manage/log` | Filtered list | Uses consistent filters, status labels, common log descriptions, and table feedback. |
+| 19 | `/manage/task` | List and detail | Uses consistent task and run-log states, pagination, and confirmation. |
+| 20 | `/manage/deploy` | List and workflow | Uses consistent upload, deployment, expiry, cleanup, and table states. |
 
 ## Acceptance
 

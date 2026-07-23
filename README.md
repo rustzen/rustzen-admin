@@ -15,7 +15,7 @@
 仓库采用 monorepo 组织方式：
 
 - `crates/auth/` 包含 Rust 服务共享的认证与权限能力
-- `crates/ipc/` 包含共享 Manifest、路由和 HMAC 委托契约
+- `crates/ipc/` 包含共享模块响应与分页、健康响应、Manifest、路由和 HMAC 委托契约
 - `crates/storage/` 包含共享 SQLite 连接池和维护能力
 - `apps/admin/` 包含 Admin API、网关、RBAC、发布管理和 Web 资源托管
 - `apps/monitor/` 提供监控能力和可选的受管节点 Agent
@@ -49,6 +49,8 @@
 ## 文档
 
 → 完整文档索引：[docs/README.md](./docs/README.md)
+
+→ 旧独立仓库能力对比：[docs/reference/legacy-module-comparison.md](./docs/reference/legacy-module-comparison.md)
 
 ## 命令入口
 

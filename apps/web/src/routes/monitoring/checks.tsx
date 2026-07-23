@@ -7,6 +7,7 @@ import { appMessage, monitorAPI } from "@/api";
 import { AuthWrap } from "@/components/auth";
 import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { DataTableState } from "@/components/feedback/data-state";
+import { TextField } from "@/components/form/text-field";
 import { PageCard } from "@/components/page/page-card";
 import { DataTableShell } from "@/components/table/data-table-shell";
 import { TablePagination } from "@/components/table/table-pagination";
@@ -21,8 +22,6 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
     Table,
     TableBody,
@@ -31,6 +30,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { formatDateTime } from "@/lib/format-date-time";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/monitoring/checks")({ component: MonitoringChecksPage });
@@ -121,11 +121,7 @@ function MonitoringChecksPage() {
                                     <TableCell>
                                         {check.consecutiveFailures}/{check.failureThreshold}
                                     </TableCell>
-                                    <TableCell>
-                                        {check.lastCheckedAt
-                                            ? new Date(check.lastCheckedAt).toLocaleString()
-                                            : "-"}
-                                    </TableCell>
+                                    <TableCell>{formatDateTime(check.lastCheckedAt)}</TableCell>
                                     <TableCell>
                                         <AuthWrap code="monitor:check:manage">
                                             <div className="flex justify-end gap-1">
@@ -312,32 +308,42 @@ function CheckDialog({
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Field
+                    <TextField
+                        id="check-name"
                         label={t("名称", "Name")}
                         value={name}
                         onChange={setName}
-                        className="sm:col-span-2"
+                        containerClassName="sm:col-span-2"
                     />
-                    <Field label={t("主机", "Host")} value={host} onChange={setHost} />
-                    <Field
+                    <TextField
+                        id="check-host"
+                        label={t("主机", "Host")}
+                        value={host}
+                        onChange={setHost}
+                    />
+                    <TextField
+                        id="check-port"
                         label={t("端口", "Port")}
                         value={port}
                         onChange={setPort}
                         type="number"
                     />
-                    <Field
+                    <TextField
+                        id="check-interval"
                         label={t("间隔秒数", "Interval (seconds)")}
                         value={interval}
                         onChange={setInterval}
                         type="number"
                     />
-                    <Field
+                    <TextField
+                        id="check-timeout"
                         label={t("超时毫秒数", "Timeout (milliseconds)")}
                         value={timeout}
                         onChange={setTimeoutValue}
                         type="number"
                     />
-                    <Field
+                    <TextField
+                        id="check-threshold"
                         label={t("失败阈值", "Failure threshold")}
                         value={threshold}
                         onChange={setThreshold}
@@ -368,32 +374,5 @@ function CheckDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    );
-}
-
-function Field({
-    label,
-    value,
-    onChange,
-    type = "text",
-    className,
-}: {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    type?: "text" | "number";
-    className?: string;
-}) {
-    const id = `check-${label.toLowerCase().replaceAll(" ", "-")}`;
-    return (
-        <div className={`grid gap-2 ${className ?? ""}`}>
-            <Label htmlFor={id}>{label}</Label>
-            <Input
-                id={id}
-                type={type}
-                value={value}
-                onChange={(event) => onChange(event.target.value)}
-            />
-        </div>
     );
 }

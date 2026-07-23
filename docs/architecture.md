@@ -15,18 +15,46 @@ version and one rollback boundary.
 - `apps/insights/` owns Insights routes, behavior, and migrations.
 - `apps/reports/` owns Reports routes, behavior, migrations, and output files.
 - `apps/web/` owns the React UI and typed API clients.
-- `crates/ipc/` owns Manifest types, module route registration, and HMAC
-  delegation signing and verification.
+- `crates/ipc/` owns shared module response and pagination contracts, health
+  responses, Manifest types, module route registration, and HMAC delegation
+  signing and verification.
 - `crates/auth/` owns shared authentication types and capability policy.
 - `crates/config/` owns focused per-application `RUSTZEN_*` parsing and runtime
   path defaults.
 - `crates/storage/` owns shared SQLite connection and maintenance primitives.
+- `crates/runtime/` owns stable runtime-layout helpers and the compatible
+  daily-file logging mechanism used by Admin, Monitor, and Reports. It does not
+  own application lifecycle or process registration.
 - `deploy/` owns the installer, target, recovery unit, four server units, and
   the separately installed Monitor Agent unit.
 
 There is no runtime dependency on `rustzen-core` or `rz-core`, no registry or
 service discovery, and no dynamic module or independently published module
 version.
+
+## Product and module evolution
+
+`docs/product/product.md` is the current product-decision authority within its
+scope; source, this architecture, and current guides remain implementation
+truth. Automation is an internal Reports feature namespace; it is not a
+separately shipped module. Report Center is deferred and has no process,
+database, route, or permission owner.
+
+Former `rustzen-inspect`, `rustzen-analytics`, and `rustzen-report` repositories
+are live behavior references, not current implementation owners. A module
+expansion must use the fixed comparison in
+`docs/reference/legacy-module-comparison.md`, select capabilities individually,
+and implement them inside the current owner. Old authentication, RBAC, system
+management, deployment, runtime layout, and Web shell code must not be copied
+into a module because Admin and the current release bundle already own those
+contracts.
+
+Shared-code promotion follows `docs/guides/shared-capabilities.md`. Stable
+technical mechanisms may be shared after compatible real consumers and tests
+exist. Module models, calculations, statuses, SQL, migrations, schedules,
+retention selection, and business failure semantics remain application-owned.
+Adding a fifth server is a release-topology change, not an ordinary feature
+addition.
 
 ## Runtime topology
 

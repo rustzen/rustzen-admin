@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
 use rustzen_ipc::{
-    CONTRACT_VERSION, DelegationVerifier, ModuleDefinition, ModuleManifest, ModuleRouter, Require,
+    DelegationVerifier, HealthResponse, ModuleDefinition, ModuleManifest, ModuleRouter, Require,
 };
 use rustzen_storage::SqlitePool;
 
@@ -75,12 +75,8 @@ pub(crate) fn build_app(
     Ok((app, manifest))
 }
 
-async fn health() -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "status": "ok",
-        "contractVersion": CONTRACT_VERSION,
-        "releaseVersion": env!("CARGO_PKG_VERSION"),
-    }))
+async fn health() -> Json<HealthResponse> {
+    Json(HealthResponse::ok(env!("CARGO_PKG_VERSION")))
 }
 
 async fn runtime_manifest(State(state): State<AppState>) -> Json<ModuleManifest> {

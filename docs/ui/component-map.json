@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "revision": 3,
+  "version": 2,
+  "revision": 4,
   "components": {
     "application-shell": {"decision": "adapt", "source": "apps/web/src/components/layout/index.tsx", "reason": "Existing route, permission, search, theme, and account owner."},
     "sidebar": {"decision": "reuse", "source": "apps/web/src/components/ui/sidebar.tsx", "reason": "Existing shadcn-compatible responsive and collapse behavior."},

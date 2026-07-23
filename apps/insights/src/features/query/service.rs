@@ -1,4 +1,5 @@
 use chrono::{DateTime, Duration, Utc};
+use rustzen_ipc::Pagination;
 use rustzen_storage::SqlitePool;
 
 use crate::common::{api::Page, error::AppError};
@@ -41,12 +42,9 @@ async fn time_range(
 }
 
 fn pagination(current: Option<i64>, page_size: Option<i64>) -> Result<(i64, i64), AppError> {
-    let current = current.unwrap_or(1);
-    let page_size = page_size.unwrap_or(20);
-    if current < 1 || !(1..=100).contains(&page_size) {
-        return Err(AppError::bad_request("invalid pagination"));
-    }
-    Ok(((current - 1) * page_size, page_size))
+    let page = Pagination::parse(current, page_size)
+        .map_err(|_| AppError::bad_request("invalid pagination"))?;
+    Ok((page.offset(), page.page_size()))
 }
 
 fn clean_filter(value: Option<String>) -> Option<String> {

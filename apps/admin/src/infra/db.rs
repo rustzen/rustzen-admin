@@ -98,14 +98,3 @@ pub async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::migrate::Migr
     tracing::info!("Embedded database migrations completed successfully.");
     Ok(())
 }
-
-/// Runs startup data migrations that depend on the migrated SQLite schema.
-///
-/// # Errors
-///
-/// Returns a `sqlx::Error` if a startup data migration fails.
-#[tracing::instrument(name = "run_startup_data_migrations", skip(pool))]
-pub async fn run_startup_data_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
-    let _ = pool;
-    Ok(())
-}

@@ -14,7 +14,7 @@ This audit records the current JSON naming boundary. Source code takes precedenc
 Current backend files with `#[serde(rename_all = "camelCase")]` include:
 
 - Admin boundary types under `apps/admin/src/features/`, including auth,
-  account, dashboard, deploy, dictionary, log, task, module, menu, role,
+  account, dashboard, deploy, log, task, module, menu, role,
   status, and user contracts
 - Monitor boundary types under `apps/monitor/src/features/heartbeat/` and
   `apps/monitor/src/features/nodes/`

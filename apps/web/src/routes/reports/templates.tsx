@@ -4,6 +4,7 @@ import { CopyIcon, Globe2Icon, PencilIcon, PlusIcon, Trash2Icon } from "lucide-r
 import { useEffect, useState } from "react";
 
 import { appMessage, reportsAPI } from "@/api";
+import { reportsQueryKeys, reportsQueryOptions } from "@/api/reports/query-options";
 import { AuthWrap } from "@/components/auth";
 import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
 import { DataTableState } from "@/components/feedback/data-state";
@@ -37,6 +38,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { formatDateTime } from "@/lib/format-date-time";
 import { t } from "@/lib/i18n";
 export const Route = createFileRoute("/reports/templates")({ component: FlowsPage });
 const example: Reports.FlowStep[] = [
@@ -49,21 +51,10 @@ const example: Reports.FlowStep[] = [
 ];
 function FlowsPage() {
     const client = useQueryClient();
-    const { data: systems = [] } = useQuery({
-        queryKey: ["reports", "systems"],
-        queryFn: reportsAPI.systems,
-    });
-    const {
-        data: flows = [],
-        error,
-        isPending,
-        refetch,
-    } = useQuery({
-        queryKey: ["reports", "flows"],
-        queryFn: () => reportsAPI.flows(),
-    });
-    const refresh = () => client.invalidateQueries({ queryKey: ["reports", "flows"] });
-    const refreshSystems = () => client.invalidateQueries({ queryKey: ["reports", "systems"] });
+    const { data: systems = [] } = useQuery(reportsQueryOptions.systems());
+    const { data: flows = [], error, isPending, refetch } = useQuery(reportsQueryOptions.flows());
+    const refresh = () => client.invalidateQueries({ queryKey: reportsQueryKeys.flows() });
+    const refreshSystems = () => client.invalidateQueries({ queryKey: reportsQueryKeys.systems() });
     const clone = useMutation({
         mutationFn: (flow: Reports.Flow) =>
             reportsAPI.createFlow({
@@ -115,9 +106,7 @@ function FlowsPage() {
                                             flow.systemId}
                                     </TableCell>
                                     <TableCell>{flow.steps.length}</TableCell>
-                                    <TableCell>
-                                        {new Date(flow.updatedAt).toLocaleString()}
-                                    </TableCell>
+                                    <TableCell>{formatDateTime(flow.updatedAt)}</TableCell>
                                     <TableCell>
                                         <AuthWrap code="reports:flow:manage">
                                             <div className="flex justify-end gap-1">

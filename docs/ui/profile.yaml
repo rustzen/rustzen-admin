@@ -1,5 +1,21 @@
-version: 1
-revision: 3
+version: 2
+revision: 4
+visual_source:
+  id: rustzen-admin-solid-surface-baseline
+  revision: 1
+  status: accepted
+  source: apps/web/src/styles/theme.css
+  rights_status: project-owned
+  use:
+    - semantic-light-dark-color-system
+    - compact-solid-surface-treatment
+    - restrained-radius-and-shadow
+    - application-shell-density
+  ignore:
+    - historical-glass-theme
+    - historical-ambient-background
+    - speculative-business-content
+    - unverified-metrics
 product:
   name: rustzen-admin
   type: operations-console

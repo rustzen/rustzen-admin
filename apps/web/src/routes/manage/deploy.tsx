@@ -33,6 +33,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { formatDateTime } from "@/lib/format-date-time";
 import { t } from "@/lib/i18n";
 
 export const Route = createFileRoute("/manage/deploy")({
@@ -527,11 +528,4 @@ function formatFileSize(value: number) {
         return `${(value / 1024).toFixed(1)} KB`;
     }
     return `${(value / 1024 / 1024).toFixed(1)} MB`;
-}
-
-function formatDateTime(value?: string | null) {
-    if (!value) {
-        return "-";
-    }
-    return new Date(value).toLocaleString();
 }

@@ -2,6 +2,7 @@
 
 mod delegation;
 mod extract;
+mod health;
 mod manifest;
 mod router;
 
@@ -11,6 +12,7 @@ pub use delegation::{
     IPC_REQUEST_ID_HEADER, IPC_SIGNATURE_HEADER, IPC_TIMESTAMP_HEADER, IPC_USER_ID_HEADER,
 };
 pub use extract::{ModuleInputRejection, ModuleJson, ModuleJsonRejection, ModuleQuery};
+pub use health::HealthResponse;
 pub use manifest::{
     AccessMode, ManifestError, MenuDefinition, ModuleDefinition, ModuleManifest, ModuleMetadata,
     RouteManifest,

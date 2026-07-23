@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { appMessage, systemAPI } from "@/api";
 import { AuthWrap } from "@/components/auth";
 import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
-import { DataTableState } from "@/components/feedback/data-state";
+import { DataState, DataTableState } from "@/components/feedback/data-state";
 import { TextField } from "@/components/form/text-field";
 import { PageCard } from "@/components/page/page-card";
 import { DataTableShell } from "@/components/table/data-table-shell";
@@ -440,11 +440,24 @@ const UserDialog = ({ children, initialValues, mode = "create", onSuccess }: Use
     const [status, setStatus] = useState("1");
     const [roleIds, setRoleIds] = useState<number[]>([]);
     const [submitting, setSubmitting] = useState(false);
-    const { data: roleOptions = [] } = useQuery({
+    const {
+        data: roleOptions,
+        error: roleError,
+        isError: roleLoadFailed,
+        isPending: roleLoading,
+        isFetching: roleRefreshing,
+        refetch: refetchRoles,
+    } = useQuery({
         queryKey: ["system", "roles", "options"],
         queryFn: systemAPI.role.options,
         enabled: open,
     });
+    const roleInitialError = roleLoadFailed && roleOptions === undefined ? roleError : null;
+    const rolePermissionDenied =
+        roleInitialError instanceof Response &&
+        (roleInitialError.status === 401 || roleInitialError.status === 403);
+    const roleReady = roleOptions !== undefined && roleOptions.length > 0;
+    const submitDisabled = submitting || !roleReady || roleIds.length === 0;
 
     useEffect(() => {
         if (open) {
@@ -584,13 +597,30 @@ const UserDialog = ({ children, initialValues, mode = "create", onSuccess }: Use
                             </Select>
                         </div>
                     )}
-                    <RolePicker options={roleOptions} value={roleIds} onChange={setRoleIds} />
+                    <RolePicker
+                        options={roleOptions ?? []}
+                        value={roleIds}
+                        onChange={setRoleIds}
+                        loading={roleLoading && roleOptions === undefined}
+                        error={roleInitialError}
+                        permissionDenied={rolePermissionDenied}
+                        onRetry={async () => {
+                            await refetchRoles();
+                        }}
+                        retrying={roleRefreshing}
+                    />
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                             {t("取消", "Cancel")}
                         </Button>
-                        <Button type="submit" disabled={submitting}>
-                            {mode === "create" ? t("创建", "Create") : t("保存", "Save")}
+                        <Button type="submit" disabled={submitDisabled}>
+                            {submitting
+                                ? mode === "create"
+                                    ? t("创建中", "Creating")
+                                    : t("保存中", "Saving")
+                                : mode === "create"
+                                  ? t("创建", "Create")
+                                  : t("保存", "Save")}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -603,10 +633,20 @@ function RolePicker({
     options,
     value,
     onChange,
+    loading,
+    error,
+    permissionDenied,
+    onRetry,
+    retrying,
 }: {
     options: Role.OptionItem[];
     value: number[];
     onChange: (value: number[]) => void;
+    loading: boolean;
+    error: unknown;
+    permissionDenied: boolean;
+    onRetry?: () => Promise<void> | void;
+    retrying: boolean;
 }) {
     const toggleRole = (roleId: number, checked: boolean) => {
         if (checked) {
@@ -616,31 +656,85 @@ function RolePicker({
         onChange(value.filter((item) => item !== roleId));
     };
 
+    if (loading) {
+        return (
+            <div className="grid gap-2">
+                <Label>{t("角色", "Roles")}</Label>
+                <div className="max-h-40 overflow-auto rounded-md border p-3">
+                    <DataState compact kind="loading" title={t("正在加载角色", "Loading roles")} />
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="grid gap-2">
+                <Label>{t("角色", "Roles")}</Label>
+                <div className="max-h-40 overflow-auto rounded-md border p-3">
+                    <DataState
+                        compact
+                        kind={permissionDenied ? "permission" : "error"}
+                        title={t(
+                            permissionDenied ? "角色加载失败或无权限" : "角色加载失败",
+                            permissionDenied
+                                ? "Failed to load roles or insufficient permission"
+                                : "Failed to load roles",
+                        )}
+                        description={t(
+                            "角色加载失败，请重试；若仍无权限，请联系管理员。",
+                            "Failed to load roles. Retry, or contact an owner if access is still unavailable.",
+                        )}
+                        action={
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => void onRetry?.()}
+                                disabled={retrying}
+                            >
+                                {t("重新加载", "Reload")}
+                            </Button>
+                        }
+                    />
+                </div>
+            </div>
+        );
+    }
+
+    if (options.length === 0) {
+        return (
+            <div className="grid gap-2">
+                <Label>{t("角色", "Roles")}</Label>
+                <div className="max-h-40 overflow-auto rounded-md border p-3">
+                    <DataState
+                        compact
+                        kind="empty"
+                        title={t("暂无可分配角色", "No roles available to assign")}
+                    />
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="grid gap-2">
             <Label>{t("角色", "Roles")}</Label>
             <div className="max-h-40 overflow-auto rounded-md border p-3">
-                {options.length > 0 ? (
-                    <div className="grid gap-3">
-                        {options.map((role) => (
-                            <Label key={role.value} className="justify-start">
-                                <Checkbox
-                                    checked={value.includes(role.value)}
-                                    onCheckedChange={(checked) =>
-                                        toggleRole(role.value, checked === true)
-                                    }
-                                />
-                                {role.isSystem
-                                    ? localizeBuiltInRoleName(role.code, role.label)
-                                    : role.label}
-                            </Label>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-sm text-muted-foreground">
-                        {t("暂无可用角色。", "No roles available.")}
-                    </div>
-                )}
+                <div className="grid gap-3">
+                    {options.map((role) => (
+                        <Label key={role.value} className="justify-start">
+                            <Checkbox
+                                checked={value.includes(role.value)}
+                                onCheckedChange={(checked) =>
+                                    toggleRole(role.value, checked === true)
+                                }
+                            />
+                            {role.isSystem
+                                ? localizeBuiltInRoleName(role.code, role.label)
+                                : role.label}
+                        </Label>
+                    ))}
+                </div>
             </div>
         </div>
     );

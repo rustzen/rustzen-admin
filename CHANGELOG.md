@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `docs/product/product.md` as the current product foundation and fact
+  source for positioning, direction, module purposes, and product non-goals.
+- Added independently consumable product specifications for role definition
+  management and user role-assignment readiness.
+
+### Changed
+
+- Repositioned `rustzen-admin` as a self-hosted product first and a structured
+  Rust full-stack reference implementation second.
+- Enforced non-empty user-role and custom-role permission assignments at the
+  backend boundary, and limited role options to roles the current operator may
+  assign.
+
 ## [0.5.0] - 2026-07-02
 
 ### Added

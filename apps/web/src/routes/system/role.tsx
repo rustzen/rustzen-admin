@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { appMessage, systemAPI } from "@/api";
 import { AuthWrap } from "@/components/auth";
 import { ConfirmDialog } from "@/components/feedback/confirm-dialog";
-import { DataTableState } from "@/components/feedback/data-state";
+import { DataState, DataTableState } from "@/components/feedback/data-state";
 import { TextField } from "@/components/form/text-field";
 import { TextareaField } from "@/components/form/textarea-field";
 import { PageCard } from "@/components/page/page-card";
@@ -317,14 +317,23 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
     const [menuIds, setMenuIds] = useState<number[]>([]);
     const [permissionSearch, setPermissionSearch] = useState("");
     const [submitting, setSubmitting] = useState(false);
-    const { data: menuOptions = [] } = useQuery({
+    const {
+        data: menuOptions,
+        error: permissionError,
+        isError: permissionLoadFailed,
+        isPending: permissionLoading,
+        isFetching: permissionRefreshing,
+        refetch: refetchPermissions,
+    } = useQuery({
         queryKey: ["system", "menus", "options"],
         queryFn: systemAPI.menu.options,
         enabled: open,
     });
+    const permissionInitialError =
+        permissionLoadFailed && menuOptions === undefined ? permissionError : null;
     const permissionOptions = useMemo(
         () =>
-            menuOptions
+            (menuOptions ?? [])
                 .filter((option) => option.value !== 0 && isAssignableRolePermission(option.code))
                 .map((option) => ({
                     key: option.value,
@@ -339,6 +348,17 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
                 })),
         [menuOptions],
     );
+    const permissionReady = menuOptions !== undefined && permissionOptions.length > 0;
+    const trimmedName = name.trim();
+    const trimmedCode = code.trim();
+    const roleFieldsReady =
+        trimmedName.length >= 2 &&
+        trimmedName.length <= 50 &&
+        trimmedCode.length >= 2 &&
+        trimmedCode.length <= 50 &&
+        /^[a-zA-Z_]+$/.test(trimmedCode);
+    const submitDisabled =
+        submitting || !permissionReady || !roleFieldsReady || menuIds.length === 0;
     const filteredPermissions = useMemo(() => {
         const query = permissionSearch.trim().toLowerCase();
         if (!query) {
@@ -467,11 +487,18 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
                     </div>
                     <PermissionPicker
                         options={filteredPermissions}
+                        hasAssignablePermissions={permissionOptions.length > 0}
                         selectedCount={menuIds.length}
                         search={permissionSearch}
                         value={menuIds}
+                        loading={permissionLoading && menuOptions === undefined}
+                        error={permissionInitialError}
+                        retrying={permissionRefreshing}
                         onSearchChange={setPermissionSearch}
                         onChange={setMenuIds}
+                        onRetry={async () => {
+                            await refetchPermissions();
+                        }}
                     />
                     <div className="grid gap-1">
                         <TextareaField
@@ -490,8 +517,14 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                             {t("取消", "Cancel")}
                         </Button>
-                        <Button type="submit" disabled={submitting}>
-                            {mode === "create" ? t("创建", "Create") : t("保存", "Save")}
+                        <Button type="submit" disabled={submitDisabled}>
+                            {submitting
+                                ? mode === "create"
+                                    ? t("创建中", "Creating")
+                                    : t("保存中", "Saving")
+                                : mode === "create"
+                                  ? t("创建", "Create")
+                                  : t("保存", "Save")}
                         </Button>
                     </DialogFooter>
                 </form>
@@ -502,18 +535,28 @@ const RoleDialog = ({ children, record, mode = "create", onSuccess }: RoleDialog
 
 function PermissionPicker({
     options,
+    hasAssignablePermissions,
     selectedCount,
     search,
     value,
+    loading,
+    error,
+    retrying,
     onSearchChange,
     onChange,
+    onRetry,
 }: {
     options: { key: number; title: string; code: string }[];
+    hasAssignablePermissions: boolean;
     selectedCount: number;
     search: string;
     value: number[];
+    loading: boolean;
+    error: unknown;
+    retrying: boolean;
     onSearchChange: (value: string) => void;
     onChange: (value: number[]) => void;
+    onRetry?: () => Promise<void> | void;
 }) {
     const togglePermission = (permissionId: number, checked: boolean) => {
         if (checked) {
@@ -531,34 +574,70 @@ function PermissionPicker({
                     {t(`已选择 ${selectedCount} 项`, `${selectedCount} selected`)}
                 </span>
             </div>
-            <Input
-                value={search}
-                placeholder={t("搜索权限", "Search permissions")}
-                onChange={(event) => onSearchChange(event.target.value)}
-            />
             <div className="max-h-72 overflow-auto rounded-md border p-3">
-                {options.length > 0 ? (
-                    <div className="grid gap-3 md:grid-cols-2">
-                        {options.map((option) => (
-                            <Label key={option.key} className="items-start justify-start">
-                                <Checkbox
-                                    checked={value.includes(option.key)}
-                                    onCheckedChange={(checked) =>
-                                        togglePermission(option.key, checked === true)
-                                    }
-                                />
-                                <span className="grid gap-1">
-                                    <span>{option.title}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                        {option.code}
-                                    </span>
-                                </span>
-                            </Label>
-                        ))}
-                    </div>
+                {loading ? (
+                    <DataState
+                        compact
+                        kind="loading"
+                        title={t("正在加载权限", "Loading permissions")}
+                    />
+                ) : error ? (
+                    <DataState
+                        compact
+                        kind="error"
+                        title={t("权限加载失败", "Failed to load permissions")}
+                        description={t(
+                            "请重新加载；若仍无权限，请联系所有者。",
+                            "Reload, or contact an owner if access is still unavailable.",
+                        )}
+                        action={
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => void onRetry?.()}
+                                disabled={retrying}
+                            >
+                                {t("重新加载", "Reload")}
+                            </Button>
+                        }
+                    />
+                ) : !hasAssignablePermissions ? (
+                    <DataState
+                        compact
+                        kind="empty"
+                        title={t("暂无可分配权限", "No permissions available to assign")}
+                    />
                 ) : (
-                    <div className="text-sm text-muted-foreground">
-                        {t("未找到可分配权限。", "No assignable permissions found.")}
+                    <div className="grid gap-3">
+                        <Input
+                            value={search}
+                            placeholder={t("搜索权限", "Search permissions")}
+                            onChange={(event) => onSearchChange(event.target.value)}
+                        />
+                        {options.length > 0 ? (
+                            <div className="grid gap-3 md:grid-cols-2">
+                                {options.map((option) => (
+                                    <Label key={option.key} className="items-start justify-start">
+                                        <Checkbox
+                                            checked={value.includes(option.key)}
+                                            onCheckedChange={(checked) =>
+                                                togglePermission(option.key, checked === true)
+                                            }
+                                        />
+                                        <span className="grid gap-1">
+                                            <span>{option.title}</span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {option.code}
+                                            </span>
+                                        </span>
+                                    </Label>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-sm text-muted-foreground">
+                                {t("未找到匹配权限。", "No matching permissions found.")}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

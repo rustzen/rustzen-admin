@@ -130,6 +130,7 @@ impl RoleService {
         pool: &SqlitePool,
         menu_ids: &[i64],
     ) -> Result<(), ServiceError> {
+        ensure_role_has_permissions(menu_ids)?;
         let menu_codes = RoleRepository::list_menu_codes_by_ids(pool, menu_ids).await?;
         ensure_menu_codes_assignable(&menu_codes)
     }
@@ -137,12 +138,19 @@ impl RoleService {
     /// Get role options for dropdowns
     pub async fn get_role_options(
         pool: &SqlitePool,
+        current_user_id: i64,
         query: OptionsQuery,
     ) -> Result<Vec<RoleOptionResp>, ServiceError> {
         tracing::info!("Retrieving role options: {:?}", query);
+        let can_assign_owner = crate::infra::permission::PermissionService::has_permission(
+            current_user_id,
+            SYSTEM_WILDCARD,
+        )
+        .await?;
         Ok(RoleRepository::list_role_options(pool, query.q.as_deref(), query.limit)
             .await?
             .into_iter()
+            .filter(|(_, _, code, _)| can_assign_owner || code != OWNER_ROLE_CODE)
             .map(|(id, name, code, is_system)| RoleOptionResp {
                 label: name,
                 value: id,
@@ -151,6 +159,15 @@ impl RoleService {
             })
             .collect())
     }
+}
+
+fn ensure_role_has_permissions(menu_ids: &[i64]) -> Result<(), ServiceError> {
+    if menu_ids.is_empty() {
+        return Err(ServiceError::InvalidOperation(
+            "A custom role requires at least one permission.".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 fn ensure_menu_codes_assignable(menu_codes: &[String]) -> Result<(), ServiceError> {
@@ -220,6 +237,13 @@ mod tests {
     }
 
     #[test]
+    fn custom_roles_require_at_least_one_permission() {
+        let error = ensure_role_has_permissions(&[]).expect_err("empty role should be rejected");
+        assert!(matches!(error, ServiceError::InvalidOperation(_)));
+        assert!(ensure_role_has_permissions(&[1]).is_ok());
+    }
+
+    #[test]
     fn builtin_role_codes_cannot_be_used_by_generic_role_forms() {
         let reserved_error =
             ensure_builtin_role_code_is_reserved(OWNER_ROLE_CODE).expect_err("owner is reserved");
@@ -239,5 +263,43 @@ mod tests {
             Err(ServiceError::RoleIsSystem)
         ));
         assert!(ensure_role_identity_is_mutable("ops_viewer", false).is_ok());
+    }
+
+    #[tokio::test]
+    async fn role_options_only_include_roles_assignable_by_the_current_user() {
+        let pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .expect("in-memory sqlite pool");
+        crate::infra::db::run_migrations(&pool).await.expect("migrations");
+
+        let admin_user_id = 90_001;
+        crate::infra::permission::PermissionService::cache_user_permissions(
+            admin_user_id,
+            &["system:role:options".to_string()],
+        );
+        let admin_options = RoleService::get_role_options(
+            &pool,
+            admin_user_id,
+            OptionsQuery { q: None, limit: None },
+        )
+        .await
+        .expect("admin options");
+        assert!(!admin_options.iter().any(|role| role.code == OWNER_ROLE_CODE));
+
+        let owner_user_id = 90_002;
+        crate::infra::permission::PermissionService::cache_user_permissions(
+            owner_user_id,
+            &[SYSTEM_WILDCARD.to_string()],
+        );
+        let owner_options = RoleService::get_role_options(
+            &pool,
+            owner_user_id,
+            OptionsQuery { q: None, limit: None },
+        )
+        .await
+        .expect("owner options");
+        assert!(owner_options.iter().any(|role| role.code == OWNER_ROLE_CODE));
     }
 }

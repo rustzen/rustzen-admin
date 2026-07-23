@@ -31,7 +31,7 @@ pub struct CreateUserRequest {
     pub real_name: Option<String>,
     /// User status: Defaults to 1.
     pub status: Option<i16>,
-    /// A list of role IDs to assign to the user. If empty, will use default role.
+    /// A non-empty list of role IDs to assign to the user.
     #[serde(default)]
     pub role_ids: Vec<i64>,
 }

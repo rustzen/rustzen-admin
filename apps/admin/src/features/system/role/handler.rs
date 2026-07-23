@@ -53,8 +53,11 @@ pub async fn delete_role(
 
 /// Get role options for dropdowns
 pub async fn get_role_options(
+    current_user: CurrentUser,
     State(pool): State<SqlitePool>,
     Query(query): Query<OptionsQuery>,
 ) -> AppResult<Vec<RoleOptionResp>> {
-    Ok(ApiResponse::success(RoleService::get_role_options(&pool, query).await?))
+    Ok(ApiResponse::success(
+        RoleService::get_role_options(&pool, current_user.user_id, query).await?,
+    ))
 }

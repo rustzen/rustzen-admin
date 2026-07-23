@@ -211,9 +211,7 @@ impl UserService {
         current_user_id: i64,
         role_ids: &[i64],
     ) -> Result<(), ServiceError> {
-        if role_ids.is_empty() {
-            return Ok(());
-        }
+        ensure_user_has_roles(role_ids)?;
 
         let roles = UserRepository::list_role_identities_by_ids(pool, role_ids).await?;
         if roles.len() != role_ids.iter().copied().collect::<std::collections::HashSet<_>>().len() {
@@ -230,6 +228,15 @@ impl UserService {
 
         Ok(())
     }
+}
+
+fn ensure_user_has_roles(role_ids: &[i64]) -> Result<(), ServiceError> {
+    if role_ids.is_empty() {
+        return Err(ServiceError::InvalidOperation(
+            "A user requires at least one role.".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 fn role_requires_owner_permission(role_code: &str) -> bool {
@@ -249,6 +256,13 @@ mod tests {
         assert!(role_requires_owner_permission("owner"));
         assert!(!role_requires_owner_permission("admin"));
         assert!(!role_requires_owner_permission("viewer"));
+    }
+
+    #[test]
+    fn users_require_at_least_one_role() {
+        let error = ensure_user_has_roles(&[]).expect_err("empty role assignment should fail");
+        assert!(matches!(error, ServiceError::InvalidOperation(_)));
+        assert!(ensure_user_has_roles(&[1]).is_ok());
     }
 
     #[test]
